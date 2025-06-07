@@ -1,22 +1,51 @@
 <script lang="ts">
+	import Section from '$components/Section.svelte';
 	import { SettingsService } from '$lib/config/appSettingsV2';
 	import {
 		assignmentEnabled,
 		confettiEnabled,
+		workspaceSwapPanels,
 		ircEnabled,
 		ircServer
 	} from '$lib/config/uiFeatureFlags';
 	import { User } from '$lib/user/user';
 	import { getContext, getContextStore } from '@gitbutler/shared/context';
+	import RadioButton from '@gitbutler/ui/RadioButton.svelte';
 	import SectionCard from '@gitbutler/ui/SectionCard.svelte';
+	import Spacer from '@gitbutler/ui/Spacer.svelte';
 	import Textbox from '@gitbutler/ui/Textbox.svelte';
 	import Toggle from '@gitbutler/ui/Toggle.svelte';
 	import Link from '@gitbutler/ui/link/Link.svelte';
+	import { onMount } from 'svelte';
 
 	const settingsService = getContext(SettingsService);
 	const settingsStore = settingsService.appSettings;
 
 	const user = getContextStore(User);
+
+	let panelsForm = $state<HTMLFormElement>();
+
+	// Get the value from the store to match the type
+	let selectedType: 'dont-swap-panels' | 'swap-middle-to-right' | 'swap-middle-to-left' =
+		$workspaceSwapPanels;
+
+	onMount(() => {
+		if (panelsForm) {
+			panelsForm.panelsSwapMode.value = selectedType;
+		}
+	});
+
+	function onPanelsFormChange(form: HTMLFormElement) {
+		const formData = new FormData(form);
+		selectedType = formData.get('panelsSwapMode') as
+			| 'dont-swap-panels'
+			| 'swap-middle-to-right'
+			| 'swap-middle-to-left';
+		workspaceSwapPanels.set(selectedType);
+		if (panelsForm) {
+			panelsForm.panelsSwapMode.value = selectedType;
+		}
+	}
 </script>
 
 <p class="text-12 text-body experimental-settings__text">
@@ -40,8 +69,8 @@
 				>.
 			</p>
 
-			<p class="text-clr2">Known issues:</p>
-			<ul class="text-clr2">
+			<p class="clr-text-2">Known issues:</p>
+			<ul class="clr-text-2">
 				<li>- A restart may be needed for the change to fully take effect</li>
 				<li>
 					- It is currently not possible to assign uncommitted changes to a lane
@@ -59,12 +88,12 @@
 		{/snippet}
 	</SectionCard>
 
-	<SectionCard labelFor="assignments" roundedTop={false} orientation="row">
+	<SectionCard labelFor="assignments" roundedTop={false} roundedBottom={false} orientation="row">
 		{#snippet title()}
 			Assign uncommitted changes
 		{/snippet}
 		{#snippet caption()}
-			<p>When enabled you can assign uncommitted changes to branches (stacks).</p>
+			When enabled you can assign uncommitted changes to branches (stacks).
 		{/snippet}
 
 		{#snippet actions()}
@@ -76,17 +105,12 @@
 		{/snippet}
 	</SectionCard>
 
-	<SectionCard
-		labelFor="confetti"
-		roundedTop={false}
-		roundedBottom={$user?.role !== 'admin'}
-		orientation="row"
-	>
+	<SectionCard labelFor="confetti" roundedTop={false} roundedBottom={false} orientation="row">
 		{#snippet title()}
 			Confetti
 		{/snippet}
 		{#snippet caption()}
-			<p>Mom's spaghetti, who want's some confetti? 🎉</p>
+			Mom's spaghetti, who want's some confetti? 🎉
 		{/snippet}
 
 		{#snippet actions()}
@@ -98,13 +122,74 @@
 		{/snippet}
 	</SectionCard>
 
-	{#if $user?.role === 'admin'}
-		<SectionCard
-			labelFor="gitbutler-actions"
-			roundedTop={false}
-			roundedBottom={false}
-			orientation="row"
+	<Spacer margin={20} />
+
+	<Section>
+		{#snippet title()}
+			Swap workspace panels
+		{/snippet}
+		{#snippet description()}
+			Allows you to swap the left and right panels in the workspace.
+		{/snippet}
+
+		<form
+			bind:this={panelsForm}
+			class="workspace=panels-form"
+			onchange={(e) => onPanelsFormChange(e.currentTarget as HTMLFormElement)}
 		>
+			<SectionCard
+				labelFor="dont-swap-panels"
+				roundedTop={true}
+				roundedBottom={false}
+				orientation="row"
+			>
+				{#snippet title()}
+					Don't swap panels
+				{/snippet}
+
+				{#snippet actions()}
+					<RadioButton name="panelsSwapMode" id="dont-swap-panels" value="dont-swap-panels" />
+				{/snippet}
+			</SectionCard>
+			<SectionCard
+				labelFor="swap-middle-to-right"
+				roundedTop={false}
+				roundedBottom={$user?.role !== 'admin'}
+				orientation="row"
+			>
+				{#snippet title()}
+					Middle to right
+				{/snippet}
+
+				{#snippet actions()}
+					<RadioButton
+						name="panelsSwapMode"
+						id="swap-middle-to-right"
+						value="swap-middle-to-right"
+					/>
+				{/snippet}
+			</SectionCard>
+			<SectionCard
+				labelFor="swap-middle-to-left"
+				roundedTop={false}
+				roundedBottom={true}
+				orientation="row"
+			>
+				{#snippet title()}
+					Middle to left
+				{/snippet}
+
+				{#snippet actions()}
+					<RadioButton name="panelsSwapMode" id="swap-middle-to-left" value="swap-middle-to-left" />
+				{/snippet}
+			</SectionCard>
+		</form>
+	</Section>
+
+	{#if $user?.role === 'admin'}
+		<Spacer margin={20} />
+
+		<SectionCard labelFor="gitbutler-actions" roundedBottom={false} orientation="row">
 			{#snippet title()}
 				GitButler Actions
 			{/snippet}

@@ -12,6 +12,7 @@
 	import WorktreeTipsFooter from '$components/v3/WorktreeTipsFooter.svelte';
 	import noChanges from '$lib/assets/illustrations/no-changes.svg?raw';
 	import { SettingsService } from '$lib/config/appSettingsV2';
+	import { workspaceSwapPanels } from '$lib/config/uiFeatureFlags';
 	import { isParsedError } from '$lib/error/parser';
 	import {
 		assignedChangesFocusableId,
@@ -123,12 +124,18 @@
 			console.warn('Workspace selection cleared');
 		}
 	}
+
+	function getSwapMode() {
+		if ($workspaceSwapPanels === 'dont-swap-panels') return undefined;
+		return $workspaceSwapPanels === 'swap-middle-to-left' ? 'middleToLeft' : 'middleToRight';
+	}
 </script>
 
 <MainViewport
 	name="workspace"
 	leftWidth={{ default: 280, min: 240 }}
-	rightWidth={{ default: 380, min: 240 }}
+	middleWidth={{ default: 380, min: 240 }}
+	swapMode={getSwapMode()}
 >
 	{#snippet left()}
 		{#if canUseActions}
@@ -172,40 +179,40 @@
 			<ActionLog {projectId} {selectionId} />
 		{/if}
 	{/snippet}
-
 	{#snippet middle()}
-		{#if !drawerIsFullScreen.current}
-			<SelectionView {projectId} {selectionId} draggableFiles />
-		{/if}
-		{#if drawerPage.current === 'new-commit'}
-			<NewCommitView {projectId} {stackId} />
-		{:else if drawerPage.current === 'branch' && stackId && branchName}
-			<BranchView
-				{stackId}
-				{projectId}
-				{branchName}
-				{onerror}
-				active={selectionId.type !== 'worktree'}
-				draggableFiles
-			/>
-		{:else if drawerPage.current === 'review' && stackId && branchName}
-			<ReviewView {stackId} {projectId} {branchName} />
-		{:else if branchName && commitId && stackId}
-			<CommitView
-				{projectId}
-				{stackId}
-				commitKey={{
-					stackId,
-					branchName,
-					commitId,
-					upstream
-				}}
-				active={selectionId.type !== 'worktree'}
-				{onerror}
-			/>
-		{/if}
+		<div class="middle-view">
+			{#if !drawerIsFullScreen.current}
+				<SelectionView {projectId} {selectionId} draggableFiles />
+			{/if}
+			{#if drawerPage.current === 'new-commit'}
+				<NewCommitView {projectId} {stackId} />
+			{:else if drawerPage.current === 'branch' && stackId && branchName}
+				<BranchView
+					{stackId}
+					{projectId}
+					{branchName}
+					{onerror}
+					active={selectionId.type !== 'worktree'}
+					draggableFiles
+				/>
+			{:else if drawerPage.current === 'review' && stackId && branchName}
+				<ReviewView {stackId} {projectId} {branchName} />
+			{:else if branchName && commitId && stackId}
+				<CommitView
+					{projectId}
+					{stackId}
+					commitKey={{
+						stackId,
+						branchName,
+						commitId,
+						upstream
+					}}
+					active={selectionId.type !== 'worktree'}
+					{onerror}
+				/>
+			{/if}
+		</div>
 	{/snippet}
-
 	{#snippet right()}
 		<ReduxResult {projectId} result={stacksResult?.current}>
 			{#snippet loading()}
@@ -271,5 +278,15 @@
 	.unassigned-changes__empty__placeholder-text {
 		color: var(--clr-text-3);
 		text-align: center;
+	}
+
+	/* VIEWS */
+	.middle-view {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: hidden;
+		border: 1px solid var(--clr-border-2);
+		border-radius: var(--radius-ml);
 	}
 </style>

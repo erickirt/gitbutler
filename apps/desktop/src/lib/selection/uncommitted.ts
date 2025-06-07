@@ -4,13 +4,14 @@ import {
 	treeChangeAdapter,
 	hunkSelectionAdapter as hunkSelectionAdapter,
 	type HunkSelection,
-	compositeKey
+	compositeKey,
+	partialKey
 } from '$lib/selection/entityAdapters';
 import { createSelectByPrefix, createSelectNotIn } from '$lib/state/customSelectors';
 import { isDefined } from '@gitbutler/ui/utils/typeguards';
 import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { TreeChange } from '$lib/hunks/change';
-import type { HunkAssignment } from '$lib/hunks/hunk';
+import type { HunkAssignment, HunkHeader } from '$lib/hunks/hunk';
 import type { LineId } from '@gitbutler/ui/utils/diffParsing';
 
 /**
@@ -19,6 +20,8 @@ import type { LineId } from '@gitbutler/ui/utils/diffParsing';
  * In this slice we manage a few related concepts, 1) tree changes, 2) hunk
  * assignments, and 3) hunk selections, with the intended outcome that it
  * should be easy to manage checkboxes.
+ *
+ * A hunk selection will always have an associated hunk assignment.
  */
 export const uncommittedSlice = createSlice({
 	name: 'uncommitted',
@@ -45,14 +48,10 @@ export const uncommittedSlice = createSlice({
 			);
 			const removedKeys = removedAssignments.map((r) => compositeKey(r));
 			if (removedKeys.length > 0) {
-				state.hunkAssignments = hunkAssignmentAdapter.removeMany(
-					state.hunkAssignments,
-					removedKeys
-				);
 				// The next line requires that assignments and selections share keys.
 				state.hunkSelection = hunkSelectionAdapter.removeMany(state.hunkSelection, removedKeys);
 			}
-			state.hunkAssignments = hunkAssignmentAdapter.upsertMany(
+			state.hunkAssignments = hunkAssignmentAdapter.addMany(
 				hunkAssignmentAdapter.getInitialState(),
 				action.payload.assignments
 			);
@@ -63,7 +62,7 @@ export const uncommittedSlice = createSlice({
 			action: PayloadAction<{
 				stackId: string | null;
 				path: string;
-				hunkHeader: string;
+				hunkHeader: HunkHeader;
 				line: LineId;
 			}>
 		) {
@@ -84,7 +83,6 @@ export const uncommittedSlice = createSlice({
 					throw new Error(`Expected to find assignment: ${key} `);
 				}
 				state.hunkSelection = hunkSelectionAdapter.addOne(state.hunkSelection, {
-					hunkSelectionId: key,
 					stackId: stackId,
 					path: assignment.path,
 					assignmentId: key,
@@ -98,7 +96,7 @@ export const uncommittedSlice = createSlice({
 			action: PayloadAction<{
 				stackId: string | null;
 				path: string;
-				hunkHeader: string;
+				hunkHeader: HunkHeader;
 				line: LineId;
 			}>
 		) {
@@ -134,7 +132,7 @@ export const uncommittedSlice = createSlice({
 						} else {
 							state.hunkSelection = hunkSelectionAdapter.removeOne(
 								state.hunkSelection,
-								selection.hunkSelectionId
+								selection.assignmentId
 							);
 						}
 					}
@@ -143,35 +141,33 @@ export const uncommittedSlice = createSlice({
 		},
 		checkHunk(
 			state,
-			action: PayloadAction<{ stackId: string | null; path: string; hunkHeader: string | null }>
+			action: PayloadAction<{ stackId: string | null; path: string; hunkHeader: HunkHeader | null }>
 		) {
-			const { stackId, path, hunkHeader } = action.payload;
 			const key = compositeKey(action.payload);
 			const assignment = uncommittedSelectors.hunkAssignments.selectById(
 				state.hunkAssignments,
-				compositeKey({ stackId, path, hunkHeader })
+				key
 			);
 			if (assignment) {
 				state.hunkSelection = hunkSelectionAdapter.upsertOne(state.hunkSelection, {
-					hunkSelectionId: key,
-					stackId: stackId,
+					stackId: action.payload.stackId,
 					path: assignment.path,
 					assignmentId: key,
-					changeId: `${stackId}::${assignment.path}`,
+					changeId: `${action.payload.stackId}::${assignment.path}`,
 					lines: []
 				});
 			}
 		},
 		uncheckHunk(
 			state,
-			action: PayloadAction<{ stackId: string | null; path: string; hunkHeader: string | null }>
+			action: PayloadAction<{ stackId: string | null; path: string; hunkHeader: HunkHeader | null }>
 		) {
 			const key = compositeKey(action.payload);
 			state.hunkSelection = hunkSelectionAdapter.removeOne(state.hunkSelection, key);
 		},
 		checkFile(state, action: PayloadAction<{ stackId: string | null; path: string }>) {
 			const { stackId, path } = action.payload;
-			const prefix = `${stackId}::${path}::`;
+			const prefix = partialKey(stackId, path);
 			const assignments = uncommittedSelectors.hunkAssignments.selectByPrefix(
 				state.hunkAssignments,
 				prefix
@@ -180,7 +176,6 @@ export const uncommittedSlice = createSlice({
 			for (const assignment of assignments) {
 				const key = hunkAssignmentAdapter.selectId(assignment);
 				state.hunkSelection = hunkSelectionAdapter.upsertOne(state.hunkSelection, {
-					hunkSelectionId: key,
 					stackId: stackId,
 					path: assignment.path,
 					assignmentId: key,
@@ -191,7 +186,7 @@ export const uncommittedSlice = createSlice({
 		},
 		uncheckFile(state, action: PayloadAction<{ stackId: string | null; path: string }>) {
 			const { stackId, path } = action.payload;
-			const prefix = `${stackId}::${path}::`;
+			const prefix = partialKey(stackId, path);
 			const selections = uncommittedSelectors.hunkSelection.selectByPrefix(
 				state.hunkSelection,
 				prefix
@@ -203,7 +198,7 @@ export const uncommittedSlice = createSlice({
 		},
 		checkStack(state, action: PayloadAction<{ stackId: string | null }>) {
 			const { stackId } = action.payload;
-			const prefix = `${stackId}::`;
+			const prefix = partialKey(stackId);
 			const assignments = uncommittedSelectors.hunkAssignments.selectByPrefix(
 				state.hunkAssignments,
 				prefix
@@ -212,7 +207,6 @@ export const uncommittedSlice = createSlice({
 			for (const assignment of assignments) {
 				const key = hunkAssignmentAdapter.selectId(assignment);
 				state.hunkSelection = hunkSelectionAdapter.upsertOne(state.hunkSelection, {
-					hunkSelectionId: key,
 					stackId: stackId,
 					path: assignment.path,
 					assignmentId: key,
@@ -223,14 +217,14 @@ export const uncommittedSlice = createSlice({
 		},
 		uncheckStack(state, action: PayloadAction<{ stackId: string | null }>) {
 			const { stackId } = action.payload;
-			const prefix = `${stackId}::`;
+			const prefix = partialKey(stackId);
 			const selections = uncommittedSelectors.hunkSelection.selectByPrefix(
 				state.hunkSelection,
 				prefix
 			);
 			state.hunkSelection = hunkSelectionAdapter.removeMany(
 				state.hunkSelection,
-				selections.map((s) => s.hunkSelectionId)
+				selections.map((s) => s.assignmentId)
 			);
 		}
 	}
@@ -296,7 +290,7 @@ const selectByPath = createSelector(
 const hunkCheckStatus = createSelector(
 	[
 		selectHunkSelection,
-		(_, hunkId: { stackId: string | null; path: string; hunkHeader: string }) => {
+		(_, hunkId: { stackId: string | null; path: string; hunkHeader: HunkHeader }) => {
 			return hunkId;
 		}
 	],
@@ -321,11 +315,8 @@ const fileCheckStatus = createSelector(
 		}
 	],
 	(selections, assignments, { stackId, path }) => {
-		const selection = uncommittedSelectors.hunkSelection.selectByPrefix(
-			selections,
-			`${stackId}::${path}::`
-		);
-		const prefix = `${stackId}::${path}::`;
+		const prefix = partialKey(stackId, path);
+		const selection = uncommittedSelectors.hunkSelection.selectByPrefix(selections, prefix);
 		const stackAssignments = uncommittedSelectors.hunkAssignments.selectByPrefix(
 			assignments,
 			prefix
@@ -353,7 +344,7 @@ const folderCheckStatus = createSelector(
 	],
 	(selections, assignments, { stackId, path }) => {
 		const separator = platformName === 'windows' ? '\\' : '/';
-		const keyPrefix = `${stackId}::${path}` + separator;
+		const keyPrefix = partialKey(stackId, path, false) + separator;
 		const matches = uncommittedSelectors.hunkAssignments.selectByPrefix(assignments, keyPrefix);
 		if (matches.length === 0) {
 			return 'unchecked';
@@ -375,7 +366,7 @@ const stackCheckStatus = createSelector(
 		}
 	],
 	(selections, assignments, { stackId }) => {
-		const keyPrefix = `${stackId}::`;
+		const keyPrefix = partialKey(stackId);
 		const matches = uncommittedSelectors.hunkAssignments.selectByPrefix(assignments, keyPrefix);
 		if (matches.length === 0) {
 			return 'unchecked';
