@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AsyncRender from '$components/v3/AsyncRender.svelte';
 	import Self from '$components/v3/FileTreeNode.svelte';
 	import TreeListFolder from '$components/v3/TreeListFolder.svelte';
 	import { TestId } from '$lib/testing/testIds';
@@ -39,7 +40,7 @@
 {#if isRoot}
 	<!-- Node is a root and should only render children! -->
 	{#each node.children as childNode (childNode.name)}
-		<Self {depth} node={childNode} {showCheckboxes} {changes} {fileTemplate} />
+		<Self {stackId} {depth} node={childNode} {showCheckboxes} {changes} {fileTemplate} />
 	{/each}
 {:else if node.kind === 'file'}
 	{@render fileTemplate(node.change, node.index, depth)}
@@ -55,15 +56,17 @@
 	/>
 
 	{#if isExpanded}
-		{#each node.children as childNode (childNode.name)}
-			<Self
-				{stackId}
-				depth={depth + 1}
-				node={childNode}
-				{showCheckboxes}
-				{changes}
-				{fileTemplate}
-			/>
-		{/each}
+		<AsyncRender>
+			{#each node.children as childNode (childNode.name)}
+				<Self
+					{stackId}
+					depth={depth + 1}
+					node={childNode}
+					{showCheckboxes}
+					{changes}
+					{fileTemplate}
+				/>
+			{/each}
+		</AsyncRender>
 	{/if}
 {/if}

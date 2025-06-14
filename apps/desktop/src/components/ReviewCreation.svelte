@@ -11,6 +11,7 @@
 
 <script lang="ts">
 	import PrTemplateSection from '$components/PrTemplateSection.svelte';
+	import AsyncRender from '$components/v3/AsyncRender.svelte';
 	import MessageEditor from '$components/v3/editor/MessageEditor.svelte';
 	import { AIService } from '$lib/ai/service';
 	import { PostHogWrapper } from '$lib/analytics/posthog';
@@ -33,6 +34,7 @@
 	import { RemotesService } from '$lib/remotes/remotesService';
 	import { requiresPush } from '$lib/stacks/stack';
 	import { StackService } from '$lib/stacks/stackService.svelte';
+	import { UiState } from '$lib/state/uiState.svelte';
 	import { TestId } from '$lib/testing/testIds';
 	import { parseRemoteUrl } from '$lib/url/gitUrl';
 	import { UserService } from '$lib/user/userService';
@@ -73,6 +75,8 @@
 	const userService = getContext(UserService);
 	const aiService = getContext(AIService);
 	const remotesService = getContext(RemotesService);
+	const uiState = getContext(UiState);
+	const stackState = $derived(uiState.stack(stackId));
 
 	const user = userService.user;
 	const project = projectsService.getProjectStore(projectId);
@@ -221,55 +225,58 @@
 		const body = shouldAddPrBody() ? effectivePRBody : '';
 		const draft = $createDraft;
 
-		isCreatingReview = true;
-		await tick();
+		try {
+			isCreatingReview = true;
+			await tick();
 
-		const upstreamBranchName = await pushIfNeeded();
+			const upstreamBranchName = await pushIfNeeded();
 
-		let newReviewId: string | undefined;
-		let newPrNumber: number | undefined;
+			let newReviewId: string | undefined;
+			let newPrNumber: number | undefined;
 
-		// Even if createButlerRequest is false, if we _cant_ create a PR, then
-		// We want to always create the BR, and vice versa.
-		if ((canPublishBR && $createButlerRequest) || !canPublishPR) {
-			const reviewId = await publishBranch({
-				projectId,
-				stackId,
-				topBranch: branchName,
-				user: $user
-			});
-			if (!reviewId) {
-				posthog.capture('Butler Review Creation Failed');
-				return;
+			// Even if createButlerRequest is false, if we _cant_ create a PR, then
+			// We want to always create the BR, and vice versa.
+			if ((canPublishBR && $createButlerRequest) || !canPublishPR) {
+				const reviewId = await publishBranch({
+					projectId,
+					stackId,
+					topBranch: branchName,
+					user: $user
+				});
+				if (!reviewId) {
+					posthog.capture('Butler Review Creation Failed');
+					return;
+				}
+				posthog.capture('Butler Review Created');
+				butRequestDetailsService.setDetails(reviewId, $prTitle, effectivePRBody);
 			}
-			posthog.capture('Butler Review Created');
-			butRequestDetailsService.setDetails(reviewId, $prTitle, effectivePRBody);
+
+			if ((canPublishPR && $createPullRequest) || !canPublishBR) {
+				const pr = await createPr({
+					stackId: closureStackId,
+					branchName: closureBranchName,
+					title,
+					body,
+					draft,
+					upstreamBranchName
+				});
+				newPrNumber = pr?.number;
+			}
+
+			if (newReviewId && newPrNumber && $project?.api?.repository_id) {
+				brToPrService.refreshButRequestPrDescription(
+					newPrNumber,
+					newReviewId,
+					$project.api.repository_id
+				);
+			}
+
+			prBody.reset();
+			prTitle.reset();
+			stackState.action.set(undefined);
+		} finally {
+			isCreatingReview = false;
 		}
-
-		if ((canPublishPR && $createPullRequest) || !canPublishBR) {
-			const pr = await createPr({
-				stackId: closureStackId,
-				branchName: closureBranchName,
-				title,
-				body,
-				draft,
-				upstreamBranchName
-			});
-			newPrNumber = pr?.number;
-		}
-
-		if (newReviewId && newPrNumber && $project?.api?.repository_id) {
-			brToPrService.refreshButRequestPrDescription(
-				newPrNumber,
-				newReviewId,
-				$project.api.repository_id
-			);
-		}
-
-		prBody.reset();
-		prTitle.reset();
-
-		isCreatingReview = false;
 		onClose();
 	}
 
@@ -442,83 +449,91 @@
 		}}
 	/>
 
-	<MessageEditor
-		bind:this={messageEditor}
-		testId={TestId.ReviewDescriptionInput}
-		{projectId}
-		disabled={isExecuting}
-		initialValue={$prBody}
-		enableFileUpload
-		placeholder="PR Description"
-		{onAiButtonClick}
-		{canUseAI}
-		{aiIsLoading}
-		onChange={(text: string) => {
-			prBody.set(text);
-		}}
-		onKeyDown={(e: KeyboardEvent) => {
-			if (e.key === 'Tab' && e.shiftKey) {
-				e.preventDefault();
-				titleInput?.focus();
-				return true;
-			}
+	<AsyncRender>
+		<MessageEditor
+			bind:this={messageEditor}
+			testId={TestId.ReviewDescriptionInput}
+			{projectId}
+			disabled={isExecuting}
+			initialValue={$prBody}
+			enableFileUpload
+			placeholder="PR Description"
+			{onAiButtonClick}
+			{canUseAI}
+			{aiIsLoading}
+			onChange={(text: string) => {
+				prBody.set(text);
+			}}
+			onKeyDown={(e: KeyboardEvent) => {
+				if (e.key === 'Tab' && e.shiftKey) {
+					e.preventDefault();
+					titleInput?.focus();
+					return true;
+				}
 
-			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-				e.preventDefault();
-				createReview();
-				return true;
-			}
+				if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+					e.preventDefault();
+					createReview();
+					return true;
+				}
 
-			return false;
-		}}
-	/>
+				return false;
+			}}
+		/>
+	</AsyncRender>
 
 	{#if canPublishBR && canPublishPR}
-		<div class="options text-13">
-			<label for="create-br" class="option-card">
-				<div class="option-card-header" class:selected={$createButlerRequest}>
-					<div class="option-card-header-content">
-						<div class="option-card-header-title text-semibold">
-							<Icon name="bowtie" />
-							Create Butler Request
+		<AsyncRender>
+			<div class="options text-13">
+				<label for="create-br" class="option-card">
+					<div class="option-card-header" class:selected={$createButlerRequest}>
+						<div class="option-card-header-content">
+							<div class="option-card-header-title text-semibold">
+								<Icon name="bowtie" />
+								Create Butler Request
+							</div>
+							<span class="options__learn-more">
+								<Link href="https://docs.gitbutler.com/review/overview">Learn more</Link>
+							</span>
 						</div>
-						<span class="options__learn-more">
-							<Link href="https://docs.gitbutler.com/review/overview">Learn more</Link>
-						</span>
+						<div class="option-card-header-action">
+							<Checkbox
+								disabled={isExecuting}
+								name="create-br"
+								bind:checked={$createButlerRequest}
+							/>
+						</div>
 					</div>
-					<div class="option-card-header-action">
-						<Checkbox disabled={isExecuting} name="create-br" bind:checked={$createButlerRequest} />
-					</div>
+				</label>
+
+				<div class="option-card">
+					<label
+						for="create-pr"
+						class="option-card-header has-settings"
+						class:selected={$createPullRequest}
+					>
+						<div class="option-card-header-content">
+							<div class="option-card-header-title text-semibold">
+								<Icon name="github" />
+								Create Pull Request
+							</div>
+						</div>
+
+						<div class="option-card-header-action">
+							<Checkbox name="create-pr" bind:checked={$createPullRequest} />
+						</div>
+					</label>
+					<label
+						for="create-pr-draft"
+						class="option-subcard-drafty"
+						class:disabled={!$createPullRequest}
+					>
+						<span class="text-semibold">PR Draft</span>
+						<Toggle disabled={isExecuting} id="create-pr-draft" bind:checked={$createDraft} />
+					</label>
 				</div>
-			</label>
-
-			<div class="option-card">
-				<label
-					for="create-pr"
-					class="option-card-header has-settings"
-					class:selected={$createPullRequest}
-				>
-					<div class="option-card-header-content">
-						<div class="option-card-header-title text-semibold">
-							<Icon name="github" />
-							Create Pull Request
-						</div>
-					</div>
-
-					<div class="option-card-header-action">
-						<Checkbox name="create-pr" bind:checked={$createPullRequest} />
-					</div>
-				</label>
-				<label
-					for="create-pr-draft"
-					class="option-subcard-drafty"
-					class:disabled={!$createPullRequest}
-				>
-					<span class="text-semibold">PR Draft</span>
-					<Toggle disabled={isExecuting} id="create-pr-draft" bind:checked={$createDraft} />
-				</label>
 			</div>
-		</div>
+		</AsyncRender>
 	{/if}
 </div>
 

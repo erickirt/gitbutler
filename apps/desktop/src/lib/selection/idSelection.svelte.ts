@@ -7,8 +7,10 @@ import {
 	type SelectedFile
 } from '$lib/selection/key';
 import { SvelteSet } from 'svelte/reactivity';
+import { get, writable, type Writable } from 'svelte/store';
+import type { TreeChange } from '$lib/hunks/change';
+import type { UncommittedService } from '$lib/selection/uncommittedService.svelte';
 import type { StackService } from '$lib/stacks/stackService.svelte';
-import type { WorktreeService } from '$lib/worktree/worktreeService.svelte';
 
 /**
  * File selection mechanism based on strings id's.
@@ -19,18 +21,27 @@ export class IdSelection {
 		string,
 		{
 			/** This property supports range selection. */
-			lastAdded?: number;
+			lastAdded: Writable<
+				| {
+						/** The index of the file in a sorted list of files. */
+						index: number;
+						/** The key of the file in the selection. */
+						key: SelectedFileKey;
+				  }
+				| undefined
+			>;
 			entries: SvelteSet<SelectedFileKey>;
 		}
 	>;
 
 	constructor(
-		private worktreeService: WorktreeService,
-		private stackService: StackService
+		private stackService: StackService,
+		private uncommittedService: UncommittedService
 	) {
 		this.selections = new Map();
-		this.selections.set('worktree', {
-			entries: new SvelteSet<SelectedFileKey>()
+		this.selections.set(selectionKey({ type: 'worktree' }), {
+			entries: new SvelteSet<SelectedFileKey>(),
+			lastAdded: writable()
 		});
 	}
 
@@ -39,7 +50,8 @@ export class IdSelection {
 		let set = this.selections.get(key);
 		if (!set) {
 			set = {
-				entries: new SvelteSet<SelectedFileKey>()
+				entries: new SvelteSet<SelectedFileKey>(),
+				lastAdded: writable()
 			};
 			this.selections.set(key, set);
 		}
@@ -53,14 +65,18 @@ export class IdSelection {
 	add(path: string, id: SelectionId, index: number) {
 		const selectedKey = key({ ...id, path });
 		const selection = this.getById(id);
-		selection.lastAdded = index;
+		selection.lastAdded.set({ index, key: selectedKey });
 		selection.entries.add(selectedKey);
 	}
 
-	addMany(paths: string[], id: SelectionId, index: number) {
+	addMany(paths: string[], id: SelectionId, last: { path: string; index: number }) {
 		for (const path of paths) {
-			this.add(path, id, index);
+			this.add(path, id, last.index);
 		}
+
+		const selectedKey = key({ ...id, path: last.path });
+		const selection = this.getById(id);
+		selection.lastAdded.set({ index: last.index, key: selectedKey });
 	}
 
 	has(path: string, id: SelectionId) {
@@ -78,11 +94,15 @@ export class IdSelection {
 		const selectionKey = key({ path, ...id });
 		const selection = this.getById(id);
 		selection.entries.delete(selectionKey);
+		if (get(selection.lastAdded)?.key === selectionKey) {
+			selection.lastAdded.set(undefined);
+		}
 	}
 
 	clear(selectionId: SelectionId) {
 		const selection = this.getById(selectionId);
 		selection.entries.clear();
+		selection.lastAdded.set(undefined);
 	}
 
 	keys(selectionId: SelectionId) {
@@ -100,23 +120,27 @@ export class IdSelection {
 	 * instead reuses the entry from listing if available.
 	 * TODO: Should this be able to load even if listing hasn't happened?
 	 */
-	treeChanges(projectId: string, params: SelectionId) {
-		const filePaths = this.values(params).map((fileSelection) => {
+	async treeChanges(projectId: string, params: SelectionId): Promise<TreeChange[]> {
+		const paths = this.values(params).map((fileSelection) => {
 			return fileSelection.path;
 		});
 
 		switch (params.type) {
 			case 'worktree':
-				return this.worktreeService.treeChangesByPaths(projectId, filePaths);
+				return this.uncommittedService
+					.getChangesByStackId(params.stackId || null)
+					.filter((c) => paths.includes(c.path));
 			case 'branch':
-				return this.stackService.branchChangesByPaths({
+				return await this.stackService.branchChangesByPaths({
 					projectId,
 					stackId: params.stackId,
 					branchName: params.branchName,
-					paths: filePaths
+					paths: paths
 				});
 			case 'commit':
-				return this.stackService.commitChangesByPaths(projectId, params.commitId, filePaths);
+				return await this.stackService.commitChangesByPaths(projectId, params.commitId, paths);
+			case 'snapshot':
+				throw new Error('unsupported');
 		}
 	}
 
@@ -154,7 +178,7 @@ export class IdSelection {
 			this.removeMany(removedFiles);
 		}
 		// TODO: Is this the right thing to do here?
-		worktreeSelection.lastAdded = undefined;
+		// worktreeSelection.lastAdded.set(undefined);
 	}
 
 	/**

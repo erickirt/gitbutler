@@ -179,124 +179,83 @@
 		<MainViewport
 			name="branches"
 			leftWidth={{ default: 360, min: 280 }}
-			rightWidth={{ default: 360, min: 280 }}
+			middleWidth={{ default: 360, min: 280 }}
+			middleOpen
+			growRight
 		>
 			{#snippet left()}
-				<div class="branch-list">
-					<BranchesListGroup title="Current workspace target">
-						<!-- TODO: We need an API for `commitsCount`! -->
-						<CurrentOriginCard
-							originName={baseBranch.branchName}
-							lastCommit={lastCommit
-								? {
-										author: lastCommit.author,
-										ago: getTimeAgo(lastCommit.createdAt, true),
-										branch: baseBranch.shortName,
-										sha: lastCommit.id.slice(0, 7)
+				<BranchesListGroup title="Current workspace target">
+					<!-- TODO: We need an API for `commitsCount`! -->
+					<CurrentOriginCard
+						originName={baseBranch.branchName}
+						lastCommit={lastCommit
+							? {
+									author: lastCommit.author,
+									ago: getTimeAgo(lastCommit.createdAt, true),
+									branch: baseBranch.shortName,
+									sha: lastCommit.id.slice(0, 7)
+								}
+							: undefined}
+						onclick={() => {
+							branchesSelection.set({ branchName: baseBranch.shortName, isTarget: true });
+						}}
+						selected={(branchesSelection.current.branchName === undefined ||
+							branchesSelection.current.branchName === baseBranch.shortName) &&
+							branchesSelection.current.prNumber === undefined}
+					/>
+				</BranchesListGroup>
+				<BranchExplorer {projectId} bind:selectedOption={$selectedOption}>
+					{#snippet sidebarEntry(sidebarEntrySubject: SidebarEntrySubject)}
+						{#if sidebarEntrySubject.type === 'branchListing'}
+							<BranchListCard
+								{projectId}
+								branchListing={sidebarEntrySubject.subject}
+								prs={sidebarEntrySubject.prs}
+								selected={sidebarEntrySubject.subject.stack
+									? branchesSelection.current.branchName ===
+										sidebarEntrySubject.subject.stack.branches.at(0)
+									: branchesSelection.current.branchName === sidebarEntrySubject.subject.name}
+								onclick={({ listing, pr }) => {
+									if (listing.stack) {
+										branchesSelection.set({
+											stackId: listing.stack.id,
+											branchName: listing.stack.branches.at(0),
+											prNumber: pr?.number,
+											inWorkspace: listing.stack.inWorkspace,
+											hasLocal: listing.hasLocal
+										});
+									} else {
+										branchesSelection.set({
+											branchName: listing.name,
+											prNumber: pr?.number,
+											remote: listing.remotes.at(0),
+											hasLocal: listing.hasLocal
+										});
 									}
-								: undefined}
-							onclick={() => {
-								branchesSelection.set({ branchName: baseBranch.shortName, isTarget: true });
-							}}
-							selected={(branchesSelection.current.branchName === undefined ||
-								branchesSelection.current.branchName === baseBranch.shortName) &&
-								branchesSelection.current.prNumber === undefined}
-						/>
-					</BranchesListGroup>
-					<BranchExplorer {projectId} bind:selectedOption={$selectedOption}>
-						{#snippet sidebarEntry(sidebarEntrySubject: SidebarEntrySubject)}
-							{#if sidebarEntrySubject.type === 'branchListing'}
-								<BranchListCard
-									{projectId}
-									branchListing={sidebarEntrySubject.subject}
-									prs={sidebarEntrySubject.prs}
-									selected={sidebarEntrySubject.subject.stack
-										? branchesSelection.current.branchName ===
-											sidebarEntrySubject.subject.stack.branches.at(0)
-										: branchesSelection.current.branchName === sidebarEntrySubject.subject.name}
-									onclick={({ listing, pr }) => {
-										if (listing.stack) {
-											branchesSelection.set({
-												stackId: listing.stack.id,
-												branchName: listing.stack.branches.at(0),
-												prNumber: pr?.number,
-												inWorkspace: listing.stack.inWorkspace,
-												hasLocal: listing.hasLocal
-											});
-										} else {
-											branchesSelection.set({
-												branchName: listing.name,
-												prNumber: pr?.number,
-												remote: listing.remotes.at(0),
-												hasLocal: listing.hasLocal
-											});
-										}
-									}}
-								/>
-							{:else}
-								<PRListCard
-									number={sidebarEntrySubject.subject.number}
-									isDraft={sidebarEntrySubject.subject.draft}
-									title={sidebarEntrySubject.subject.title}
-									sourceBranch={sidebarEntrySubject.subject.sourceBranch}
-									author={{
-										name: sidebarEntrySubject.subject.author?.name,
-										email: sidebarEntrySubject.subject.author?.email,
-										gravatarUrl: sidebarEntrySubject.subject.author?.gravatarUrl
-									}}
-									modifiedAt={sidebarEntrySubject.subject.modifiedAt}
-									selected={branchesSelection.current.prNumber ===
-										sidebarEntrySubject.subject.number}
-									onclick={(pr) => branchesSelection.set({ prNumber: pr.number })}
-									noRemote
-								/>
-							{/if}
-						{/snippet}
-					</BranchExplorer>
-				</div>
+								}}
+							/>
+						{:else}
+							<PRListCard
+								number={sidebarEntrySubject.subject.number}
+								isDraft={sidebarEntrySubject.subject.draft}
+								title={sidebarEntrySubject.subject.title}
+								sourceBranch={sidebarEntrySubject.subject.sourceBranch}
+								author={{
+									name: sidebarEntrySubject.subject.author?.name,
+									email: sidebarEntrySubject.subject.author?.email,
+									gravatarUrl: sidebarEntrySubject.subject.author?.gravatarUrl
+								}}
+								modifiedAt={sidebarEntrySubject.subject.modifiedAt}
+								selected={branchesSelection.current.prNumber === sidebarEntrySubject.subject.number}
+								onclick={(pr) => branchesSelection.set({ prNumber: pr.number })}
+								noRemote
+							/>
+						{/if}
+					{/snippet}
+				</BranchExplorer>
 			{/snippet}
 
 			{#snippet middle()}
-				{#if !drawerIsFullScreen.current}
-					<SelectionView {projectId} {selectionId} draggableFiles />
-				{/if}
-
-				{#if current.commitId}
-					<UnappliedCommitView {projectId} commitId={current.commitId} />
-				{:else if current.branchName}
-					{#if current.inWorkspace && current.stackId}
-						<BranchView
-							{projectId}
-							branchName={current.branchName}
-							stackId={current.stackId}
-							draggableFiles={false}
-							active
-							{onerror}
-						/>
-					{:else if !current.isTarget}
-						<UnappliedBranchView
-							{projectId}
-							branchName={current.branchName}
-							stackId={current.stackId}
-							remote={current.remote}
-							prNumber={current.prNumber}
-							{onerror}
-						/>
-					{/if}
-				{:else if current.prNumber}
-					<PrBranchView {projectId} prNumber={current.prNumber} {onerror} />
-				{:else if !current.branchName && !current.prNumber}
-					<!-- TODO: Make this fallback better somehow? -->
-					<UnappliedBranchView
-						{projectId}
-						branchName={baseBranch.shortName}
-						remote={baseBranch.remoteName}
-						{onerror}
-					/>
-				{/if}
-			{/snippet}
-
-			{#snippet right()}
 				<!-- Apply branch -->
 				{#if !inWorkspaceOrTargetBranch && someBranchSelected}
 					{@const doesNotHaveLocalTooltip = current.hasLocal
@@ -379,6 +338,46 @@
 					{/if}
 				</div>
 			{/snippet}
+
+			{#snippet right()}
+				{#if !drawerIsFullScreen.current}
+					<SelectionView {projectId} {selectionId} draggableFiles />
+				{/if}
+
+				{#if current.commitId}
+					<UnappliedCommitView {projectId} commitId={current.commitId} />
+				{:else if current.branchName}
+					{#if current.inWorkspace && current.stackId}
+						<BranchView
+							{projectId}
+							branchName={current.branchName}
+							stackId={current.stackId}
+							draggableFiles={false}
+							active
+							{onerror}
+						/>
+					{:else if !current.isTarget}
+						<UnappliedBranchView
+							{projectId}
+							branchName={current.branchName}
+							stackId={current.stackId}
+							remote={current.remote}
+							prNumber={current.prNumber}
+							{onerror}
+						/>
+					{/if}
+				{:else if current.prNumber}
+					<PrBranchView {projectId} prNumber={current.prNumber} {onerror} />
+				{:else if !current.branchName && !current.prNumber}
+					<!-- TODO: Make this fallback better somehow? -->
+					<UnappliedBranchView
+						{projectId}
+						branchName={baseBranch.shortName}
+						remote={baseBranch.remoteName}
+						{onerror}
+					/>
+				{/if}
+			{/snippet}
 		</MainViewport>
 	{/snippet}
 </ReduxResult>
@@ -390,29 +389,13 @@
 		flex: 1;
 		flex-direction: column;
 		overflow: hidden;
-		border: 1px solid var(--clr-border-2);
-	}
-
-	.branch-list {
-		display: flex;
-		position: relative;
-		flex-shrink: 0;
-		flex-direction: column;
-		justify-content: flex-start;
-		height: 100%;
-		overflow: hidden;
-		border: 1px solid var(--clr-border-2);
-		border-radius: var(--radius-ml);
-		background-color: var(--clr-bg-1);
 	}
 
 	.branches-actions {
 		display: flex;
 		padding: 12px;
 		gap: 6px;
-		border: 1px solid var(--clr-border-2);
-		border-bottom: none;
-		border-radius: var(--radius-ml) var(--radius-ml) 0 0;
+		border-bottom: 1px solid var(--clr-border-2);
 		background-color: var(--clr-bg-1);
 	}
 

@@ -1,4 +1,4 @@
-import { dropDataToDiffSpec } from '$lib/commits/utils';
+import { changesToDiffSpec } from '$lib/commits/utils';
 import {
 	ChangeDropData,
 	FileDropData,
@@ -48,7 +48,7 @@ export class StartCommitDzHandler implements DropzoneHandler {
 			(data instanceof HunkDropDataV3 && data.uncommitted)
 		);
 	}
-	ondrop(data: ChangeDropData | HunkDropDataV3): void {
+	async ondrop(data: ChangeDropData | HunkDropDataV3): Promise<void> {
 		const { projectId, stackId, branchName, uiState, uncommittedService } = this.args;
 
 		const projectState = uiState.project(projectId);
@@ -56,14 +56,14 @@ export class StartCommitDzHandler implements DropzoneHandler {
 
 		uncommittedService.uncheckAll(null);
 		if (data instanceof ChangeDropData) {
-			for (const change of data.changes) {
+			for (const change of await data.treeChanges()) {
 				uncommittedService.checkFile(null, change.path);
 			}
 		} else if (data instanceof HunkDropDataV3) {
-			uncommittedService.checkHunk(stackId, data.change.path, data.hunk.newStart.toString());
+			uncommittedService.checkHunk(stackId, data.change.path, data.hunk);
 		}
 
-		projectState.drawerPage.set('new-commit');
+		projectState.exclusiveAction.set({ type: 'commit', stackId: this.args.stackId });
 		projectState.stackId.set(stackId);
 		stackState?.selection.set({ branchName: branchName });
 	}
@@ -126,6 +126,7 @@ export class AmendCommitWithChangeDzHandler implements DropzoneHandler {
 			case 'commit': {
 				const sourceStackId = data.stackId;
 				const sourceCommitId = data.selectionId.commitId;
+				const changes = changesToDiffSpec(await data.treeChanges());
 				if (sourceStackId && sourceCommitId) {
 					const { replacedCommits } = await this.stackService.moveChangesBetweenCommits({
 						projectId: this.projectId,
@@ -133,7 +134,7 @@ export class AmendCommitWithChangeDzHandler implements DropzoneHandler {
 						destinationCommitId: this.commit.id,
 						sourceStackId,
 						sourceCommitId,
-						changes: dropDataToDiffSpec(data)
+						changes
 					});
 
 					// Update the project state to point to the new commit if needed.
@@ -147,16 +148,17 @@ export class AmendCommitWithChangeDzHandler implements DropzoneHandler {
 			case 'branch':
 				console.warn('Moving a branch into a commit is an invalid operation');
 				break;
-			case 'worktree':
-				this.onresult(
+			case 'worktree': {
+				const diffSpec = changesToDiffSpec(await data.treeChanges());
+				return this.onresult(
 					await this.trigger({
 						projectId: this.projectId,
 						stackId: this.stackId,
-						branchName: this.branchName,
 						commitId: this.commit.id,
-						worktreeChanges: dropDataToDiffSpec(data)
+						worktreeChanges: diffSpec
 					})
 				);
+			}
 		}
 	}
 }
@@ -191,11 +193,12 @@ export class UncommitDzHandler implements DropzoneHandler {
 					const stackId = data.stackId;
 					const commitId = data.selectionId.commitId;
 					if (stackId && commitId) {
+						const changes = changesToDiffSpec(await data.treeChanges());
 						const { replacedCommits } = await this.stackService.uncommitChanges({
 							projectId: this.projectId,
 							stackId,
 							commitId,
-							changes: dropDataToDiffSpec(data)
+							changes
 						});
 
 						// Update the project state to point to the new commit if needed.
@@ -257,7 +260,6 @@ export class AmendCommitWithHunkDzHandler implements DropzoneHandler {
 			okWithForce: boolean;
 			projectId: string;
 			stackId: string;
-			branchName: string;
 			commit: DzCommitData;
 			uiState: UiState;
 		}
@@ -288,8 +290,7 @@ export class AmendCommitWithHunkDzHandler implements DropzoneHandler {
 	}
 
 	async ondrop(data: HunkDropData | HunkDropDataV3): Promise<void> {
-		const { stackService, projectId, stackId, branchName, commit, okWithForce, uiState } =
-			this.args;
+		const { stackService, projectId, stackId, commit, okWithForce, uiState } = this.args;
 		if (!okWithForce && commit.isRemote) return;
 
 		if (data instanceof HunkDropData) {
@@ -330,7 +331,6 @@ export class AmendCommitWithHunkDzHandler implements DropzoneHandler {
 			stackService.amendCommitMutation({
 				projectId,
 				stackId,
-				branchName,
 				commitId: commit.id,
 				worktreeChanges: [
 					{
@@ -393,7 +393,6 @@ export class AmendCommitWithHunkDzHandler implements DropzoneHandler {
 			stackService.amendCommitMutation({
 				projectId,
 				stackId,
-				branchName,
 				commitId: commit.id,
 				worktreeChanges: [
 					{
@@ -425,7 +424,6 @@ export class AmendCommitDzHandler implements DropzoneHandler {
 			okWithForce: boolean;
 			projectId: string;
 			stackId: string;
-			branchName: string;
 			commit: DzCommitData;
 		}
 	) {}
@@ -443,12 +441,11 @@ export class AmendCommitDzHandler implements DropzoneHandler {
 	}
 
 	ondrop(data: FileDropData): void {
-		const { stackService, projectId, stackId, branchName, commit } = this.args;
+		const { stackService, projectId, stackId, commit } = this.args;
 		if (data.file instanceof LocalFile) {
 			stackService.amendCommitMutation({
 				projectId,
 				stackId,
-				branchName,
 				commitId: commit.id,
 				worktreeChanges: filesToDiffSpec(data)
 			});

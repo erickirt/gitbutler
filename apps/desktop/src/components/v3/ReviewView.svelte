@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ReviewCreation from '$components/ReviewCreation.svelte';
 	import ReviewCreationControls from '$components/ReviewCreationControls.svelte';
+	import AsyncRender from '$components/v3/AsyncRender.svelte';
 	import Drawer from '$components/v3/Drawer.svelte';
 	import { DefaultForgeFactory } from '$lib/forge/forgeFactory.svelte';
 	import { StackPublishingService } from '$lib/history/stackPublishingService';
@@ -13,16 +14,18 @@
 		projectId: string;
 		stackId: string;
 		branchName: string;
+		noDrawer?: boolean;
+		oncancel?: () => void;
 	};
 
-	const { projectId, stackId, branchName }: Props = $props();
+	const { projectId, stackId, branchName, noDrawer, oncancel }: Props = $props();
 
 	const uiState = getContext(UiState);
 
 	let reviewCreation = $state<ReturnType<typeof ReviewCreation>>();
 
 	function close() {
-		uiState.project(projectId).drawerPage.current = 'branch';
+		uiState.stack(stackId).action.set(undefined);
 	}
 
 	const stackService = getContext(StackService);
@@ -59,31 +62,51 @@
 	const ctaDisabled = $derived(reviewCreation ? !reviewCreation.imports.creationEnabled : false);
 </script>
 
-<Drawer
-	testId={TestId.ReviewDrawer}
-	{projectId}
-	{stackId}
-	title={getTitleLabel()}
-	disableScroll
-	minHeight={20}
->
-	<div class="submit-review__container">
-		<ReviewCreation bind:this={reviewCreation} {projectId} {stackId} {branchName} onClose={close} />
+{#snippet editor()}
+	<AsyncRender>
+		<div class="review-view" data-testid={TestId.ReviewView}>
+			<ReviewCreation
+				bind:this={reviewCreation}
+				{projectId}
+				{stackId}
+				{branchName}
+				onClose={close}
+			/>
+			<ReviewCreationControls
+				isSubmitting={!!reviewCreation?.imports.isLoading}
+				{ctaDisabled}
+				{canPublishBR}
+				{canPublishPR}
+				onCancel={() => {
+					close();
+					oncancel?.();
+				}}
+				onSubmit={async () => {
+					await reviewCreation?.createReview();
+				}}
+			/>
+		</div>
+	</AsyncRender>
+{/snippet}
 
-		<ReviewCreationControls
-			isSubmitting={!!reviewCreation?.imports.isLoading}
-			{ctaDisabled}
-			{canPublishBR}
-			{canPublishPR}
-			onCancel={close}
-			onSubmit={async () => {
-				await reviewCreation?.createReview();
-			}}
-		/>
+{#if noDrawer}
+	<div class="submit-review__container">
+		{@render editor()}
 	</div>
-</Drawer>
+{:else}
+	<Drawer {projectId} title={getTitleLabel()} disableScroll minHeight={20}>
+		<div class="submit-review__container">
+			{@render editor()}
+		</div>
+	</Drawer>
+{/if}
 
 <style lang="postcss">
+	.review-view {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
 	.submit-review__container {
 		display: flex;
 		flex-grow: 1;

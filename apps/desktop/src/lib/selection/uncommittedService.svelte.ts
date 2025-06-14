@@ -6,7 +6,7 @@ import {
 	type HunkAssignment,
 	type HunkHeader
 } from '$lib/hunks/hunk';
-import { compositeKey, type HunkSelection } from '$lib/selection/entityAdapters';
+import { compositeKey, partialKey, type HunkSelection } from '$lib/selection/entityAdapters';
 import {
 	uncommittedSelectors,
 	uncommittedSlice,
@@ -90,11 +90,10 @@ export class UncommittedService {
 	 * Gathers data for creating a commit, based on what hunks are selected.
 	 */
 	async worktreeChanges(projectId: string, stackId?: string) {
-		const key = `${stackId || null}::`;
-		const selection = uncommittedSelectors.hunkSelection.selectByPrefix(
-			this.state.hunkSelection,
-			key
-		);
+		const state = structuredClone(this.state);
+
+		const key = partialKey(stackId ?? null);
+		const selection = uncommittedSelectors.hunkSelection.selectByPrefix(state.hunkSelection, key);
 
 		const pathGroups = selection.reduce<Record<string, HunkSelection[]>>((acc, item) => {
 			const key = `${item.path}`;
@@ -108,11 +107,11 @@ export class UncommittedService {
 		const worktreeChanges: DiffSpec[] = [];
 		for (const [path, selection] of Object.entries(pathGroups)) {
 			const hunkHeaders: HunkHeader[] = [];
-			const change = uncommittedSelectors.treeChanges.selectById(this.state.treeChanges, path)!;
+			const change = uncommittedSelectors.treeChanges.selectById(state.treeChanges, path)!;
 			for (const { lines, assignmentId } of selection) {
 				// We want to use `null` to commit from unassigned changes if new stack was created.
 				const assignment = uncommittedSelectors.hunkAssignments.selectById(
-					this.state.hunkAssignments,
+					state.hunkAssignments,
 					assignmentId
 				)!;
 
@@ -144,70 +143,75 @@ export class UncommittedService {
 		return worktreeChanges;
 	}
 
-	selectedChanges(stackId?: string) {
-		const result = $derived(
-			uncommittedSelectors.treeChanges.selectedByStackId(this.state, stackId || null)
+	async selectedChanges(stackId?: string): Promise<TreeChange[]> {
+		const state = structuredClone(this.state);
+
+		const key = partialKey(stackId ?? null);
+		const selection = uncommittedSelectors.hunkSelection.selectByPrefix(state.hunkSelection, key);
+
+		const pathSet = new Set<string>();
+		for (const item of selection) {
+			pathSet.add(item.path);
+		}
+
+		const changes = uncommittedSelectors.treeChanges.selectByIds(
+			state.treeChanges,
+			Array.from(pathSet)
 		);
-		return reactive(() => result);
+
+		return changes;
 	}
 
 	/**
-	 * Returns all assignments along with any line selections.
+	 * Returns all assignments along with any line selections. When committing
+	 * we combine the hunk selections from the left as well as from the stack.
+	 *
+	 * TODO: Join the selections in a way that is compatible with the back end.
 	 */
 	selectedLines(stackId?: string) {
-		const key = `${stackId || null}::`;
+		const globalLines = uncommittedSelectors.hunkSelection.selectByPrefix(
+			this.state.hunkSelection,
+			partialKey(null)
+		);
 		const result = $derived(
-			uncommittedSelectors.hunkSelection.selectByPrefix(this.state.hunkSelection, key)
+			// TODO: Rewrite in some more intelligent way.
+			globalLines.concat(
+				stackId
+					? uncommittedSelectors.hunkSelection.selectByPrefix(
+							this.state.hunkSelection,
+							partialKey(stackId)
+						)
+					: []
+			)
 		);
 		return reactive(() => result);
+	}
+
+	getChangesByStackId(stackId: string | null): TreeChange[] {
+		return uncommittedSelectors.treeChanges.selectByStackId(this.state, stackId);
 	}
 
 	changesByStackId(stackId: string | null): Reactive<TreeChange[]> {
-		const changes = $derived(uncommittedSelectors.treeChanges.selectByStackId(this.state, stackId));
+		const changes = $derived(this.getChangesByStackId(stackId));
 		return reactive(() => changes);
 	}
 
+	getAssignmentsByPath(stackId: string | null, path: string): HunkAssignment[] {
+		return uncommittedSelectors.hunkAssignments.selectByPrefix(
+			this.state.hunkAssignments,
+			partialKey(stackId, path)
+		);
+	}
+
 	assignmentsByPath(stackId: string | null, path: string): Reactive<HunkAssignment[]> {
-		const result = $derived(
-			uncommittedSelectors.hunkAssignments.selectByPrefix(
-				this.state.hunkAssignments,
-				stackId + '-' + path + '-'
-			)
-		);
-		return reactive(() => result);
-	}
-
-	assignmentsByStackId(stackId: string | null): Reactive<HunkAssignment[]> {
-		const result = $derived(
-			uncommittedSelectors.hunkAssignments.selectByPrefix(this.state.hunkAssignments, stackId + '-')
-		);
-		return reactive(() => result);
-	}
-
-	getAssignmentsByStackId(stackId: string | null): Reactive<HunkAssignment[]> {
-		const assignments = $derived(
-			uncommittedSelectors.hunkAssignments.selectByPrefix(
-				this.state.hunkAssignments,
-				String(stackId)
-			)
-		);
-		return reactive(() => assignments);
-	}
-
-	getAssignmentsByPath(stackId: string | null, path: string): Reactive<HunkAssignment[]> {
-		const assignments = $derived(
-			uncommittedSelectors.hunkAssignments.selectByPrefix(
-				this.state.hunkAssignments,
-				`${stackId}::${path}::`
-			)
-		);
+		const assignments = $derived(this.getAssignmentsByPath(stackId, path));
 		return reactive(() => assignments);
 	}
 
 	getAssignmentByHeader(
 		stackId: string | null,
 		path: string,
-		hunkHeader: string
+		hunkHeader: HunkHeader
 	): Reactive<HunkAssignment | undefined> {
 		const assignments = $derived(
 			uncommittedSelectors.hunkAssignments.selectById(
@@ -218,7 +222,7 @@ export class UncommittedService {
 		return reactive(() => assignments);
 	}
 
-	hunkCheckStatus(stackId: string | null, path: string, header: string) {
+	hunkCheckStatus(stackId: string | null, path: string, header: HunkHeader) {
 		const result = $derived(
 			uncommittedSelectors.hunkSelection.hunkCheckStatus(this.state, {
 				stackId,
@@ -258,19 +262,27 @@ export class UncommittedService {
 		return reactive(() => result);
 	}
 
-	checkLine(stackId: string | null, path: string, hunkHeader: string, line: LineId) {
+	checkLine(stackId: string | null, path: string, hunkHeader: HunkHeader, line: LineId) {
 		this.dispatch(uncommittedActions.checkLine({ stackId, path, hunkHeader, line }));
 	}
 
-	uncheckLine(stackId: string | null, path: string, header: string, line: LineId) {
-		this.dispatch(uncommittedActions.uncheckLine({ stackId, path, hunkHeader: header, line }));
+	uncheckLine(
+		stackId: string | null,
+		path: string,
+		header: HunkHeader,
+		line: LineId,
+		allLinesInHunk: LineId[]
+	) {
+		this.dispatch(
+			uncommittedActions.uncheckLine({ stackId, path, hunkHeader: header, line, allLinesInHunk })
+		);
 	}
 
-	checkHunk(stackId: string | null, path: string, header: string) {
+	checkHunk(stackId: string | null, path: string, header: HunkHeader) {
 		this.dispatch(uncommittedActions.checkHunk({ stackId, path, hunkHeader: header }));
 	}
 
-	uncheckHunk(stackId: string | null, path: string, header: string) {
+	uncheckHunk(stackId: string | null, path: string, header: HunkHeader) {
 		this.dispatch(uncommittedActions.uncheckHunk({ stackId, path, hunkHeader: header }));
 	}
 
@@ -280,6 +292,14 @@ export class UncommittedService {
 
 	uncheckFile(stackId: string | null, path: string) {
 		this.dispatch(uncommittedActions.uncheckFile({ stackId, path }));
+	}
+
+	checkDir(stackId: string | null, path: string) {
+		this.dispatch(uncommittedActions.checkDir({ stackId, path }));
+	}
+
+	uncheckDir(stackId: string | null, path: string) {
+		this.dispatch(uncommittedActions.uncheckDir({ stackId, path }));
 	}
 
 	checkAll(stackId: string | null) {

@@ -2,10 +2,10 @@
 @component
 A three way split view that manages resizing of the panels.
 
-The left and right hand side are set in rem units, leaving the middle to grow
-as the window resizes. If the window shrinks to where it is smaller than the
-sum of the preferred widths, then the derived widths adjust down, with the left
-hand side shrinking before the right hand side.
+The left panel is set in rem units, the middle has fixed width constraints,
+and the right panel grows as the window resizes. If the window shrinks to where 
+it is smaller than the sum of the preferred widths, then the derived widths adjust 
+down, with the left hand side shrinking before the middle panel.
 
 Persisted widths are only stored when resizing manually, meaning you can shrink
 the window, then enlarge it and retain the original widths of the layout.
@@ -15,7 +15,7 @@ the window, then enlarge it and retain the original widths of the layout.
 <MainViewport
 	name="workspace"
 	leftWidth={{ default: 200, min: 100}}
-	rightWidth={{ default: 200, min: 100}}
+	middleWidth={{ default: 200, min: 100}}
 >
 	{#snippet left()} {/snippet}
 	{#snippet middle()} {/snippet}
@@ -25,6 +25,7 @@ the window, then enlarge it and retain the original widths of the layout.
 -->
 <script lang="ts">
 	import Resizer from '$components/Resizer.svelte';
+	import AsyncRender from '$components/v3/AsyncRender.svelte';
 	import { DefinedFocusable } from '$lib/focus/focusManager.svelte';
 	import { focusable } from '$lib/focus/focusable.svelte';
 	import { SETTINGS, type Settings } from '$lib/settings/userSettings';
@@ -42,13 +43,16 @@ the window, then enlarge it and retain the original widths of the layout.
 			default: number;
 			min: number;
 		};
-		rightWidth: {
+		middleWidth: {
 			default: number;
 			min: number;
 		};
+		middleOpen?: boolean;
+		growRight?: boolean;
 	};
 
-	const { name, left, middle, right, leftWidth, rightWidth }: Props = $props();
+	const { name, left, middle, right, leftWidth, middleWidth, middleOpen, growRight }: Props =
+		$props();
 
 	const userSettings = getContextStoreBySymbol<Settings>(SETTINGS);
 	const zoom = $derived($userSettings.zoom);
@@ -56,8 +60,8 @@ the window, then enlarge it and retain the original widths of the layout.
 	let leftPreferredWidth = $derived(
 		persisted(pxToRem(leftWidth.default, zoom), `$main_view_left_${name}`)
 	);
-	let rightPreferredWidth = $derived(
-		persisted(pxToRem(rightWidth.default, zoom), `$main_view_right_${name}`)
+	let middlePreferredWidth = $derived(
+		persisted(pxToRem(middleWidth.default, zoom), `$main_view_middle_${name}`)
 	);
 
 	let leftDiv = $state<HTMLDivElement>();
@@ -65,114 +69,111 @@ the window, then enlarge it and retain the original widths of the layout.
 	let rightDiv = $state<HTMLDivElement>();
 
 	const leftMinWidth = $derived(pxToRem(leftWidth.min, zoom));
-	const rightMinWidth = $derived(pxToRem(rightWidth.min, zoom));
+	const middleMinWidth = $derived(pxToRem(middleWidth.min, zoom));
 
 	// These need to stay in px since they are bound to elements.
 	let containerBindWidth = $state<number>(1000); // TODO: What initial value should we give this?
-	let middleBindWidth = $state<number>(540);
+	let middleBindWidth = $state<number>(300);
 	let leftBindWidth = $state<number>(300);
-	let rightBindWidth = $state<number>(300);
-
-	// When true the right hand side will resize to accommodate changes to
-	// the width of the left hand side.
-	let reverse = $state(false);
+	let rightBindWidth = $state<number>(540);
 
 	// Total width we cannot go below.
 	const padding = $derived(containerBindWidth - window.innerWidth);
 	const containerMinWidth = $derived(804 - padding);
 
-	const middleMinWidth = $derived(pxToRem(containerMinWidth, zoom) - leftMinWidth - rightMinWidth);
-
-	// Left side max width depends on teh size of the right side, unless
-	// `reverse` is true.
-	const leftMaxWidth = $derived(
-		pxToRem(containerBindWidth, zoom) -
-			middleMinWidth -
-			(reverse ? rightMinWidth : pxToRem(rightBindWidth, zoom)) -
-			1 // From the flex box gaps
+	// When swapped, the middle becomes flexible and right becomes fixed
+	const flexibleMinWidth = $derived(
+		pxToRem(containerMinWidth, zoom) - leftMinWidth - middleMinWidth
 	);
+	const totalAvailableWidth = $derived(pxToRem(containerBindWidth, zoom) - flexibleMinWidth - 1); // Reserve space for flexible panel and gaps
 
-	// Right side has priority over the left (unless `reverse` is true), so
-	// its max size is the theoretical max.
-	const rightMaxWidth = $derived(
-		pxToRem(containerBindWidth, zoom) -
-			middleMinWidth -
-			(reverse ? pxToRem(leftBindWidth, zoom) : leftMinWidth) -
-			1 // From the flex box gaps
-	);
-
+	// Calculate derived widths with proper constraints
 	const derivedLeftWidth = $derived(
-		Math.min(leftMaxWidth, Math.max(leftMinWidth, $leftPreferredWidth))
+		Math.min(totalAvailableWidth - middleMinWidth, Math.max(leftMinWidth, $leftPreferredWidth))
 	);
-	const derivedRightWidth = $derived(
-		Math.min(rightMaxWidth, Math.max(rightMinWidth, $rightPreferredWidth))
+
+	// Fixed panel width is constrained by remaining space after left panel
+	const remainingForFixed = $derived(totalAvailableWidth - derivedLeftWidth);
+	const derivedMiddleWidth = $derived(
+		Math.min(remainingForFixed, Math.max(middleMinWidth, $middlePreferredWidth))
 	);
+
+	// Calculate max widths for the resizers
+	const leftMaxWidth = $derived(totalAvailableWidth - middleMinWidth);
+	const middleMaxWidth = $derived(totalAvailableWidth - derivedLeftWidth);
 </script>
 
 <div
 	class="main-viewport"
 	use:focusable={{ id: DefinedFocusable.MainViewport }}
 	bind:clientWidth={containerBindWidth}
+	class:middle-open={middleOpen}
 >
+	<!-- Default layout: no swapping -->
 	<div
-		class="left"
+		class="left view-wrapper"
 		bind:this={leftDiv}
 		bind:clientWidth={leftBindWidth}
 		style:width={derivedLeftWidth + 'rem'}
 		style:min-width={leftMinWidth + 'rem'}
 		use:focusable={{ id: DefinedFocusable.ViewportLeft, parentId: DefinedFocusable.MainViewport }}
 	>
-		{@render left()}
-		<Resizer
-			viewport={leftDiv}
-			direction="right"
-			minWidth={leftMinWidth}
-			maxWidth={leftMaxWidth}
-			borderRadius="ml"
-			onWidth={(value) => {
-				leftPreferredWidth.set(value);
-				rightPreferredWidth.set(pxToRem(rightBindWidth, zoom));
-			}}
-			onResizing={(isResizing) => {
-				if (isResizing) {
-					// Before flipping the reverse bool we need to set the
-					// preferred width to the actual width, to prevent content
-					// from shifting.
-					leftPreferredWidth.set(pxToRem(leftBindWidth, zoom));
-				}
-				reverse = isResizing;
-			}}
-		/>
+		<AsyncRender>
+			{@render left()}
+			<Resizer
+				viewport={leftDiv}
+				direction="right"
+				minWidth={leftMinWidth}
+				maxWidth={leftMaxWidth}
+				onWidth={(value) => {
+					leftPreferredWidth.set(value);
+				}}
+			/>
+		</AsyncRender>
 	</div>
+
+	{#if middleOpen}
+		<div
+			class="middle view-wrapper"
+			bind:this={middleDiv}
+			bind:clientWidth={middleBindWidth}
+			style:width={derivedMiddleWidth + 'rem'}
+			style:min-width={middleMinWidth + 'rem'}
+			use:focusable={{
+				id: DefinedFocusable.ViewportMiddle,
+				parentId: DefinedFocusable.MainViewport
+			}}
+		>
+			<AsyncRender>
+				{@render middle()}
+				<Resizer
+					viewport={middleDiv}
+					direction="right"
+					minWidth={middleMinWidth}
+					maxWidth={middleMaxWidth}
+					borderRadius="ml"
+					onWidth={(value) => {
+						middlePreferredWidth.set(value);
+					}}
+				/>
+			</AsyncRender>
+		</div>
+	{/if}
+
 	<div
-		class="middle"
-		bind:this={middleDiv}
-		bind:clientWidth={middleBindWidth}
-		style:min-width={middleMinWidth + 'rem'}
-		use:focusable={{ id: DefinedFocusable.ViewportMiddle, parentId: DefinedFocusable.MainViewport }}
-	>
-		{@render middle()}
-	</div>
-	<div
-		class="right"
+		class="right view-wrapper"
 		bind:this={rightDiv}
 		bind:clientWidth={rightBindWidth}
-		style:width={derivedRightWidth + 'rem'}
-		style:min-width={rightMinWidth + 'rem'}
-		use:focusable={{ id: DefinedFocusable.ViewportRight, parentId: DefinedFocusable.MainViewport }}
+		style:min-width={flexibleMinWidth + 'rem'}
+		style:flex-grow={growRight ? 1 : 0}
+		use:focusable={{
+			id: DefinedFocusable.ViewportRight,
+			parentId: DefinedFocusable.MainViewport
+		}}
 	>
-		{@render right()}
-		<Resizer
-			viewport={rightDiv}
-			direction="left"
-			minWidth={rightMinWidth}
-			maxWidth={rightMaxWidth}
-			borderRadius="ml"
-			onWidth={(value) => {
-				rightPreferredWidth.set(value);
-				leftPreferredWidth.set(pxToRem(leftBindWidth, zoom));
-			}}
-		/>
+		<AsyncRender>
+			{@render right()}
+		</AsyncRender>
 	</div>
 </div>
 
@@ -185,7 +186,6 @@ the window, then enlarge it and retain the original widths of the layout.
 		width: 100%;
 		height: 100%;
 		overflow: auto;
-		gap: 8px;
 	}
 
 	.left {
@@ -196,20 +196,28 @@ the window, then enlarge it and retain the original widths of the layout.
 		flex-direction: column;
 		justify-content: flex-start;
 		height: 100%;
+		overflow: hidden;
 	}
 
-	.middle {
+	.middle-open .left {
+		border-radius: var(--radius-ml) 0 0 var(--radius-ml);
+	}
+
+	.middle-open .middle {
+		border-left-width: 0;
+		border-radius: 0 var(--radius-ml) var(--radius-ml) 0;
+	}
+
+	.view-wrapper {
 		display: flex;
-		position: relative;
-		flex-grow: 1;
-		flex-shrink: 1;
 		flex-direction: column;
-		overflow-x: hidden;
+		height: 100%;
+		overflow: hidden;
 		border: 1px solid var(--clr-border-2);
 		border-radius: var(--radius-ml);
 	}
 
-	.right {
+	.middle {
 		display: flex;
 		position: relative;
 		flex-grow: 0;
@@ -218,5 +226,14 @@ the window, then enlarge it and retain the original widths of the layout.
 		justify-content: flex-start;
 		height: 100%;
 		overflow: hidden;
+	}
+
+	.right {
+		position: relative;
+		flex-shrink: 1;
+		flex-direction: column;
+		height: 100%;
+		margin-left: 8px;
+		overflow-x: hidden;
 	}
 </style>

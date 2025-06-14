@@ -433,11 +433,15 @@ export class StackService {
 		);
 	}
 
-	commitChangesByPaths(projectId: string, commitId: string, paths: string[]) {
-		return this.api.endpoints.commitDetails.useQuery(
+	async commitChangesByPaths(projectId: string, commitId: string, paths: string[]) {
+		const result = await this.api.endpoints.commitDetails.fetch(
 			{ projectId, commitId },
 			{ transform: (result) => selectChangesByPaths(result.changes, paths) }
 		);
+		if (result.error) {
+			throw result.error;
+		}
+		return result.data || [];
 	}
 
 	commitDetails(projectId: string, commitId: string) {
@@ -494,14 +498,14 @@ export class StackService {
 		);
 	}
 
-	branchChangesByPaths(args: {
+	async branchChangesByPaths(args: {
 		projectId: string;
 		stackId?: string;
 		branchName: string;
 		remote?: string;
 		paths: string[];
 	}) {
-		return this.api.endpoints.branchChanges.useQuery(
+		const result = await this.api.endpoints.branchChanges.fetch(
 			{
 				projectId: args.projectId,
 				stackId: args.stackId,
@@ -510,6 +514,10 @@ export class StackService {
 			},
 			{ transform: (result) => selectChangesByPaths(result, args.paths) }
 		);
+		if (result.error) {
+			throw result.error;
+		}
+		return result.data || [];
 	}
 
 	get updateCommitMessage() {
@@ -981,9 +989,8 @@ function injectEndpoints(api: ClientState['backendApi']) {
 					command: 'changes_in_branch',
 					params: { projectId, stackId, branchName, remote }
 				}),
-				providesTags: (_result, _error, { branchName }) => [
-					...providesItem(ReduxTag.BranchChanges, branchName)
-				],
+				providesTags: (_result, _error, { stackId }) =>
+					stackId ? providesItem(ReduxTag.BranchChanges, stackId) : [],
 				transformResponse(rsp: TreeChanges) {
 					return changesAdapter.addMany(changesAdapter.getInitialState(), rsp.changes);
 				}
@@ -1027,23 +1034,22 @@ function injectEndpoints(api: ClientState['backendApi']) {
 				]
 			}),
 			amendCommit: build.mutation<
-				string /** Return value is the update commit value. */,
+				string /** Return value is the updated commit id. */,
 				{
 					projectId: string;
 					stackId: string;
-					branchName: string; // Provided only for invalidating `BranchDetails`.
 					commitId: string;
 					worktreeChanges: DiffSpec[];
 				}
 			>({
-				query: ({ projectId, stackId, branchName: _, commitId, worktreeChanges }) => ({
+				query: ({ projectId, stackId, commitId, worktreeChanges }) => ({
 					command: 'amend_virtual_branch',
 					params: { projectId, stackId, commitId, worktreeChanges },
 					actionName: 'Amend Commit'
 				}),
 				invalidatesTags: (_result, _error, args) => [
 					invalidatesList(ReduxTag.WorktreeChanges),
-					invalidatesItem(ReduxTag.BranchChanges, args.branchName),
+					invalidatesItem(ReduxTag.BranchChanges, args.stackId),
 					invalidatesItem(ReduxTag.StackDetails, args.stackId)
 				]
 			}),
@@ -1135,6 +1141,7 @@ function injectEndpoints(api: ClientState['backendApi']) {
 				}),
 				invalidatesTags(_result, _error, arg) {
 					return [
+						invalidatesItem(ReduxTag.BranchChanges, arg.stackId),
 						invalidatesItem(ReduxTag.StackDetails, arg.stackId),
 						invalidatesList(ReduxTag.WorktreeChanges)
 					];

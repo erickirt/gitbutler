@@ -3,11 +3,14 @@ import type { AppSettings, FeatureFlags, TelemetrySettings } from '$lib/config/a
 export const MOCK_TELEMETRY_SETINGS: TelemetrySettings = {
 	appErrorReportingEnabled: false,
 	appMetricsEnabled: false,
-	appNonAnonMetricsEnabled: true
+	appNonAnonMetricsEnabled: true,
+	appDistinctId: null
 };
 
 export const MOCK_FEATURE_FLAGS: FeatureFlags = {
-	v3: true
+	v3: true,
+	ws3: false,
+	actions: false
 };
 
 export const MOCK_APP_SETTINGS: AppSettings = {

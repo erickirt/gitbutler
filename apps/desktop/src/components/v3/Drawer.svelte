@@ -1,8 +1,6 @@
 <script lang="ts">
 	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
 	import Resizer from '$components/Resizer.svelte';
-	import { DefinedFocusable } from '$lib/focus/focusManager.svelte';
-	import { focusable } from '$lib/focus/focusable.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
 	import { inject } from '@gitbutler/shared/context';
 	import Button from '@gitbutler/ui/Button.svelte';
@@ -11,7 +9,6 @@
 	type Props = {
 		projectId: string;
 		title?: string;
-		stackId?: string;
 		minHeight?: number;
 		noLeftPadding?: boolean;
 		header?: Snippet;
@@ -21,12 +18,13 @@
 		filesSplitView?: Snippet;
 		disableScroll?: boolean;
 		testId?: string;
+		fill?: boolean;
+		onclose?: () => void;
 	};
 
 	const {
 		title,
 		projectId,
-		stackId,
 		minHeight = 11,
 		noLeftPadding,
 		header,
@@ -35,13 +33,14 @@
 		children,
 		filesSplitView,
 		disableScroll,
-		testId
+		testId,
+		fill,
+		onclose
 	}: Props = $props();
 
 	const [uiState] = inject(UiState);
 
 	const projectUiState = $derived(uiState.project(projectId));
-	const stackUiState = $derived(stackId ? uiState.stack(stackId) : undefined);
 
 	const drawerIsFullScreen = $derived(projectUiState.drawerFullScreen.get());
 	const heightRmResult = $derived(uiState.global.drawerHeight.get());
@@ -59,22 +58,17 @@
 	function onToggleExpand() {
 		projectUiState.drawerFullScreen.set(!drawerIsFullScreen.current);
 	}
-
-	export function onClose() {
-		projectUiState.drawerPage.set(undefined);
-		stackUiState?.selection.set(undefined);
-	}
 </script>
 
 <div
 	data-testid={testId}
 	class="drawer"
+	class:fill
 	bind:this={drawerDiv}
-	style:height
-	style:min-height="{minHeight}rem"
-	use:focusable={{ id: DefinedFocusable.Drawer, parentId: DefinedFocusable.ViewportMiddle }}
+	style:height={fill ? undefined : height}
+	style:min-height={fill ? undefined : minHeight + 'rem'}
 >
-	<div class="drawer-wrap" class:top-border={!drawerIsFullScreen.current}>
+	<div class="drawer-wrap" class:top-border={!drawerIsFullScreen.current && !fill}>
 		<div bind:this={headerDiv} class="drawer-header" class:no-left-padding={noLeftPadding}>
 			<div class="drawer-header__title">
 				{#if title}
@@ -104,7 +98,9 @@
 						onclick={onToggleExpand}
 					/>
 
-					<Button kind="ghost" icon="cross" size="tag" onclick={onClose} />
+					{#if onclose}
+						<Button kind="ghost" icon="cross" size="tag" onclick={() => onclose()} />
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -116,7 +112,7 @@
 				style:--custom-width={splitView ? `${contentWidth.current}rem` : 'auto'}
 			>
 				<div class="drawer__content-scroll" bind:this={viewportEl}>
-					{#if scrollable}
+					{#if scrollable && !fill}
 						<ConfigurableScrollableContainer>
 							<div class="drawer__content">
 								{@render children()}
@@ -152,7 +148,7 @@
 		{/if}
 	</div>
 
-	{#if !drawerIsFullScreen.current}
+	{#if !drawerIsFullScreen.current && !fill}
 		<!-- Resizer should be outside if the overflow: hidden container otherwise it wouldn't overlay on top of the border -->
 		<Resizer
 			direction="up"
@@ -175,6 +171,10 @@
 		flex-shrink: 0;
 		flex-direction: column;
 		width: 100%;
+		border-bottom: 1px solid var(--clr-border-2);
+		&.fill {
+			max-height: calc(100% + 1px); /* Hides bottom border. */
+		}
 	}
 
 	.drawer-wrap {
@@ -292,7 +292,6 @@
 		flex-direction: column;
 		width: var(--custom-width);
 		height: 100%;
-		min-height: 0;
 	}
 
 	.drawer__files-split-view {

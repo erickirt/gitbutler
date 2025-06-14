@@ -13,15 +13,15 @@ const MOCK_UI_SELECTION: StackSelection = {
 };
 
 const MOCK_STACK_UI_STATE: StackState = {
-	selection: MOCK_UI_SELECTION
+	selection: MOCK_UI_SELECTION,
+	action: undefined
 };
 
 const MOCK_PROJECT_UI_STATE: ProjectUiState = {
-	drawerPage: 'branch',
 	drawerFullScreen: false,
 	commitTitle: '',
 	commitDescription: '',
-	commitSourceId: undefined,
+	exclusiveAction: undefined,
 	branchesSelection: { branchName: 'test' },
 	stackId: undefined,
 	editingCommitMessage: false
@@ -39,7 +39,10 @@ const MOCK_GLOBAL_UI_STATE: GlobalUiState = {
 	useRuler: false,
 	rulerCountValue: 0,
 	wrapTextByRuler: false,
-	modal: undefined
+	modal: undefined,
+	stackWidth: 25,
+	detailsWidth: 25,
+	previewWidth: 30
 };
 
 export function getUiStateMock() {
@@ -72,7 +75,7 @@ export function getUiStateMock() {
 		return {
 			drawerPage: {
 				get() {
-					return MOCK_PROJECT_UI_STATE.drawerPage;
+					return MOCK_PROJECT_UI_STATE.exclusiveAction;
 				}
 			},
 			drawerFullScreen: {

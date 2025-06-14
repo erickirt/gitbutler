@@ -13,7 +13,9 @@ import type { TokenMemoryService } from '$lib/stores/tokenMemoryService';
 import type { ApiUser } from '@gitbutler/shared/users/types';
 
 export type LoginToken = {
+	/** Used for polling the user; should NEVER be sent to the browser. */
 	token: string;
+	browser_token: string;
 	expires: string;
 	url: string;
 };
@@ -42,7 +44,7 @@ export class UserService {
 			const user = plainToInstance(User, userData);
 			this.tokenMemoryService.setToken(user.access_token);
 			this.user.set(user);
-			this.posthog.setPostHogUser({ id: user.id, email: user.email, name: user.name });
+			await this.posthog.setPostHogUser({ id: user.id, email: user.email, name: user.name });
 			setSentryUser(user);
 			return user;
 		}
@@ -79,7 +81,7 @@ export class UserService {
 		await this.clearUser();
 		this.user.set(undefined);
 		this.tokenMemoryService.setToken(undefined);
-		this.posthog.resetPostHog();
+		await this.posthog.resetPostHog();
 		resetSentry();
 	}
 
