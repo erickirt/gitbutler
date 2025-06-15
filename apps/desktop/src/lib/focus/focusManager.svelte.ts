@@ -12,11 +12,17 @@ export enum DefinedFocusable {
 	UncommittedChanges = 'uncommitted-changes',
 	Drawer = 'drawer',
 	Branches = 'branches',
+	Stack = 'stack',
+	Preview = 'preview',
 	// Only one of these can be in the dom at any given time.
 	ChangedFiles = 'changed-files'
 }
 
-export function assignedChangesFocusableId(stackId: string) {
+export function stackFocusableId(stackId: string) {
+	return `${DefinedFocusable.Stack}:${stackId}`;
+}
+
+export function uncommittedFocusableId(stackId?: string) {
 	return `${DefinedFocusable.UncommittedChanges}:${stackId}`;
 }
 
@@ -24,10 +30,7 @@ export function assignedChangesFocusableId(stackId: string) {
  * If the provided ID is a assigned-changes id, it will return the stackId as a
  * string, otherwise, it will return undefined.
  */
-export function parseUnassignedChangesFocusable(id: string): string | undefined {
-	if (!id.startsWith(DefinedFocusable.UncommittedChanges)) {
-		return;
-	}
+export function parseFocusableId(id: string): string | undefined {
 	const halves = id.split(':');
 	if (halves.length !== 2) {
 		return;
@@ -115,7 +118,6 @@ export class FocusManager implements Reactive<Focusable | undefined> {
 				const item = this.lookup.get(pointer);
 				if (item) {
 					this.setActive(item.key);
-					item.element.focus();
 					break;
 				}
 				pointer = pointer.parentElement;

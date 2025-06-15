@@ -3,6 +3,7 @@
 		ref: HTMLInputElement | undefined;
 		value: string;
 		showCount?: boolean;
+		placeholder?: string;
 		oninput?: (e: Event) => void;
 		onchange?: (value: string) => void;
 		onkeydown: (e: KeyboardEvent) => void;
@@ -13,6 +14,7 @@
 		ref = $bindable(),
 		value = $bindable(),
 		showCount = true,
+		placeholder,
 		oninput,
 		onchange,
 		onkeydown,
@@ -27,7 +29,7 @@
 	<input
 		data-testid={testId}
 		bind:this={ref}
-		placeholder="Commit title"
+		{placeholder}
 		class="text-14 text-semibold text-input"
 		type="text"
 		autofocus
@@ -49,8 +51,17 @@
 
 <style lang="postcss">
 	.text-input {
+		z-index: 0;
+		position: relative;
 		width: 100%;
+		margin-bottom: -1px;
 		padding: 8px 12px;
+		border-radius: var(--radius-m) var(--radius-m) 0 0;
+
+		&:hover,
+		&:focus {
+			z-index: 1;
+		}
 	}
 
 	.message-editor-input {

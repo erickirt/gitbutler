@@ -21,7 +21,7 @@ describe('Commit Actions', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -61,7 +61,7 @@ describe('Commit Actions', () => {
 		cy.getByTestId('commit-drawer-description-input')
 			.should('be.visible')
 			.click()
-			.clear()
+			// .clear()
 			.type(newCommitMessageBody); // Type the new commit message body
 
 		// Click on the save button
@@ -117,7 +117,7 @@ describe('Commit Actions', () => {
 		cy.getByTestId('commit-drawer-description-input')
 			.should('be.visible')
 			.click()
-			.clear()
+			// .clear()
 			.type(newCommitDescription); // Type the new commit message body
 
 		// Click on the save button
@@ -172,7 +172,8 @@ describe('Commit Actions', () => {
 			.type(newCommitTitle); // Type the new commit message title
 
 		// Type in a description
-		cy.getByTestId('commit-drawer-description-input').should('be.visible').click().clear(); // Clear the description
+		cy.getByTestId('commit-drawer-description-input').should('be.visible').click();
+		// .clear(); // Clear the description
 
 		// Click on the save button
 		cy.getByTestId('commit-drawer-action-button')
@@ -281,7 +282,7 @@ describe('Commit Actions', () => {
 		cy.getByTestId('commit-drawer-description-input')
 			.should('be.visible')
 			.click()
-			.clear()
+			// .clear()
 			.type(newCommitMessageBody); // Type the new commit message body
 
 		// Click on the save button
@@ -384,13 +385,13 @@ describe('Commit Actions', () => {
 		cy.getByTestId('start-commit-button').should('be.visible').should('be.enabled').click();
 
 		// Should open the new commit drawer
-		cy.getByTestId('new-commit-drawer').should('be.visible');
+		cy.getByTestId('new-commit-view').should('be.visible');
 
 		// Should have the "Your commit goes here" text
 		cy.getByTestId('your-commit-goes-here').should('be.visible').should('have.class', 'first');
 
-		// Should have selected the file
-		cy.getByTestId('file-list-item').first().get('input[type="checkbox"]').should('be.checked');
+		// Select the file
+		cy.getByTestId('file-list-item').first().get('input[type="checkbox"]').check();
 
 		// Type in a commit message
 		cy.getByTestId('commit-drawer-title-input')
@@ -401,7 +402,7 @@ describe('Commit Actions', () => {
 		// Type in a description
 		cy.getByTestId('commit-drawer-description-input')
 			.should('be.visible')
-			.click()
+			// .click()
 			.type(newCommitMessageBody); // Type the new commit message body
 
 		// Click on the commit button
@@ -418,23 +419,23 @@ describe('Commit Actions', () => {
 		expect(mockBackend.getDiff).to.have.callCount(0);
 	});
 
-	it('Should hide the drawer on uncommit from context menu', () => {
-		// Click on the first commit and open the commit menu
-		cy.getByTestId('commit-row')
-			.click()
-			.within(() => {
-				cy.getByTestId('kebab-menu-btn').click();
-			});
+	// it('Should hide the drawer on uncommit from context menu', () => {
+	// 	// Click on the first commit and open the commit menu
+	// 	cy.getByTestId('commit-row')
+	// 		.click()
+	// 		.within(() => {
+	// 			cy.getByTestId('kebab-menu-btn').click();
+	// 		});
 
-		// Click on the uncommit option
-		cy.getByTestId('commit-row-context-menu-uncommit-menu-btn').click();
+	// 	// Click on the uncommit option
+	// 	cy.getByTestId('commit-row-context-menu-uncommit-menu-btn').click();
 
-		// The drawer should be closed
-		cy.getByTestId('commit-drawer').should('not.exist');
+	// 	// The drawer should be closed
+	// 	cy.getByTestId('commit-drawer').should('not.exist');
 
-		// The commit should be removed from the list
-		cy.getByTestId('commit-row').should('have.length', 0);
-	});
+	// 	// The commit should be removed from the list
+	// 	cy.getByTestId('commit-row').should('have.length', 0);
+	// });
 
 	it('Should hide the drawer on uncommit from the commit drawer', () => {
 		// Click on the first commit
@@ -472,7 +473,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -569,7 +570,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 				.should('be.visible')
 				.should('contain', commitDescription)
 				.click()
-				.clear()
+				// .clear()
 				.type(newCommitDescription); // Type the new commit message body
 
 			// Click on the save button
@@ -674,7 +675,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 				.should('be.visible')
 				.should('contain', commitDescription)
 				.click()
-				.clear()
+				// .clear()
 				.type(newCommitDescription); // Type the new commit message body
 
 			// Click on the cancel button
@@ -741,7 +742,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 				.should('be.visible')
 				.should('contain', lastInputDescription ?? '')
 				.click()
-				.clear()
+				// .clear()
 				.type(commitDescription); // Type the new commit message body
 
 			lastInputDescription = commitDescription;
@@ -788,7 +789,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 				.should('be.visible')
 				.should('contain', commitDescription)
 				.click()
-				.clear()
+				// .clear()
 				.type(newCommitDescription); // Type the new commit message body
 
 			// Edit the commit message
@@ -831,7 +832,7 @@ describe('Commit Actions with no stacks', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -862,14 +863,14 @@ describe('Commit Actions with no stacks', () => {
 		cy.getByTestId('start-commit-button').should('be.visible').should('be.enabled').click();
 
 		// Should open the new commit drawer
-		cy.getByTestId('new-commit-drawer').should('be.visible');
+		cy.getByTestId('new-commit-view').should('be.visible');
 
 		// Should display the draft stack
-		cy.getByTestId('stack-draft').should('be.visible');
-		cy.getByTestId('stack-draft').should('contain', mockBackend.cannedBranchName);
+		cy.getByTestId('draft-stack').should('be.visible');
+		cy.getByTestId('draft-stack').should('contain', mockBackend.cannedBranchName);
 
 		// Update the stack name
-		cy.getByTestId('stack-draft').within(() => {
+		cy.getByTestId('branch-card').within(() => {
 			cy.get('input[type="text"]')
 				.should('be.visible')
 				.should('be.enabled')

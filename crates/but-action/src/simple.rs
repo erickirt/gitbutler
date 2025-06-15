@@ -12,7 +12,10 @@ use gitbutler_oxidize::OidExt;
 use gitbutler_project::access::WorktreeWritePermission;
 use gitbutler_stack::VirtualBranchesHandle;
 
-use crate::{Outcome, default_target_setting_if_none, generate::commit_message_blocking};
+use crate::{
+    Outcome, default_target_setting_if_none, gb_client, generate::commit_message_blocking,
+    openai::OpenAiProvider,
+};
 /// This is a GitButler automation which allows easy handling of uncommitted changes in a repository.
 /// At a high level, it will:
 ///   - Checkout GitButler's workspace branch if not already checked out
@@ -25,6 +28,7 @@ use crate::{Outcome, default_target_setting_if_none, generate::commit_message_bl
 ///   - Create a separate persisted entry recording the request context and IDs for the two oplog snapshots
 pub fn handle_changes(
     ctx: &mut CommandContext,
+    openai: &Option<OpenAiProvider>,
     change_summary: &str,
     external_prompt: Option<String>,
 ) -> anyhow::Result<Outcome> {
@@ -41,8 +45,14 @@ pub fn handle_changes(
         )?
         .to_gix();
 
-    let response =
-        handle_changes_simple_inner(ctx, change_summary, external_prompt.clone(), vb_state, perm);
+    let response = handle_changes_simple_inner(
+        ctx,
+        openai,
+        change_summary,
+        external_prompt.clone(),
+        vb_state,
+        perm,
+    );
 
     let snapshot_after = ctx
         .create_snapshot(
@@ -53,7 +63,7 @@ pub fn handle_changes(
 
     crate::action::persist_action(
         ctx,
-        crate::action::ButlerAction::new_mcp(
+        crate::action::ButlerAction::new(
             crate::ActionHandler::HandleChangesSimple,
             external_prompt,
             change_summary.to_owned(),
@@ -68,6 +78,7 @@ pub fn handle_changes(
 
 fn handle_changes_simple_inner(
     ctx: &mut CommandContext,
+    openai: &Option<OpenAiProvider>,
     change_summary: &str,
     external_prompt: Option<String>,
     vb_state: &VirtualBranchesHandle,
@@ -91,8 +102,12 @@ fn handle_changes_simple_inner(
     let repo = ctx.gix_repo()?;
 
     // Get any assignments that may have been made, which also includes any hunk locks. Assignments should be updated according to locks where applicable.
-    let assignments = but_hunk_assignment::assignments(ctx, true, None)
-        .map_err(|err| serde_error::Error::new(&*err))?;
+    let (assignments, _) = but_hunk_assignment::assignments_with_fallback(
+        ctx,
+        true,
+        None::<Vec<but_core::TreeChange>>,
+    )
+    .map_err(|err| serde_error::Error::new(&*err))?;
     if assignments.is_empty() {
         return Ok(Outcome {
             updated_branches: vec![],
@@ -124,14 +139,35 @@ fn handle_changes_simple_inner(
     }
     // Go over the stack_assignments and flatten the diff specs for each stack.
     for (_, specs) in stack_assignments.iter_mut() {
-        *specs = crate::flatten_diff_specs(specs.clone());
+        *specs = but_workspace::flatten_diff_specs(specs.clone());
     }
 
     let mut updated_branches = vec![];
 
-    let commit_message = if std::env::var("OPENAI_API_KEY").is_ok() {
-        // TODO: Provide diff string
-        commit_message_blocking(change_summary, &external_prompt.unwrap_or_default(), "")?
+    let commit_message = if let Ok(gb_api_key) = std::env::var("GB_API_KEY_OPENAI") {
+        // TODO: Obviously, this should not be the way that we pass in the API key AND decide to use OpenAI,
+        // but it'f goof enough for now.
+        gb_client::commit_message_blocking_open_ai(
+            &gb_api_key,
+            change_summary,
+            &external_prompt.unwrap_or_default(),
+            "",
+        )?
+    } else if let Ok(gb_api_key) = std::env::var("GB_API_KEY_ANTHROPIC") {
+        // TODO: Obviously, [read above comment]
+        gb_client::commit_message_blocking_anthropic(
+            &gb_api_key,
+            change_summary,
+            &external_prompt.unwrap_or_default(),
+            "",
+        )?
+    } else if let Some(openai) = openai {
+        commit_message_blocking(
+            openai,
+            change_summary,
+            &external_prompt.unwrap_or_default(),
+            "",
+        )?
     } else {
         change_summary.to_string()
     };

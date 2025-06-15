@@ -21,12 +21,12 @@
 		SquashCommitDzHandler
 	} from '$lib/commits/dropHandler';
 	import { draggableCommitV3 } from '$lib/dragging/draggable';
+	import { DropzoneRegistry } from '$lib/dragging/registry';
 	import {
 		ReorderCommitDzFactory,
 		ReorderCommitDzHandler
 	} from '$lib/dragging/stackingReorderDropzoneManager';
 	import { DefaultForgeFactory } from '$lib/forge/forgeFactory.svelte';
-	import { IdSelection } from '$lib/selection/idSelection.svelte';
 	import { StackService, type SeriesIntegrationStrategy } from '$lib/stacks/stackService.svelte';
 	import { combineResults } from '$lib/state/helpers';
 	import { UiState } from '$lib/state/uiState.svelte';
@@ -92,22 +92,21 @@
 		handleEditPatch
 	}: Props = $props();
 
-	const [stackService, uiState, forge, baseBranchService, idSelection] = inject(
+	const [stackService, uiState, forge, baseBranchService, dropzoneRegistry] = inject(
 		StackService,
 		UiState,
 		DefaultForgeFactory,
 		BaseBranchService,
-		IdSelection
+		DropzoneRegistry
 	);
 	const [integrateUpstreamCommits, upstreamIntegration] = stackService.integrateUpstreamCommits;
 
 	const projectState = $derived(uiState.project(projectId));
-	const drawer = $derived(projectState.drawerPage);
-	const commitSourceId = $derived(projectState.commitSourceId.current);
+	const exclusiveAction = $derived(projectState.exclusiveAction.current);
+	const commitAction = $derived(exclusiveAction?.type === 'commit' ? exclusiveAction : undefined);
 	const isCommitting = $derived(
-		drawer.current === 'new-commit' && (commitSourceId === undefined || commitSourceId === stackId)
+		exclusiveAction?.type === 'commit' && exclusiveAction.stackId === stackId
 	);
-	const stackActive = $derived(stackId === projectState.stackId.current);
 	const stackState = $derived(uiState.stack(stackId));
 	const selection = $derived(stackState.selection.get());
 	const selectedBranchName = $derived(selection.current?.branchName);
@@ -149,14 +148,11 @@
 	}
 
 	async function handleCommitClick(commitId: string, upstream: boolean) {
-		const commitChanges = await stackService.fetchCommitChanges(projectId, commitId);
-		const firstPathInCommit = commitChanges.data?.changes[0]?.path;
-		if (firstPathInCommit) {
-			idSelection.set(firstPathInCommit, { type: 'commit', commitId }, 0);
+		if (selectedCommitId === commitId) {
+			stackState.selection.set(undefined);
+		} else {
+			stackState.selection.set({ branchName, commitId, upstream });
 		}
-		const stackState = uiState.stack(stackId);
-		stackState.selection.set({ branchName, commitId, upstream });
-		projectState.stackId.set(stackId);
 	}
 </script>
 
@@ -215,15 +211,18 @@
 		{@const ancestorMostConflicted = getAncestorMostConflicted(localAndRemoteCommits)}
 		{#if !hasCommits && isCommitting}
 			<CommitGoesHere
-				selected={stackActive && branchName === selectedBranchName}
+				selected={branchName === commitAction?.branchName ||
+					!commitAction?.branchName ||
+					!commitAction.parentCommitId}
 				first
 				last
 				onclick={() => {
-					uiState.stack(stackId).selection.set({
+					projectState.exclusiveAction.set({
+						type: 'commit',
+						stackId,
 						branchName,
-						commitId: branchDetails.baseCommit
+						parentCommitId: branchDetails.baseCommit
 					});
-					projectState.stackId.set(stackId);
 				}}
 			/>
 		{/if}
@@ -243,8 +242,7 @@
 					{#each upstreamOnlyCommits as commit, i (commit.id)}
 						{@const first = i === 0}
 						{@const lastCommit = i === upstreamOnlyCommits.length - 1}
-						{@const selected =
-							stackActive && commit.id === selectedCommitId && branchName === selectedBranchName}
+						{@const selected = commit.id === selectedCommitId && branchName === selectedBranchName}
 						{@const commitId = commit.id}
 						{#if !isCommitting}
 							<CommitRow
@@ -255,7 +253,6 @@
 								createdAt={commit.createdAt}
 								tooltip="Upstream"
 								{branchName}
-								{projectId}
 								{first}
 								lastCommit={lastCommit && localAndRemoteCommits.length === 0}
 								{selected}
@@ -280,22 +277,22 @@
 				{@const first = i === 0}
 				{@const last = i === localAndRemoteCommits.length - 1}
 				{@const commitId = commit.id}
-				{@const selected =
-					stackActive && commit.id === selectedCommitId && branchName === selectedBranchName}
+				{@const selected = commit.id === selectedCommitId && branchName === selectedBranchName}
 				{#if isCommitting}
-					{@const nothingSelectedButFirst = selectedCommitId === undefined && first}
-					{@const selectedForCommit =
-						stackActive &&
-						(nothingSelectedButFirst || commit.id === selectedCommitId) &&
-						((first && selectedBranchName === undefined) || branchName === selectedBranchName)}
 					<!-- Only commits to the base can be `last`, see next `CommitGoesHere`. -->
 					<CommitGoesHere
-						selected={selectedForCommit}
+						selected={(commitAction?.parentCommitId === commitId ||
+							(first && commitAction?.parentCommitId === undefined)) &&
+							commitAction?.branchName === branchName}
 						{first}
 						last={false}
 						onclick={() => {
-							projectState.stackId.set(stackId);
-							uiState.stack(stackId).selection.set({ branchName, commitId });
+							projectState.exclusiveAction.set({
+								type: 'commit',
+								stackId,
+								branchName,
+								parentCommitId: commitId
+							});
 						}}
 					/>
 				{/if}
@@ -324,7 +321,6 @@
 					stackService,
 					projectId,
 					stackId,
-					branchName,
 					commit: dzCommit,
 					// TODO: Use correct value!
 					okWithForce: true,
@@ -359,7 +355,8 @@
 								false,
 								branchName
 							),
-							viewportId: 'board-viewport'
+							viewportId: 'board-viewport',
+							dropzoneRegistry
 						}}
 					>
 						<CommitRow
@@ -372,7 +369,6 @@
 							createdAt={commit.createdAt}
 							{stackId}
 							{branchName}
-							{projectId}
 							{first}
 							lastCommit={last}
 							{lastBranch}
@@ -428,12 +424,14 @@
 					<CommitGoesHere
 						{first}
 						{last}
-						selected={stackActive &&
-							selectedCommitId === baseSha &&
-							branchName === selectedBranchName}
+						selected={exclusiveAction?.parentCommitId === baseSha}
 						onclick={() => {
-							uiState.stack(stackId).selection.set({ branchName, commitId: baseSha });
-							projectState.stackId.set(stackId);
+							projectState.exclusiveAction.set({
+								type: 'commit',
+								stackId,
+								branchName,
+								parentCommitId: baseSha
+							});
 						}}
 					/>
 				{/if}

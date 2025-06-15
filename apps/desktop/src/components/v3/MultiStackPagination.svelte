@@ -1,23 +1,11 @@
 <script lang="ts" module>
-	export function scrollToLane(
-		el: HTMLElement | undefined,
-		index: number,
-		direction: 'horz' | 'vert'
-	) {
+	export function scrollToLane(el: HTMLElement | undefined, index: number) {
 		if (!el) return;
-		if (direction === 'vert') {
-			const laneHeight = el?.offsetHeight ?? 0;
-			el?.scrollTo({
-				top: laneHeight * index,
-				behavior: 'smooth'
-			});
-		} else {
-			const laneWidth = el?.offsetWidth ?? 0;
-			el?.scrollTo({
-				left: laneWidth * index,
-				behavior: 'smooth'
-			});
-		}
+		const laneWidth = el?.offsetWidth ?? 0;
+		el?.scrollTo({
+			left: laneWidth * index,
+			behavior: 'smooth'
+		});
 	}
 </script>
 
@@ -29,7 +17,8 @@
 		visibleIndexes: number[];
 		isCreateNewVisible?: boolean;
 		selectedBranchIndex: number;
-		onclick: (index: number) => void;
+		onPageClick: (index: number) => void;
+		onCreateNewClick: () => void;
 	};
 
 	let {
@@ -37,7 +26,8 @@
 		visibleIndexes = $bindable(),
 		isCreateNewVisible = $bindable(),
 		selectedBranchIndex,
-		onclick
+		onPageClick,
+		onCreateNewClick
 	}: Props = $props();
 
 	function getPaginationTooltip(index: number) {
@@ -60,27 +50,39 @@
 				class="pagination-dot"
 				class:active={visibleIndexes.includes(i)}
 				class:selected-branch={i === selectedBranchIndex}
-				onclick={() => onclick(i)}
+				onclick={() => onPageClick(i)}
 				onkeydown={(event) => {
 					if (event.key === 'Enter' || event.key === ' ') {
 						event.preventDefault();
-						onclick(i);
+						onPageClick(i);
 					}
 				}}
 			></div>
 		</Tooltip>
 	{/each}
-	<svg
-		class="create-new"
-		class:create-new-visible={isCreateNewVisible}
-		width="9"
-		height="8"
-		viewBox="0 0 9 8"
-		fill="none"
-		xmlns="http://www.w3.org/2000/svg"
-	>
-		<path d="M5.49474 0.5V7.5M9 3.99474L2 3.99474" stroke="var(--clr-text-2)" stroke-width="2" />
-	</svg>
+	<Tooltip text="Create new branch">
+		<div
+			role="button"
+			tabindex="0"
+			class="create-new"
+			class:create-new-visible={isCreateNewVisible}
+			onclick={onCreateNewClick}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					onCreateNewClick();
+				}
+			}}
+		>
+			<svg width="9" height="8" viewBox="0 0 9 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path
+					d="M5.49474 0.5V7.5M9 3.99474L2 3.99474"
+					stroke="var(--clr-text-2)"
+					stroke-width="2"
+				/>
+			</svg>
+		</div>
+	</Tooltip>
 </div>
 
 <style lang="postcss">
@@ -117,6 +119,7 @@
 	}
 
 	.create-new {
+		display: flex;
 		opacity: 0.5;
 		transition: opacity var(--transition-fast);
 	}

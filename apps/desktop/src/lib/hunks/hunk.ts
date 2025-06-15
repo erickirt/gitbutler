@@ -95,6 +95,13 @@ export type HunkHeader = {
  * Additionally, the hunk dependencies (locking) affects what assignment is possible.
  */
 export type HunkAssignment = {
+	/**
+	 * A stable identifier for the hunk assignment.
+	 *   - When a new hunk is first observed (from the uncommitted changes), it is assigned a new id.
+	 *   - If a hunk is modified (i.e. it has gained or lost lines), the UUID remains the same.
+	 *   - If two or more hunks become merged (due to edits causing the contexts to overlap), the id of the hunk with the most lines is adopted.
+	 */
+	readonly id: string | null;
 	/** The hunk that is being assigned. Together with path_bytes, this identifies the hunk.
 	 * If the file is binary, or too large to load, this will be None and in this case the path name is the only identity.
 	 */
@@ -109,7 +116,11 @@ export type HunkAssignment = {
 	 * The dependencies(locks) that the hunk assignment (and the underlying hunk) has.
 	 * This determines where the hunk can be assigned.
 	 */
-	readonly hunkLocks: HunkLock[];
+	readonly hunkLocks: HunkLock[] | null;
+	/** The line numbers that were added in this hunk. */
+	readonly lineNumsAdded: number[] | null;
+	/** The line numbers that were removed in this hunk. */
+	readonly lineNumsRemoved: number[] | null;
 };
 
 /**
@@ -412,11 +423,11 @@ export function hunkContainsLine(hunk: DiffHunk, line: LineId): boolean {
  * Get the line locks for a hunk.
  */
 export function getLineLocks(
-	stackId: string | undefined,
+	excludeStackId: string | undefined,
 	hunk: DiffHunk,
 	locks: HunkLocks[]
 ): [boolean, LineLock[] | undefined] {
-	if (stackId === undefined) {
+	if (excludeStackId === undefined) {
 		return [false, undefined];
 	}
 
@@ -446,7 +457,7 @@ export function getLineLocks(
 			const locks = hunkLocks
 				.map((lock) => lock.locks)
 				.flat()
-				.filter((lock) => lock.stackId !== stackId);
+				.filter((lock) => lock.stackId !== excludeStackId);
 
 			if (locks.length === 0) {
 				hunkIsFullyLocked = false;

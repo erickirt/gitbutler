@@ -6,11 +6,13 @@
 	import BranchHeader from '$components/v3/BranchHeader.svelte';
 	import BranchHeaderContextMenu from '$components/v3/BranchHeaderContextMenu.svelte';
 	import PrNumberUpdater from '$components/v3/PrNumberUpdater.svelte';
-	import { MoveCommitDzHandler, StartCommitDzHandler } from '$lib/commits/dropHandler';
-	import { UncommittedService } from '$lib/selection/uncommittedService.svelte';
+	import ReviewView from '$components/v3/ReviewView.svelte';
+	import { MoveCommitDzHandler } from '$lib/commits/dropHandler';
 	import { StackService } from '$lib/stacks/stackService.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
+	import { TestId } from '$lib/testing/testIds';
 	import { inject } from '@gitbutler/shared/context';
+	import Button from '@gitbutler/ui/Button.svelte';
 	import ReviewBadge from '@gitbutler/ui/ReviewBadge.svelte';
 	import { getTimeAgo } from '@gitbutler/ui/utils/timeAgo';
 	import type { PushStatus } from '$lib/stacks/stack';
@@ -74,11 +76,7 @@
 
 	let { projectId, branchName, expand, active, lineColor, readonly, ...args }: Props = $props();
 
-	const [uiState, stackService, uncommittedService] = inject(
-		UiState,
-		StackService,
-		UncommittedService
-	);
+	const [uiState, stackService] = inject(UiState, StackService);
 
 	const [updateName, nameUpdate] = stackService.updateBranchName;
 
@@ -117,20 +115,14 @@
 	class:draft={args.type === 'draft-branch'}
 	class:expand
 	data-series-name={branchName}
+	data-testid={TestId.BranchCard}
 >
 	{#if args.type === 'stack-branch'}
 		{@const moveHandler = new MoveCommitDzHandler(stackService, args.stackId, projectId)}
-		{@const startCommitHandler = new StartCommitDzHandler({
-			uiState,
-			uncommittedService,
-			stackId: args.stackId,
-			projectId,
-			branchName
-		})}
 		{#if !args.prNumber}
 			<PrNumberUpdater {projectId} stackId={args.stackId} {branchName} />
 		{/if}
-		<Dropzone handlers={[moveHandler, startCommitHandler]}>
+		<Dropzone handlers={[moveHandler]}>
 			{#snippet overlay({ hovered, activated, handler })}
 				{@const label = handler instanceof MoveCommitDzHandler ? 'Move here' : 'Start commit'}
 				<CardOverlay {hovered} {activated} {label} />
@@ -187,8 +179,33 @@
 						</div>
 					{/if}
 				{/snippet}
+				{#snippet buttons()}
+					{#if stackState?.action.current !== 'review'}
+						<Button
+							size="tag"
+							kind="outline"
+							onclick={(e) => {
+								stackState?.action.set('review');
+								e.stopPropagation(); // Do not select branch.
+							}}
+							testId={TestId.CreateReviewButton}
+						>
+							Create Pull Request
+						</Button>
+					{/if}
+				{/snippet}
 			</BranchHeader>
 		</Dropzone>
+		{#if stackState?.action.current === 'review'}
+			<div class="review-wrapper">
+				<ReviewView
+					{projectId}
+					{branchName}
+					stackId={args.stackId}
+					oncancel={() => stackState.action.set(undefined)}
+				/>
+			</div>
+		{/if}
 	{:else if args.type === 'normal-branch'}
 		<BranchHeader
 			{branchName}
@@ -308,5 +325,10 @@
 	.branch-header__review-badges {
 		display: flex;
 		gap: 4px;
+	}
+
+	.review-wrapper {
+		padding: 12px;
+		border-bottom: 1px solid var(--clr-border-2);
 	}
 </style>

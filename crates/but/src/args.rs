@@ -16,25 +16,60 @@ pub struct Args {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommands {
-    /// Starts up the MCP-internal server.
-    McpInternal,
+    /// Provides an overview of the Workspace commit graph.
+    Log,
+    /// Overview of the oncommitted changes in the repository.
+    Status,
+
+    /// Combines two entities together to perform an operation.
+    #[clap(about = "Combines two entities together to perform an operation.
+Non-exhaustive list of operations 
+      │Source     │Target
+──────┼───────────┼──────
+Amend │File,Branch│Commit
+Squash│Commit     │Commit
+Assign│File,Branch│Branch
+Move  │Commit     │Branch
+
+For examples `but rub --help`.")]
+    Rub {
+        /// The source entity to combine
+        source: String,
+        /// The target entity to combine with the source
+        target: String,
+    },
     /// Starts up the MCP server.
-    Mcp,
-    /// Automatically handle changes in the current repository, creating a commit with the provided context.
-    HandleChanges {
-        /// A context describing the changes that are currently uncommitted
-        #[clap(long, short = 'd', alias = "desc", visible_alias = "description")]
-        change_description: String,
-        /// If true, this will perform simple, non-AI based handling.
-        #[clap(long, short = 's', default_value_t = true)]
-        simple: bool,
+    Mcp {
+        /// Starts the internal MCP server which has more granular tools.
+        #[clap(long, short = 'i')]
+        internal: bool,
     },
-    ListActions {
-        /// The page number to list past actions from.
-        #[clap(long, short = 'p', default_value_t = 1)]
-        page: i64,
-        /// The number of actions to list per page.
-        #[clap(long, short = 's', default_value_t = 10)]
-        page_size: i64,
-    },
+    /// GitButler Actions are automated tasks (like macros) that can be peformed on a repository.
+    Actions(actions::Platform),
+}
+
+pub mod actions {
+    #[derive(Debug, clap::Parser)]
+    pub struct Platform {
+        #[clap(subcommand)]
+        pub cmd: Option<Subcommands>,
+    }
+    #[derive(Debug, clap::Subcommand)]
+    pub enum Subcommands {
+        /// Automatically handles the changes in the repository, creating a commit with the provided context.
+        HandleChanges {
+            /// A context describing the changes that are currently uncommitted
+            #[clap(long, short = 'd', alias = "desc", visible_alias = "description")]
+            description: String,
+            /// Which handler is to be used for the operation. Different handles would have different behavior.
+            #[clap(long, value_enum, default_value = "simple")]
+            handler: Handler,
+        },
+    }
+
+    #[derive(Debug, Clone, Copy, clap::ValueEnum)]
+    pub enum Handler {
+        /// Handles changes in a simple way.
+        Simple,
+    }
 }

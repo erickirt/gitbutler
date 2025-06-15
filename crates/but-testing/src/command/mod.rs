@@ -1,7 +1,8 @@
 use anyhow::{Context, anyhow, bail};
 use but_core::UnifiedDiff;
+use but_graph::VirtualBranchesTomlMetadata;
 use but_settings::AppSettings;
-use but_workspace::{DiffSpec, HunkHeader, VirtualBranchesTomlMetadata};
+use but_workspace::{DiffSpec, HunkHeader};
 use gitbutler_project::{Project, ProjectId};
 use gix::bstr::{BString, ByteSlice};
 use std::path::Path;
@@ -131,7 +132,11 @@ pub mod assignment {
     pub fn hunk_assignments(current_dir: &Path, use_json: bool) -> anyhow::Result<()> {
         let project = project_from_path(current_dir)?;
         let ctx = &mut CommandContext::open(&project, AppSettings::default())?;
-        let assignments = but_hunk_assignment::assignments(ctx, false, None)?;
+        let (assignments, _) = but_hunk_assignment::assignments_with_fallback(
+            ctx,
+            false,
+            None::<Vec<but_core::TreeChange>>,
+        )?;
         if use_json {
             let json = serde_json::to_string_pretty(&assignments)?;
             println!("{json}");

@@ -9,6 +9,7 @@
 	import DependencyService from '$lib/dependencies/dependencyService.svelte';
 	import { draggableChips } from '$lib/dragging/draggable';
 	import { HunkDropDataV3 } from '$lib/dragging/draggables';
+	import { DropzoneRegistry } from '$lib/dragging/registry';
 	import {
 		canBePartiallySelected,
 		getLineLocks,
@@ -38,7 +39,7 @@
 		selectionId: SelectionId;
 		stackId?: string;
 		commitId?: string;
-		draggable: boolean;
+		draggable?: boolean;
 	};
 
 	const {
@@ -52,17 +53,22 @@
 		draggable
 	}: Props = $props();
 
-	const [project, uiState] = inject(Project, UiState);
+	const [project, uiState, dropzoneRegistry] = inject(Project, UiState, DropzoneRegistry);
 
 	let contextMenu = $state<ReturnType<typeof HunkContextMenu>>();
 	let showAnyways = $state(false);
 	let viewport = $state<HTMLDivElement>();
 
 	const projectState = $derived(uiState.project(projectId));
-	const drawerPage = $derived(projectState.drawerPage.current);
-	const activeStackId = $derived(projectState.stackId.current);
+	const exclusiveAction = $derived(projectState.exclusiveAction.current);
+	const targetStackId = $derived(
+		exclusiveAction?.type === 'commit' ? exclusiveAction.stackId : undefined
+	);
 
-	const isCommiting = $derived(drawerPage === 'new-commit');
+	const isCommiting = $derived(
+		exclusiveAction?.type === 'commit' && (!exclusiveAction.stackId || stackId === stackId)
+	);
+
 	const isUncommittedChange = $derived(selectionId.type === 'worktree');
 
 	const [uncommittedService, dependencyService] = inject(UncommittedService, DependencyService);
@@ -77,9 +83,7 @@
 		!draggable || !['commit', 'worktree'].includes(selectionId.type)
 	);
 
-	const assignments = $derived(
-		uncommittedService.getAssignmentsByPath(stackId || null, change.path)
-	);
+	const assignments = $derived(uncommittedService.assignmentsByPath(stackId || null, change.path));
 
 	function filter(hunks: DiffHunk[]): DiffHunk[] {
 		if (selectionId.type !== 'worktree') return hunks;
@@ -97,9 +101,13 @@
 	function linesInclude(
 		newStart: number | undefined,
 		oldStart: number | undefined,
+		selected: boolean,
 		lines: LineId[]
 	) {
-		return lines.some((l) => l.newLine === newStart && l.oldLine === oldStart);
+		if (!selected) return false;
+		return (
+			lines.length === 0 || lines.some((l) => l.newLine === newStart && l.oldLine === oldStart)
+		);
 	}
 </script>
 
@@ -119,10 +127,10 @@
 						{@const selection = uncommittedService.hunkCheckStatus(
 							stackId || null,
 							change.path,
-							hunk.newStart.toString()
+							hunk
 						)}
 						{@const [fullyLocked, lineLocks] = getLineLocks(
-							activeStackId,
+							targetStackId,
 							hunk,
 							fileDependencies.dependencies ?? []
 						)}
@@ -139,7 +147,8 @@
 									selectionId
 								),
 								disabled: draggingDisabled,
-								chipType: 'hunk'
+								chipType: 'hunk',
+								dropzoneRegistry
 							}}
 						>
 							<HunkDiff
@@ -159,48 +168,46 @@
 								onLineClick={(p) => {
 									if (fullyLocked) return;
 									if (!canBePartiallySelected(diff.subject)) {
-										uncommittedService.checkHunk(
-											stackId || null,
-											change.path,
-											hunk.newStart.toString()
-										);
+										uncommittedService.checkHunk(stackId || null, change.path, hunk);
 									}
-									if (!linesInclude(p.newLine, p.oldLine, selection.current.lines)) {
-										uncommittedService.checkLine(
-											stackId || null,
-											change.path,
-											hunk.newStart.toString(),
-											{
-												newLine: p.newLine,
-												oldLine: p.oldLine
-											}
-										);
+									if (
+										!linesInclude(
+											p.newLine,
+											p.oldLine,
+											selection.current.selected,
+											selection.current.lines
+										)
+									) {
+										uncommittedService.checkLine(stackId || null, change.path, hunk, {
+											newLine: p.newLine,
+											oldLine: p.oldLine
+										});
 									} else {
+										const allLines =
+											p.rows
+												?.filter((l) => l.isDeltaLine)
+												.map((l) => ({
+													newLine: l.afterLineNumber,
+													oldLine: l.beforeLineNumber
+												})) ?? [];
 										uncommittedService.uncheckLine(
 											stackId || null,
 											change.path,
-											hunk.newStart.toString(),
+											hunk,
 											{
 												newLine: p.newLine,
 												oldLine: p.oldLine
-											}
+											},
+											allLines
 										);
 									}
 								}}
 								onChangeStage={(selected) => {
 									if (fullyLocked || !selectable) return;
 									if (selected) {
-										uncommittedService.checkHunk(
-											stackId || null,
-											change.path,
-											hunk.newStart.toString()
-										);
+										uncommittedService.checkHunk(stackId || null, change.path, hunk);
 									} else {
-										uncommittedService.uncheckHunk(
-											stackId || null,
-											change.path,
-											hunk.newStart.toString()
-										);
+										uncommittedService.uncheckHunk(stackId || null, change.path, hunk);
 									}
 								}}
 								handleLineContextMenu={(params) => {
@@ -237,7 +244,7 @@
 					{change}
 					discardable={isUncommittedChange}
 					unSelectHunk={(hunk) => {
-						uncommittedService.uncheckHunk(stackId || null, change.path, hunk.newStart.toString());
+						uncommittedService.uncheckHunk(stackId || null, change.path, hunk);
 					}}
 				/>
 			{:else if diff.type === 'TooLarge'}

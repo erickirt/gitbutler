@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AsyncRender from '$components/v3/AsyncRender.svelte';
 	import CommitMessageEditor from '$components/v3/CommitMessageEditor.svelte';
 	import Drawer from '$components/v3/Drawer.svelte';
 	import { projectRunCommitHooks } from '$lib/config/config';
@@ -14,9 +15,11 @@
 
 	type Props = {
 		projectId: string;
+		noDrawer?: boolean;
 		stackId?: string;
+		onclose?: () => void;
 	};
-	const { projectId }: Props = $props();
+	const { projectId, noDrawer, stackId, onclose }: Props = $props();
 
 	const [stackService, uiState, hooksService, uncommittedService] = inject(
 		StackService,
@@ -26,8 +29,6 @@
 	);
 
 	const projectState = $derived(uiState.project(projectId));
-	const targetStackId = $derived(projectState.stackId.current);
-	const sourceStackId = $derived(projectState.commitSourceId.current);
 
 	const [createCommitInStack, commitCreation] = stackService.createCommit;
 
@@ -77,14 +78,15 @@
 		return failed;
 	}
 
-	const stackState = $derived(targetStackId ? uiState.stack(targetStackId) : undefined);
+	const stackState = $derived(stackId ? uiState.stack(stackId) : undefined);
 	const selection = $derived(stackState?.selection.current);
 	const selectedCommitId = $derived(selection?.commitId);
 
-	const selectedLines = $derived(uncommittedService.selectedLines());
-	const topBranchResult = $derived(
-		targetStackId ? stackService.branches(projectId, targetStackId) : undefined
-	);
+	const exclusiveAction = $derived(projectState.exclusiveAction.current);
+	const commitAction = $derived(exclusiveAction?.type === 'commit' ? exclusiveAction : undefined);
+
+	const selectedLines = $derived(uncommittedService.selectedLines(stackId));
+	const topBranchResult = $derived(stackId ? stackService.branches(projectId, stackId) : undefined);
 	const topBranchName = $derived(topBranchResult?.current.data?.at(0)?.name);
 
 	const draftBranchName = $derived(uiState.global.draftBranchName.current);
@@ -98,8 +100,8 @@
 	let drawer = $state<ReturnType<typeof Drawer>>();
 
 	async function createCommit(message: string) {
-		let finalStackId = targetStackId;
-		let finalBranchName = selectedBranchName || topBranchName;
+		let finalStackId = stackId;
+		let finalBranchName = commitAction?.branchName || topBranchName;
 
 		if (!finalStackId) {
 			const stack = await createNewStack({
@@ -120,7 +122,9 @@
 			throw new Error('No branch selected!');
 		}
 
-		const worktreeChanges = await uncommittedService.worktreeChanges(projectId, sourceStackId);
+		const worktreeChanges = (await uncommittedService.worktreeChanges(projectId, stackId)).concat(
+			await uncommittedService.worktreeChanges(projectId, undefined)
+		);
 
 		const preHookFailed = await runPreHook(worktreeChanges);
 		if (preHookFailed) return;
@@ -145,7 +149,7 @@
 			projectState.commitDescription.set('');
 
 			// Close the drawer.
-			projectState.drawerPage.set(undefined);
+			projectState.exclusiveAction.set(undefined);
 
 			// Select the newly created commit.
 			// Using `finalStackId` here because `stackState` might not have updated yet.
@@ -206,30 +210,33 @@
 	function cancel(args: { title: string; description: string }) {
 		projectState.commitTitle.set(args.title);
 		projectState.commitDescription.set(args.description);
-		drawer?.onClose();
+		projectState.exclusiveAction.set(undefined);
+		uncommittedService.uncheckAll(null);
+		onclose?.();
 	}
 </script>
 
-<Drawer
-	testId={TestId.NewCommitDrawer}
-	bind:this={drawer}
-	{projectId}
-	stackId={targetStackId}
-	title="Create commit"
-	disableScroll
-	minHeight={20}
->
-	<CommitMessageEditor
-		bind:this={input}
-		{projectId}
-		stackId={sourceStackId}
-		actionLabel="Create commit"
-		action={({ title, description }) => handleCommitCreation(title, description)}
-		onChange={({ title, description }) => handleMessageUpdate(title, description)}
-		onCancel={cancel}
-		disabledAction={!canCommit}
-		loading={commitCreation.current.isLoading || newStackResult.current.isLoading}
-		title={projectState.commitTitle.current}
-		description={projectState.commitDescription.current}
-	/>
-</Drawer>
+{#snippet editor()}
+	<AsyncRender>
+		<CommitMessageEditor
+			bind:this={input}
+			{projectId}
+			{stackId}
+			actionLabel="Create commit"
+			action={({ title, description }) => handleCommitCreation(title, description)}
+			onChange={({ title, description }) => handleMessageUpdate(title, description)}
+			onCancel={cancel}
+			disabledAction={!canCommit}
+			loading={commitCreation.current.isLoading || newStackResult.current.isLoading}
+			title={projectState.commitTitle.current}
+			description={projectState.commitDescription.current}
+		/>
+	</AsyncRender>
+{/snippet}
+{#if noDrawer}
+	{@render editor()}
+{:else}
+	<Drawer testId={TestId.NewCommitView} bind:this={drawer} title="Create commit">
+		{@render editor()}
+	</Drawer>
+{/if}

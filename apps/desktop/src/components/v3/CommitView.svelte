@@ -35,9 +35,10 @@
 		commitKey: CommitKey;
 		active?: boolean;
 		onerror: (err: unknown) => void;
+		onclose?: () => void;
 	};
 
-	const { projectId, stackId, commitKey, active, onerror }: Props = $props();
+	const { projectId, stackId, commitKey, active, onerror, onclose }: Props = $props();
 
 	const [stackService, uiState] = inject(StackService, UiState);
 
@@ -136,14 +137,7 @@
 	{#snippet children(commit, env)}
 		{@const isConflicted = isCommit(commit) && commit.hasConflicts}
 		{#if projectState.editingCommitMessage.current}
-			<Drawer
-				testId={TestId.EditCommitMessageDrawer}
-				projectId={env.projectId}
-				stackId={env.stackId}
-				title="Edit commit message"
-				disableScroll
-				minHeight={20}
-			>
+			<Drawer testId={TestId.EditCommitMessageDrawer} title="Edit commit message" {onclose}>
 				<CommitMessageEditor
 					bind:this={editor}
 					projectId={env.projectId}
@@ -158,12 +152,7 @@
 				/>
 			</Drawer>
 		{:else}
-			<Drawer
-				testId={TestId.CommitDrawer}
-				projectId={env.projectId}
-				stackId={env.stackId}
-				noLeftPadding
-			>
+			<Drawer testId={TestId.CommitDrawer} {onclose} headerNoPaddingLeft>
 				{#snippet header()}
 					<div class="commit-view__header text-13">
 						{#if isLocalAndRemoteCommit(commit)}

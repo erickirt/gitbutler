@@ -1,24 +1,52 @@
-use anyhow::Result;
+use anyhow::{Context, Ok, Result};
 
 mod args;
-use args::Args;
+use args::{Args, Subcommands, actions};
+use but_settings::AppSettings;
 mod command;
+mod id;
+mod log;
 mod mcp;
 mod mcp_internal;
+mod metrics;
+mod rub;
+mod status;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args: Args = clap::Parser::parse();
+    let app_settings = AppSettings::load_from_default_path_creating()?;
+
+    let namespace = option_env!("IDENTIFIER").unwrap_or("com.gitbutler.app");
+    gitbutler_secret::secret::set_application_namespace(namespace);
 
     match &args.cmd {
-        args::Subcommands::McpInternal => mcp_internal::start(&args.current_dir).await,
-        args::Subcommands::Mcp => mcp::start().await,
-        args::Subcommands::HandleChanges {
-            change_description,
-            simple,
-        } => command::handle_changes(&args.current_dir, args.json, *simple, change_description),
-        args::Subcommands::ListActions { page, page_size } => {
-            command::list_actions(&args.current_dir, args.json, *page, *page_size)
+        Subcommands::Mcp { internal } => {
+            if *internal {
+                mcp_internal::start().await
+            } else {
+                mcp::start(app_settings).await
+            }
+        }
+        Subcommands::Actions(actions::Platform { cmd }) => match cmd {
+            Some(actions::Subcommands::HandleChanges {
+                description,
+                handler,
+            }) => {
+                let handler = *handler;
+                command::handle_changes(&args.current_dir, args.json, handler, description)
+            }
+            None => command::list_actions(&args.current_dir, args.json, 0, 10),
+        },
+        Subcommands::Log => log::commit_graph(&args.current_dir, args.json),
+        Subcommands::Status => status::worktree(&args.current_dir, args.json),
+        Subcommands::Rub { source, target } => {
+            let result = rub::handle(&args.current_dir, args.json, source, target)
+                .context("Rubbed the wrong way.");
+            if let Err(e) = &result {
+                eprintln!("{} {}", e, e.root_cause());
+            }
+            Ok(())
         }
     }
 }

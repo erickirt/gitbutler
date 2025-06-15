@@ -60,11 +60,10 @@
 	const stackSelection = $derived(stackState?.selection);
 
 	const suggestionsHandler = new CommitSuggestions(aiService, uiState);
-	const selectedChanges = $derived(uncommittedService.selectedChanges(stackId));
 	const diffInputArgs = $derived<DiffInputContextArgs>(
 		existingCommitId
 			? { type: 'commit', projectId, commitId: existingCommitId }
-			: { type: 'change-selection', projectId, selectedChanges: selectedChanges.current }
+			: { type: 'change-selection', projectId, uncommittedService }
 	);
 	const diffInputContext = $derived(
 		new DiffInputContext(worktreeService, diffService, stackService, diffInputArgs)
@@ -154,6 +153,7 @@
 		testId={TestId.CommitDrawerTitleInput}
 		bind:ref={titleInput}
 		value={title}
+		placeholder="Commit title"
 		onchange={(value) => onChange?.({ title: value })}
 		onkeydown={async (e: KeyboardEvent) => {
 			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -172,6 +172,7 @@
 		bind:this={composer}
 		initialValue={description}
 		placeholder="Your commit message"
+		enableRuler
 		{projectId}
 		{onAiButtonClick}
 		{canUseAI}
@@ -180,7 +181,6 @@
 		onChange={(text: string) => {
 			onChange?.({ description: text });
 		}}
-		enableFileUpload
 		onKeyDown={(e: KeyboardEvent) => {
 			if (e.key === 'Tab' && e.shiftKey) {
 				e.preventDefault();
@@ -198,6 +198,7 @@
 		}}
 	/>
 </div>
+
 <EditorFooter onCancel={handleCancel}>
 	<Button
 		testId={TestId.CommitDrawerActionButton}
@@ -205,16 +206,16 @@
 		onclick={emitAction}
 		disabled={disabledAction}
 		{loading}
-		width={126}>{actionLabel}</Button
+		wide>{actionLabel}</Button
 	>
 </EditorFooter>
 
 <style lang="postcss">
 	.commit-message-wrap {
 		display: flex;
+		position: relative;
 		flex: 1;
 		flex-direction: column;
 		min-height: 0;
-		gap: 10px;
 	}
 </style>
