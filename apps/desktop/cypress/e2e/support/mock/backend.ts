@@ -14,8 +14,11 @@ import { PROJECT_ID } from './projects';
 import { isAddRemoteParams } from './remote';
 import {
 	createMockBranchDetails,
+	createMockStack,
+	createMockStackDetails,
 	isCreateBranchParams,
 	isCreateCommitParams,
+	isCreateStackParams,
 	isCreateVirtualBranchFromBranchParams,
 	isDeleteLocalBranchParams,
 	isGetTargetCommitsParams,
@@ -29,7 +32,6 @@ import {
 	MOCK_BRAND_NEW_BRANCH_NAME,
 	MOCK_COMMIT,
 	MOCK_STACK_A_ID,
-	MOCK_STACK_BRAND_NEW,
 	MOCK_STACK_BRAND_NEW_ID,
 	MOCK_STACK_DETAILS,
 	MOCK_STACK_DETAILS_BRAND_NEW,
@@ -85,7 +87,8 @@ export default class MockBackend {
 		this.worktreeChanges = {
 			changes: [MOCK_TREE_CHANGE_A],
 			ignoredChanges: [],
-			assignments: { Ok: [] }
+			assignments: [],
+			assignmentsError: null
 		};
 		this.unifiedDiffs = new Map<string, UnifiedDiff>();
 		this.hunkDependencies = {
@@ -111,9 +114,31 @@ export default class MockBackend {
 		return this.cannedBranchName ?? 'super-cool-branch-name';
 	}
 
-	public createBranch(): Stack {
-		this.stacks.push(MOCK_STACK_BRAND_NEW);
-		return MOCK_STACK_BRAND_NEW;
+	public createBranch(args: InvokeArgs | undefined): Stack {
+		if (!args || !isCreateStackParams(args)) {
+			throw new Error('Invalid arguments for createBranch');
+		}
+		const { branch } = args;
+		const { name } = branch;
+		if (!name) throw new Error('Branch name is required');
+
+		const stack = createMockStack({
+			heads: [
+				{
+					name,
+					tip: 'werwer'
+				}
+			],
+			id: name
+		});
+		this.stacks.push(stack);
+		const stackDetails = createMockStackDetails({
+			branchDetails: [createMockBranchDetails({ name, commits: [] })],
+			derivedName: name,
+			pushStatus: 'completelyUnpushed'
+		});
+		this.stackDetails.set(name, stackDetails);
+		return stack;
 	}
 
 	public getStackDetails(args: InvokeArgs | undefined): StackDetails {
@@ -164,7 +189,7 @@ export default class MockBackend {
 			throw new Error('Invalid arguments for getWorktreeChanges');
 		}
 
-		return { ...this.worktreeChanges, assignments: { Ok: this.getHunkAssignments(args) } };
+		return { ...this.worktreeChanges, assignments: this.getHunkAssignments(args) };
 	}
 
 	public getHunkAssignments(args: InvokeArgs | undefined): HunkAssignment[] {
@@ -177,41 +202,53 @@ export default class MockBackend {
 		for (const change of this.worktreeChanges.changes) {
 			if (change.status.type === 'Addition' || change.status.type === 'Deletion') {
 				out.push({
+					id: 'asdf',
 					hunkHeader: null,
 					path: change.path,
 					pathBytes: change.pathBytes,
 					stackId: null,
-					hunkLocks: []
+					hunkLocks: [],
+					lineNumsAdded: [],
+					lineNumsRemoved: []
 				});
 			} else if (change.status.type === 'Rename' || change.status.type === 'Modification') {
 				const diff = this.getDiff({ projectId: args.projectId, change });
 				if (diff) {
 					if (diff.type === 'Binary' || diff.type === 'TooLarge') {
 						out.push({
+							id: 'asdf',
 							hunkHeader: null,
 							path: change.path,
 							pathBytes: change.pathBytes,
 							stackId: null,
-							hunkLocks: []
+							hunkLocks: [],
+							lineNumsAdded: [],
+							lineNumsRemoved: []
 						});
 					} else {
 						for (const hunk of diff.subject.hunks) {
 							out.push({
+								id: 'asdf',
 								hunkHeader: hunk,
 								path: change.path,
 								pathBytes: change.pathBytes,
 								stackId: null,
-								hunkLocks: []
+								hunkLocks: [],
+								lineNumsAdded: [],
+								lineNumsRemoved: []
 							});
 						}
 					}
 				} else {
 					out.push({
+						id: 'asdf',
 						hunkHeader: null,
 						path: change.path,
 						pathBytes: change.pathBytes,
 						stackId: null,
-						hunkLocks: []
+						hunkLocks: [],
+						lineNumsAdded: [],
+						lineNumsRemoved: []
 					});
 				}
 			}

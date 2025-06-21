@@ -1,14 +1,10 @@
 <script lang="ts">
 	import { SettingsService } from '$lib/config/appSettingsV2';
-	import {
-		assignmentEnabled,
-		confettiEnabled,
-		ircEnabled,
-		ircServer
-	} from '$lib/config/uiFeatureFlags';
+	import { confettiEnabled, ircEnabled, ircServer } from '$lib/config/uiFeatureFlags';
 	import { User } from '$lib/user/user';
 	import { getContext, getContextStore } from '@gitbutler/shared/context';
 	import SectionCard from '@gitbutler/ui/SectionCard.svelte';
+	import Spacer from '@gitbutler/ui/Spacer.svelte';
 	import Textbox from '@gitbutler/ui/Textbox.svelte';
 	import Toggle from '@gitbutler/ui/Toggle.svelte';
 	import Link from '@gitbutler/ui/link/Link.svelte';
@@ -40,8 +36,8 @@
 				>.
 			</p>
 
-			<p class="text-clr2">Known issues:</p>
-			<ul class="text-clr2">
+			<p class="clr-text-2">Known issues:</p>
+			<ul class="clr-text-2">
 				<li>- A restart may be needed for the change to fully take effect</li>
 				<li>
 					- It is currently not possible to assign uncommitted changes to a lane
@@ -59,34 +55,12 @@
 		{/snippet}
 	</SectionCard>
 
-	<SectionCard labelFor="assignments" roundedTop={false} orientation="row">
-		{#snippet title()}
-			Assign uncommitted changes
-		{/snippet}
-		{#snippet caption()}
-			<p>When enabled you can assign uncommitted changes to branches (stacks).</p>
-		{/snippet}
-
-		{#snippet actions()}
-			<Toggle
-				id="assignments"
-				checked={$assignmentEnabled}
-				onclick={() => assignmentEnabled.set(!$assignmentEnabled)}
-			/>
-		{/snippet}
-	</SectionCard>
-
-	<SectionCard
-		labelFor="confetti"
-		roundedTop={false}
-		roundedBottom={$user?.role !== 'admin'}
-		orientation="row"
-	>
+	<SectionCard labelFor="confetti" roundedTop={false} roundedBottom={true} orientation="row">
 		{#snippet title()}
 			Confetti
 		{/snippet}
 		{#snippet caption()}
-			<p>Mom's spaghetti, who want's some confetti? 🎉</p>
+			Mom's spaghetti, who want's some confetti? 🎉
 		{/snippet}
 
 		{#snippet actions()}
@@ -98,13 +72,12 @@
 		{/snippet}
 	</SectionCard>
 
+	<Spacer margin={20} />
+
 	{#if $user?.role === 'admin'}
-		<SectionCard
-			labelFor="gitbutler-actions"
-			roundedTop={false}
-			roundedBottom={false}
-			orientation="row"
-		>
+		<Spacer margin={20} />
+
+		<SectionCard labelFor="gitbutler-actions" roundedBottom={false} orientation="row">
 			{#snippet title()}
 				GitButler Actions
 			{/snippet}

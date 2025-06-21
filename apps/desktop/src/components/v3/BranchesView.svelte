@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import ReduxResult from '$components/ReduxResult.svelte';
+	import Resizer from '$components/Resizer.svelte';
+	import Scrollbar from '$components/Scrollbar.svelte';
 	import BranchExplorer, { type SelectedOption } from '$components/v3/BranchExplorer.svelte';
 	import BranchView from '$components/v3/BranchView.svelte';
 	import BranchesViewBranch from '$components/v3/BranchesViewBranch.svelte';
 	import BranchesViewPr from '$components/v3/BranchesViewPR.svelte';
 	import BranchesViewStack from '$components/v3/BranchesViewStack.svelte';
-	import MainViewport from '$components/v3/MainViewport.svelte';
 	import PrBranchView from '$components/v3/PRBranchView.svelte';
 	import SelectionView from '$components/v3/SelectionView.svelte';
 	import TargetCommitList from '$components/v3/TargetCommitList.svelte';
@@ -45,15 +46,16 @@
 
 	const projectState = $derived(uiState.project(projectId));
 	const branchesState = $derived(projectState.branchesSelection);
-	const drawerIsFullScreen = $derived(projectState.drawerFullScreen);
+	const sidebarWidth = $derived(uiState.global.historySidebarWidth);
+
 	const baseBranchResult = $derived(baseBranchService.baseBranch(projectId));
 	const branchesSelection = $derived(projectState.branchesSelection);
-
 	const selectedOption = persisted<SelectedOption>('all', `branches-selectedOption-${projectId}`);
 
-	// $effect(() => {
-	// 	console.log('BranchesView selectedOption changed:', $selectedOption);
-	// });
+	let branchColumn = $state<HTMLDivElement>();
+	let commitColumn = $state<HTMLDivElement>();
+	let rightWrapper = $state<HTMLDivElement>();
+	let branchViewLeftEl = $state<HTMLDivElement>();
 
 	const selectionId: SelectionId | undefined = $derived.by(() => {
 		const current = branchesState?.current;
@@ -170,19 +172,15 @@
 		{@const lastCommit = baseBranch.recentCommits.at(0)}
 		{@const current = branchesState.current}
 		{@const someBranchSelected = current.branchName !== undefined}
-		{@const inWorkspaceOrTargetBranch =
-			current.inWorkspace || current.branchName === baseBranch.shortName}
+		{@const isTargetBranch = current.branchName === baseBranch.shortName}
+		{@const inWorkspaceOrTargetBranch = current.inWorkspace || isTargetBranch}
 		{@const isStackOrNormalBranchPreview =
-			current.stackId || (current.branchName && current.branchName !== baseBranch.shortName)}
+			current.stackId || (current.branchName && isTargetBranch)}
 		{@const isNonLocalPr = !isStackOrNormalBranchPreview && current.prNumber !== undefined}
 
-		<MainViewport
-			name="branches"
-			leftWidth={{ default: 360, min: 280 }}
-			rightWidth={{ default: 360, min: 280 }}
-		>
-			{#snippet left()}
-				<div class="branch-list">
+		<div class="branches-view">
+			<div class="relative overflow-hidden radius-ml">
+				<div bind:this={branchViewLeftEl} class="branches-view__left">
 					<BranchesListGroup title="Current workspace target">
 						<!-- TODO: We need an API for `commitsCount`! -->
 						<CurrentOriginCard
@@ -254,175 +252,220 @@
 						{/snippet}
 					</BranchExplorer>
 				</div>
-			{/snippet}
+				<Resizer
+					viewport={branchViewLeftEl}
+					direction="right"
+					minWidth={14}
+					borderRadius="ml"
+					persistId="resizer-historyWidth"
+					defaultValue={sidebarWidth.current}
+				/>
+			</div>
 
-			{#snippet middle()}
-				{#if !drawerIsFullScreen.current}
+			<div class="branches-view__right">
+				<div class="right-wrapper hide-native-scrollbar dotted-pattern" bind:this={rightWrapper}>
+					<div class="branch-column" bind:this={branchColumn}>
+						<!-- Apply branch -->
+						{#if !inWorkspaceOrTargetBranch && someBranchSelected}
+							{@const doesNotHaveLocalTooltip = current.hasLocal
+								? undefined
+								: 'No local branch to delete'}
+							{@const doesNotHaveABranchNameTooltip = current.branchName
+								? undefined
+								: 'No branch selected to delete'}
+
+							<div class="branches-actions">
+								{#if !current.isTarget}
+									<AsyncButton
+										testId={TestId.BranchesViewApplyBranchButton}
+										icon="workbench"
+										shrinkable
+										action={async () => {
+											await checkoutBranch();
+										}}
+									>
+										Apply to workspace
+									</AsyncButton>
+								{/if}
+
+								<Button
+									testId={TestId.BranchesViewDeleteLocalBranchButton}
+									kind="outline"
+									icon="bin-small"
+									onclick={() => {
+										if (current.branchName) {
+											handleDeleteLocalBranch(current.branchName);
+										}
+									}}
+									disabled={!current.hasLocal || !current.branchName}
+									tooltip={doesNotHaveLocalTooltip ?? doesNotHaveABranchNameTooltip}
+								>
+									Delete local
+								</Button>
+							</div>
+						{/if}
+
+						<!-- Apply PR (from fork) -->
+						{#if isNonLocalPr && !inWorkspaceOrTargetBranch}
+							<div class="branches-actions">
+								{#if !current.isTarget}
+									<Button
+										testId={TestId.BranchesViewApplyFromForkButton}
+										icon="workbench"
+										onclick={applyFromFork}
+									>
+										Apply PR to workspace
+									</Button>
+								{/if}
+							</div>
+						{/if}
+
+						<div class="commits" class:target-branch={isTargetBranch}>
+							{#if isTargetBranch || (current.branchName === undefined && current.prNumber === undefined)}
+								<TargetCommitList {projectId} />
+							{:else if current.stackId}
+								<BranchesViewStack {projectId} stackId={current.stackId} {onerror} />
+							{:else if current.branchName}
+								<BranchesViewBranch
+									{projectId}
+									branchName={current.branchName}
+									remote={current.remote}
+									{onerror}
+								/>
+							{:else if current.prNumber}
+								<BranchesViewPr
+									bind:this={prBranch}
+									{projectId}
+									prNumber={current.prNumber}
+									{onerror}
+								/>
+							{/if}
+						</div>
+
+						<Resizer
+							viewport={branchColumn}
+							persistId="branches-branch-column"
+							direction="right"
+							defaultValue={15}
+							minWidth={10}
+							maxWidth={30}
+						/>
+					</div>
+
+					{#if current.commitId || (current.branchName && ((current.inWorkspace && current.stackId) || !current.isTarget)) || current.prNumber}
+						<div class="commit-column" bind:this={commitColumn}>
+							{#if current.commitId}
+								<UnappliedCommitView {projectId} commitId={current.commitId} />
+							{:else if current.branchName}
+								{#if current.inWorkspace && current.stackId}
+									<BranchView
+										{projectId}
+										branchName={current.branchName}
+										stackId={current.stackId}
+										draggableFiles={false}
+										active
+										{onerror}
+									/>
+								{:else if !current.isTarget}
+									<UnappliedBranchView
+										{projectId}
+										branchName={current.branchName}
+										stackId={current.stackId}
+										remote={current.remote}
+										prNumber={current.prNumber}
+										{onerror}
+									/>
+								{/if}
+							{:else if current.prNumber}
+								<PrBranchView {projectId} prNumber={current.prNumber} {onerror} />
+							{/if}
+							<Resizer
+								viewport={commitColumn}
+								persistId="branches-branch-column"
+								direction="right"
+								defaultValue={15}
+								minWidth={10}
+								maxWidth={30}
+							/>
+						</div>
+					{/if}
+
+					<!-- <div class="preview-column" bind:this={previewColumn}> -->
 					<SelectionView {projectId} {selectionId} draggableFiles />
-				{/if}
-
-				{#if current.commitId}
-					<UnappliedCommitView {projectId} commitId={current.commitId} />
-				{:else if current.branchName}
-					{#if current.inWorkspace && current.stackId}
-						<BranchView
-							{projectId}
-							branchName={current.branchName}
-							stackId={current.stackId}
-							draggableFiles={false}
-							active
-							{onerror}
-						/>
-					{:else if !current.isTarget}
-						<UnappliedBranchView
-							{projectId}
-							branchName={current.branchName}
-							stackId={current.stackId}
-							remote={current.remote}
-							prNumber={current.prNumber}
-							{onerror}
-						/>
-					{/if}
-				{:else if current.prNumber}
-					<PrBranchView {projectId} prNumber={current.prNumber} {onerror} />
-				{:else if !current.branchName && !current.prNumber}
-					<!-- TODO: Make this fallback better somehow? -->
-					<UnappliedBranchView
-						{projectId}
-						branchName={baseBranch.shortName}
-						remote={baseBranch.remoteName}
-						{onerror}
-					/>
-				{/if}
-			{/snippet}
-
-			{#snippet right()}
-				<!-- Apply branch -->
-				{#if !inWorkspaceOrTargetBranch && someBranchSelected}
-					{@const doesNotHaveLocalTooltip = current.hasLocal
-						? undefined
-						: 'No local branch to delete'}
-					{@const doesNotHaveABranchNameTooltip = current.branchName
-						? undefined
-						: 'No branch selected to delete'}
-
-					<div class="branches-actions">
-						{#if !current.isTarget}
-							<AsyncButton
-								testId={TestId.BranchesViewApplyBranchButton}
-								icon="workbench"
-								action={async () => {
-									await checkoutBranch();
-								}}
-							>
-								Apply to workspace
-							</AsyncButton>
-						{/if}
-
-						<Button
-							testId={TestId.BranchesViewDeleteLocalBranchButton}
-							kind="outline"
-							icon="bin-small"
-							onclick={() => {
-								if (current.branchName) {
-									handleDeleteLocalBranch(current.branchName);
-								}
-							}}
-							disabled={!current.hasLocal || !current.branchName}
-							tooltip={doesNotHaveLocalTooltip ?? doesNotHaveABranchNameTooltip}
-						>
-							Delete local
-						</Button>
-					</div>
-				{/if}
-
-				<!-- Apply PR (from fork) -->
-				{#if isNonLocalPr && !inWorkspaceOrTargetBranch}
-					<div class="branches-actions">
-						{#if !current.isTarget}
-							<Button
-								testId={TestId.BranchesViewApplyFromForkButton}
-								icon="workbench"
-								onclick={applyFromFork}
-							>
-								Apply PR to workspace
-							</Button>
-						{/if}
-					</div>
-				{/if}
-
-				<div
-					class={[
-						'branch-commits',
-						isStackOrNormalBranchPreview || isNonLocalPr ? 'dotted-container dotted-pattern' : '',
-						inWorkspaceOrTargetBranch ? 'rounded-container' : ''
-					]}
-				>
-					{#if (current.branchName === undefined && current.prNumber === undefined) || current.branchName === baseBranch.shortName}
-						<TargetCommitList {projectId} />
-					{:else if current.stackId}
-						<BranchesViewStack {projectId} stackId={current.stackId} {onerror} />
-					{:else if current.branchName}
-						<BranchesViewBranch
-							{projectId}
-							branchName={current.branchName}
-							remote={current.remote}
-							{onerror}
-						/>
-					{:else if current.prNumber}
-						<BranchesViewPr
-							bind:this={prBranch}
-							{projectId}
-							prNumber={current.prNumber}
-							{onerror}
-						/>
-					{/if}
+					<!-- </div> -->
 				</div>
-			{/snippet}
-		</MainViewport>
+				<Scrollbar viewport={rightWrapper} horz />
+			</div>
+		</div>
 	{/snippet}
 </ReduxResult>
 
 <style lang="postcss">
-	.branch-commits {
+	.branches-view {
 		display: flex;
 		position: relative;
-		flex: 1;
-		flex-direction: column;
-		overflow: hidden;
-		border: 1px solid var(--clr-border-2);
+		width: 100%;
+		height: 100%;
+		gap: 8px;
 	}
 
-	.branch-list {
-		display: flex;
+	.branches-view__left,
+	.branches-view__right {
 		position: relative;
-		flex-shrink: 0;
-		flex-direction: column;
-		justify-content: flex-start;
+		flex: 1;
 		height: 100%;
 		overflow: hidden;
 		border: 1px solid var(--clr-border-2);
 		border-radius: var(--radius-ml);
-		background-color: var(--clr-bg-1);
+	}
+
+	.right-wrapper {
+		display: flex;
+		position: relative;
+		height: 100%;
+		margin-left: -1px;
+		overflow: hidden;
+		overflow-x: auto;
+	}
+
+	.branch-column {
+		display: flex;
+		position: relative;
+		flex-grow: 0;
+		flex-shrink: 0;
+		flex-direction: column;
+		max-height: calc(100% + 1px);
+		border-right: 1px solid var(--clr-border-2);
+		border-left: 1px solid var(--clr-border-2);
+	}
+
+	.commit-column {
+		position: relative;
+		flex-grow: 0;
+		flex-shrink: 0;
+		max-height: calc(100% + 1px);
+		overflow: hidden;
+		border-right: 1px solid var(--clr-border-2);
+	}
+
+	.commits {
+		display: flex;
+		position: relative;
+		flex: 1;
+		flex-direction: column;
+		padding: 12px;
+		overflow: hidden;
+
+		&.target-branch {
+			padding: 0;
+		}
 	}
 
 	.branches-actions {
 		display: flex;
 		padding: 12px;
 		gap: 6px;
-		border: 1px solid var(--clr-border-2);
-		border-bottom: none;
-		border-radius: var(--radius-ml) var(--radius-ml) 0 0;
+		border-bottom: 1px solid var(--clr-border-2);
 		background-color: var(--clr-bg-1);
-	}
-
-	/* MODIFIERS */
-	.dotted-container {
-		padding: 12px;
-		border-radius: 0 0 var(--radius-ml) var(--radius-ml);
-	}
-
-	.rounded-container {
-		border-radius: var(--radius-ml);
 	}
 </style>

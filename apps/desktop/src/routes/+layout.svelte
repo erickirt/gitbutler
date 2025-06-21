@@ -16,7 +16,6 @@
 	import SwitchThemeMenuAction from '$components/SwitchThemeMenuAction.svelte';
 	import ToastController from '$components/ToastController.svelte';
 	import ZoomInOutMenuAction from '$components/ZoomInOutMenuAction.svelte';
-	import ActionService from '$lib/actions/actionService.svelte';
 	import { PromptService as AIPromptService } from '$lib/ai/promptService';
 	import { AIService } from '$lib/ai/service';
 	import { PostHogWrapper } from '$lib/analytics/posthog';
@@ -33,6 +32,7 @@
 	import { GitConfigService } from '$lib/config/gitConfigService';
 	import { ircEnabled, ircServer } from '$lib/config/uiFeatureFlags';
 	import DependencyService from '$lib/dependencies/dependencyService.svelte';
+	import { DropzoneRegistry } from '$lib/dragging/registry';
 	import { FileService } from '$lib/files/fileService';
 	import { ButRequestDetailsService } from '$lib/forge/butRequestDetailsService';
 	import { DefaultForgeFactory } from '$lib/forge/forgeFactory.svelte';
@@ -62,6 +62,7 @@
 	import { UserService } from '$lib/user/userService';
 	import * as events from '$lib/utils/events';
 	import { createKeybind } from '$lib/utils/hotkeys';
+	import { ResizeSync } from '$lib/utils/resizeSync';
 	import { unsubscribe } from '$lib/utils/unsubscribe';
 	import { openExternalUrl } from '$lib/utils/url';
 	import { WorktreeService } from '$lib/worktree/worktreeService.svelte';
@@ -145,7 +146,6 @@
 	setContext(UiState, uiState);
 
 	const stackService = new StackService(clientState['backendApi'], forgeFactory, uiState);
-	const actionService = new ActionService(clientState['backendApi']);
 	const oplogService = new OplogService(clientState['backendApi']);
 	const baseBranchService = new BaseBranchService(clientState.backendApi);
 	const worktreeService = new WorktreeService(clientState);
@@ -154,14 +154,17 @@
 	const cloudUserService = new CloudUserService(data.cloud, appState.appDispatch);
 	const cloudProjectService = new CloudProjectService(data.cloud, appState.appDispatch);
 	const dependecyService = new DependencyService(clientState.backendApi);
-	const idSelection = new IdSelection(worktreeService, stackService);
+	const diffService = new DiffService(clientState);
+
+	const uncommittedService = new UncommittedService(clientState, worktreeService, diffService);
+	setContext(UncommittedService, uncommittedService);
+	const idSelection = new IdSelection(stackService, uncommittedService);
 
 	const cloudBranchService = new CloudBranchService(data.cloud, appState.appDispatch);
 	const cloudPatchService = new CloudPatchCommitService(data.cloud, appState.appDispatch);
 	const repositoryIdLookupService = new RepositoryIdLookupService(data.cloud, appState.appDispatch);
 	const latestBranchLookupService = new LatestBranchLookupService(data.cloud, appState.appDispatch);
 	const webRoutesService = new WebRoutesService(env.PUBLIC_CLOUD_BASE_URL);
-	const diffService = new DiffService(clientState);
 	const shortcutService = new ShortcutService(data.tauri);
 	const commitService = new CommitService();
 	const butRequestDetailsService = new ButRequestDetailsService(
@@ -176,9 +179,6 @@
 		cloudBranchService,
 		latestBranchLookupService
 	);
-
-	const uncommittedService = new UncommittedService(clientState, worktreeService, diffService);
-	setContext(UncommittedService, uncommittedService);
 
 	const branchService = new BranchService(clientState['backendApi']);
 	setContext(BranchService, branchService);
@@ -228,7 +228,6 @@
 	setContext(AppSettings, data.appSettings);
 	setContext(StackService, stackService);
 	setContext(OplogService, oplogService);
-	setContext(ActionService, actionService);
 	setContext(BaseBranchService, baseBranchService);
 	setContext(UpstreamIntegrationService, upstreamIntegrationService);
 	setContext(WorktreeService, worktreeService);
@@ -237,6 +236,8 @@
 	setContext(UploadsService, data.uploadsService);
 	setContext(DependencyService, dependecyService);
 	setContext(IdSelection, idSelection);
+	setContext(DropzoneRegistry, new DropzoneRegistry());
+	setContext(ResizeSync, new ResizeSync());
 
 	setNameNormalizationServiceContext(new IpcNameNormalizationService(invoke));
 

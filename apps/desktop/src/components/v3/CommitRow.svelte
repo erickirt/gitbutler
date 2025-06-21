@@ -2,17 +2,14 @@
 	import CommitHeader from '$components/v3/CommitHeader.svelte';
 	import CommitLine from '$components/v3/CommitLine.svelte';
 	import { type CommitStatusType } from '$lib/commits/commit';
-	import { UiState } from '$lib/state/uiState.svelte';
 	import { TestId } from '$lib/testing/testIds';
 
-	import { getContext } from '@gitbutler/shared/context';
 	import Icon from '@gitbutler/ui/Icon.svelte';
 	import { slide } from 'svelte/transition';
 	import type { Snippet } from 'svelte';
 
 	type BaseProps = {
 		type: CommitStatusType;
-		projectId: string;
 		branchName: string;
 		commitId: string;
 		commitMessage: string;
@@ -63,7 +60,6 @@
 
 	const {
 		commitMessage,
-		projectId,
 		tooltip,
 		first,
 		lastCommit,
@@ -80,15 +76,6 @@
 	}: Props = $props();
 
 	let container = $state<HTMLDivElement>();
-
-	const uiState = getContext(UiState);
-
-	function handleClick() {
-		if (onclick) {
-			uiState.project(projectId).drawerPage.current = 'commit';
-			onclick();
-		}
-	}
 </script>
 
 <div
@@ -105,12 +92,12 @@
 	class:last={lastCommit}
 	onclick={(e) => {
 		e.stopPropagation();
-		handleClick();
+		onclick?.();
 	}}
 	onkeydown={(e) => {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.stopPropagation();
-			handleClick();
+			onclick?.();
 		}
 	}}
 >
@@ -164,10 +151,6 @@
 			border-bottom: 1px solid var(--clr-border-2);
 		}
 
-		&.last {
-			border-radius: 0 0 var(--radius-ml) var(--radius-ml);
-		}
-
 		&:focus-within,
 		&.selected {
 			background-color: var(--clr-selected-not-in-focus-bg);
@@ -198,7 +181,7 @@
 		position: relative;
 		align-items: center;
 		width: 100%;
-		padding-right: 10px;
+		padding-right: 9px;
 		overflow: hidden;
 		gap: 4px;
 	}

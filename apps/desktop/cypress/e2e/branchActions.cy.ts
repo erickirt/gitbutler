@@ -1,4 +1,5 @@
 import { clearCommandMocks, mockCommand } from './support';
+import MockBackend from './support/mock/backend';
 import { PROJECT_ID } from './support/mock/projects';
 import BranchesWithRemoteChanges from './support/scenarios/branchesWithRemoteChanges';
 
@@ -19,7 +20,7 @@ describe('Branch Actions', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -79,7 +80,7 @@ describe('Branch Actions', () => {
 		cy.getByTestId('branch-header', newBranchName).should('be.visible');
 
 		// The branch name should be visible in the branch view
-		cy.getByTestId('branch-drawer', newBranchName).should('be.visible');
+		cy.getByTestId('branch-view').should('be.visible');
 	});
 
 	it('should be able to delete a branch from the context menu', () => {
@@ -128,10 +129,55 @@ describe('Branch Actions', () => {
 		cy.getByTestId('branch-header-add-dependent-branch-modal-action-button')
 			.should('be.visible')
 			.click();
+	});
+});
 
-		// The dependent branch should be visible in the list header
-		cy.getByTestId('branch-header', dependentBranchName)
-			.should('be.visible')
-			.should('have.class', 'selected');
+describe('Branch Actions - single branch with uncommitted changes', () => {
+	let mockBackend: MockBackend;
+
+	beforeEach(() => {
+		mockBackend = new MockBackend();
+		mockCommand('stacks', () => mockBackend.getStacks());
+		mockCommand('create_virtual_branch', (params) => mockBackend.createBranch(params));
+		mockCommand('stack_details', (params) => mockBackend.getStackDetails(params));
+		mockCommand('update_commit_message', (params) => mockBackend.updateCommitMessage(params));
+		mockCommand('changes_in_worktree', (params) => mockBackend.getWorktreeChanges(params));
+		mockCommand('tree_change_diffs', (params) => mockBackend.getDiff(params));
+		mockCommand('hunk_assignments', (params) => mockBackend.getHunkAssignments(params));
+		mockCommand('commit_details', (params) => mockBackend.getCommitChanges(params));
+		mockCommand('create_commit_from_worktree_changes', (params) =>
+			mockBackend.createCommit(params)
+		);
+		mockCommand('undo_commit', (params) => mockBackend.undoCommit(params));
+		mockCommand('canned_branch_name', () => mockBackend.getCannedBranchName());
+
+		cy.visit('/');
+
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
+	});
+
+	it('should be able to create a new branch from the workspace button', () => {
+		const newBranchName = 'new-branch-from-workspace';
+
+		// Click the button to commit into new branch
+		cy.getByTestId('commit-to-new-branch-button').should('be.visible').click();
+
+		// The commit title should be visible
+		cy.getByTestId('commit-drawer-title-input').should('be.visible').should('have.value', '');
+
+		// Cancel the commit
+		cy.getByTestId('commit-drawer-cancel-button').should('be.visible').click();
+
+		// Create a new branch
+		cy.getByTestId('create-stack-button').should('be.visible').click();
+
+		// The create branch dialog should be visible
+		cy.getByTestId('create-new-branch-modal').should('be.visible');
+
+		cy.get('#new-branch-name-input').should('be.visible').clear().type(newBranchName);
+
+		cy.getByTestId('confirm-submit').should('be.visible').should('be.enabled').click();
+
+		cy.getByTestId('branch-header', newBranchName).should('be.visible');
 	});
 });

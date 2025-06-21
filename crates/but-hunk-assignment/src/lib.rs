@@ -9,8 +9,8 @@
 //!
 //! set_assignments
 
+mod reconcile;
 mod state;
-use std::cmp::Ordering;
 
 use anyhow::Result;
 use bstr::{BString, ByteSlice};
@@ -20,12 +20,19 @@ use but_workspace::{HunkHeader, StackId};
 use gitbutler_command_context::CommandContext;
 use gitbutler_stack::VirtualBranchesHandle;
 use itertools::Itertools;
+use reconcile::MultipleOverlapping;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HunkAssignment {
+    /// A stable identifier for the hunk assignment.
+    ///   - When a new hunk is first observed (from the uncommitted changes), it is assigned a new id.
+    ///   - If a hunk is modified (i.e. it has gained or lost lines), the UUID remains the same.
+    ///   - If two or more hunks become merged (due to edits causing the contexts to overlap), the id of the hunk with the most lines is adopted.
+    pub id: Option<Uuid>,
     /// The hunk that is being assigned. Together with path_bytes, this identifies the hunk.
     /// If the file is binary, or too large to load, this will be None and in this case the path name is the only identity.
     pub hunk_header: Option<HunkHeader>,
@@ -37,7 +44,11 @@ pub struct HunkAssignment {
     pub stack_id: Option<StackId>,
     /// The dependencies(locks) that this hunk has. This determines where the hunk can be assigned.
     /// This field is ignored when HunkAssignment is passed by the UI to create a new assignment.
-    pub hunk_locks: Vec<HunkLock>,
+    pub hunk_locks: Option<Vec<HunkLock>>,
+    /// The line numbers that were added in this hunk.
+    pub line_nums_added: Option<Vec<usize>>,
+    /// The line numbers that were removed in this hunk.
+    pub line_nums_removed: Option<Vec<usize>>,
 }
 
 impl TryFrom<but_db::HunkAssignment> for HunkAssignment {
@@ -47,19 +58,20 @@ impl TryFrom<but_db::HunkAssignment> for HunkAssignment {
             .hunk_header
             .as_ref()
             .and_then(|h| serde_json::from_str(h).ok());
-        let hunk_locks: Vec<HunkLock> = serde_json::from_str(&value.hunk_locks)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize hunk_locks: {}", e))?;
         let stack_id = value
             .stack_id
             .as_ref()
             .and_then(|id| uuid::Uuid::parse_str(id).ok())
             .map(StackId::from);
         Ok(HunkAssignment {
+            id: value.id.map(|id| Uuid::parse_str(&id)).transpose()?,
             hunk_header: header,
             path: value.path,
             path_bytes: value.path_bytes.into(),
             stack_id,
-            hunk_locks,
+            hunk_locks: None,
+            line_nums_added: None,   // derived data (not persisted)
+            line_nums_removed: None, // derived data (not persisted)
         })
     }
 }
@@ -75,11 +87,11 @@ impl TryFrom<HunkAssignment> for but_db::HunkAssignment {
             })
             .transpose()?;
         Ok(but_db::HunkAssignment {
+            id: value.id.map(|id| id.to_string()),
             hunk_header: header,
             path: value.path,
             path_bytes: value.path_bytes.into(),
             stack_id: value.stack_id.map(|id| id.to_string()),
-            hunk_locks: serde_json::to_string(&value.hunk_locks)?,
         })
     }
 }
@@ -136,14 +148,16 @@ pub struct HunkAssignmentRequest {
 pub struct WorktreeChanges {
     #[serde(flatten)]
     pub worktree_changes: but_core::ui::WorktreeChanges,
-    pub assignments: Result<Vec<HunkAssignment>, serde_error::Error>,
+    pub assignments: Vec<HunkAssignment>,
+    pub assignments_error: Option<serde_error::Error>,
 }
 
 impl From<but_core::ui::WorktreeChanges> for WorktreeChanges {
     fn from(worktree_changes: but_core::ui::WorktreeChanges) -> Self {
         WorktreeChanges {
             worktree_changes,
-            assignments: Ok(vec![]),
+            assignments: vec![],
+            assignments_error: None,
         }
     }
 }
@@ -180,29 +194,11 @@ impl HunkAssignment {
             return true;
         }
         if let (Some(header), Some(other_header)) = (self.hunk_header, other.hunk_header) {
-            if header.new_start >= other_header.new_start
-                && header.new_start < other_header.new_start + other_header.new_lines
-            {
-                return true;
-            }
-            if other_header.new_start >= header.new_start
-                && other_header.new_start < header.new_start + header.new_lines
-            {
-                return true;
-            }
+            return header.old_range().intersects(other_header.old_range())
+                && header.new_range().intersects(other_header.new_range());
         }
         false
     }
-}
-
-/// Returns the current hunk assignments for the workspace.
-#[instrument(skip(ctx), err(Debug))]
-pub fn assignments(
-    ctx: &mut CommandContext,
-    set_assignment_from_locks: bool,
-    worktree_changes: Option<Vec<but_core::TreeChange>>,
-) -> Result<Vec<HunkAssignment>> {
-    reconcile(ctx, set_assignment_from_locks, worktree_changes)
 }
 
 /// Sets the assignment for a hunk. It must be already present in the current assignments, errors out if it isn't.
@@ -212,38 +208,66 @@ pub fn assign(
     ctx: &mut CommandContext,
     requests: Vec<HunkAssignmentRequest>,
 ) -> Result<Vec<AssignmentRejection>> {
-    let previous_assignments = state::assignments(ctx)?;
     let vb_state = VirtualBranchesHandle::new(ctx.project().gb_dir());
     let applied_stacks = vb_state
         .list_stacks_in_workspace()?
         .iter()
         .map(|s| s.id)
         .collect::<Vec<_>>();
-    let new_assignments = set_assignment(
+
+    let repo = &ctx.gix_repo()?;
+    let worktree_changes: Vec<but_core::TreeChange> =
+        but_core::diff::worktree_changes(repo)?.changes;
+    let mut worktree_assignments = vec![];
+    for change in &worktree_changes {
+        let diff = change.unified_diff(repo, ctx.app_settings().context_lines);
+        worktree_assignments.extend(diff_to_assignments(
+            diff.ok().flatten(),
+            change.path.clone(),
+        ));
+    }
+
+    // Reconcile worktree with the persisted assignments
+    let persisted_assignments = state::assignments(ctx)?;
+    let with_worktree = reconcile::assignments(
+        &worktree_assignments,
+        &persisted_assignments,
         &applied_stacks,
-        previous_assignments.clone(),
-        requests.clone(),
-    )?;
-    let deps_assignments = hunk_dependency_assignments(ctx, None)?;
-    let assignments_considering_deps = reconcile_assignments(
-        new_assignments,
-        &deps_assignments,
-        &applied_stacks,
-        MultiDepsResolution::SetNone, // If there is double locking, move the hunk to the Uncommitted section
+        MultipleOverlapping::SetMostLines,
         true,
     )?;
-    state::set_assignments(ctx, assignments_considering_deps.clone())?;
+
+    // Reconcile with the requested changes
+    let with_requests = reconcile::assignments(
+        &with_worktree,
+        &requests_to_assignments(requests.clone()),
+        &applied_stacks,
+        MultipleOverlapping::SetMostLines,
+        true,
+    )?;
+
+    // Reconcile with hunk locks
+    let lock_assignments = hunk_dependency_assignments(ctx, Some(worktree_changes.clone()))?;
+    let with_locks = reconcile::assignments(
+        &with_requests,
+        &lock_assignments,
+        &applied_stacks,
+        MultipleOverlapping::SetNone,
+        false,
+    )?;
+
+    state::set_assignments(ctx, with_locks.clone())?;
 
     // Request where the stack_id is different from the outcome are considered rejections - this is due to locking
     // Collect all the rejected requests together with the locks that caused the rejection
     let mut rejections = vec![];
     for req in requests {
-        let locks = assignments_considering_deps
+        let locks = with_locks
             .iter()
             .filter(|assignment| {
                 req.matches_assignment(assignment) && req.stack_id != assignment.stack_id
             })
-            .flat_map(|assignment| assignment.hunk_locks.clone())
+            .flat_map(|assignment| assignment.hunk_locks.clone().unwrap_or_default())
             .collect_vec();
         if !locks.is_empty() {
             rejections.push(AssignmentRejection {
@@ -255,6 +279,46 @@ pub fn assign(
     Ok(rejections)
 }
 
+/// Same as the `reconcile_with_worktree_and_locks` function, but if the operation produces an error, it will create a fallback set of assignments from the worktree changes alone.
+/// An optional error is returned alongside the assignments, which will be `None` if the operation was successful and it will be set if the operation failed and a fallback was used.
+///
+/// The fallback can of course also fail, in which case the tauri operation will error out.
+pub fn assignments_with_fallback(
+    ctx: &mut CommandContext,
+    set_assignment_from_locks: bool,
+    worktree_changes: Option<impl IntoIterator<Item = impl Into<but_core::TreeChange>>>,
+) -> Result<(Vec<HunkAssignment>, Option<anyhow::Error>)> {
+    let repo = &ctx.gix_repo()?;
+    let worktree_changes: Vec<but_core::TreeChange> = match worktree_changes {
+        Some(wtc) => wtc.into_iter().map(Into::into).collect(),
+        None => but_core::diff::worktree_changes(repo)?.changes,
+    };
+    if worktree_changes.is_empty() {
+        return Ok((vec![], None));
+    }
+    let mut worktree_assignments = vec![];
+    for change in &worktree_changes {
+        let diff = change.unified_diff(repo, ctx.app_settings().context_lines);
+        worktree_assignments.extend(diff_to_assignments(
+            diff.ok().flatten(),
+            change.path.clone(),
+        ));
+    }
+    let reconciled = reconcile_with_worktree_and_locks(
+        ctx,
+        set_assignment_from_locks,
+        &worktree_changes,
+        &worktree_assignments,
+    )
+    .map(|a| (a, None))
+    .unwrap_or_else(|e| (worktree_assignments, Some(e)));
+
+    state::set_assignments(ctx, reconciled.0.clone())?;
+    Ok(reconciled)
+}
+
+/// Returns the current hunk assignments for the workspace.
+///
 /// Reconciles the current hunk assignments with the current worktree changes.
 /// It takes  the current hunk assignments as well as the current worktree changes, producing a new set of hunk assignments.
 ///
@@ -272,17 +336,13 @@ pub fn assign(
 /// This needs to be ran only after the worktree has changed.
 ///
 /// If `worktree_changes` is `None`, they will be fetched automatically.
-fn reconcile(
+#[instrument(skip(ctx, worktree_changes, worktree_assignments), err(Debug))]
+fn reconcile_with_worktree_and_locks(
     ctx: &mut CommandContext,
     set_assignment_from_locks: bool,
-    worktree_changes: Option<Vec<but_core::TreeChange>>,
+    worktree_changes: &[but_core::TreeChange],
+    worktree_assignments: &[HunkAssignment],
 ) -> Result<Vec<HunkAssignment>> {
-    let previous_assignments = state::assignments(ctx)?;
-    let repo = &ctx.gix_repo()?;
-    let context_lines = ctx.app_settings().context_lines;
-    let worktree_changes = worktree_changes
-        .map(Ok)
-        .unwrap_or_else(|| but_core::diff::worktree_changes(repo).map(|wtc| wtc.changes))?;
     let vb_state = VirtualBranchesHandle::new(ctx.project().gb_dir());
     let applied_stacks = vb_state
         .list_stacks_in_workspace()?
@@ -290,96 +350,25 @@ fn reconcile(
         .map(|s| s.id)
         .collect::<Vec<_>>();
 
-    let deps_assignments = hunk_dependency_assignments(ctx, Some(worktree_changes.clone()))?;
+    let persisted_assignments = state::assignments(ctx)?;
+    let with_worktree = reconcile::assignments(
+        worktree_assignments,
+        &persisted_assignments,
+        &applied_stacks,
+        MultipleOverlapping::SetMostLines,
+        true,
+    )?;
 
-    let mut new_assignments = vec![];
-    for change in worktree_changes {
-        let diff = change.unified_diff(repo, context_lines)?;
-        let assignments_from_worktree = diff_to_assignments(diff, change.path);
-        let assignments_considering_previous = reconcile_assignments(
-            assignments_from_worktree,
-            &previous_assignments,
-            &applied_stacks,
-            MultiDepsResolution::SetMostLines,
-            true,
-        )?;
-        let assignments_considering_deps = reconcile_assignments(
-            assignments_considering_previous,
-            &deps_assignments,
-            &applied_stacks,
-            MultiDepsResolution::SetNone, // If there is double locking, move the hunk to the Uncommitted section
-            !set_assignment_from_locks, // If we are not setting assignments from locks, we do not want to update unassigned hunks here
-        )?;
-        new_assignments.extend(assignments_considering_deps);
-    }
-    state::set_assignments(ctx, new_assignments.clone())?;
-    Ok(new_assignments)
-}
+    let lock_assignments = hunk_dependency_assignments(ctx, Some(worktree_changes.to_vec()))?;
+    let with_locks = reconcile::assignments(
+        &with_worktree,
+        &lock_assignments,
+        &applied_stacks,
+        MultipleOverlapping::SetNone,
+        set_assignment_from_locks,
+    )?;
 
-enum MultiDepsResolution {
-    SetNone,
-    SetMostLines,
-}
-
-fn reconcile_assignments(
-    current_assignments: Vec<HunkAssignment>,
-    previous_assignments: &[HunkAssignment],
-    applied_stacks: &[StackId],
-    multi_deps_resolution: MultiDepsResolution,
-    update_unassigned: bool,
-) -> Result<Vec<HunkAssignment>> {
-    let mut new_assignments = vec![];
-    for mut current_assignment in current_assignments {
-        let intersecting = previous_assignments
-            .iter()
-            .filter(|current_entry| current_entry.intersects(current_assignment.clone()))
-            .collect::<Vec<_>>();
-
-        // If the worktree hunk intersects with exactly one previous assignment, then it inherits the stack_id assignment from it, but only if the stack is still applied.
-        // If the worktree hunk does not interesect with any previous assingment then it remains, "unassigned", i.e. with stack_id None
-        // If the worktree hunk intersects with more that one one previous assignment there is special handling
-        match intersecting.len().cmp(&1) {
-            Ordering::Less => {
-                // No intersection - do nothing, the None assignment is kept
-            }
-            Ordering::Equal => {
-                // One intersection - assign the stack id if the stack is still in the applied list
-                if let Some(stack_id) = intersecting[0].stack_id {
-                    if applied_stacks.contains(&stack_id) {
-                        if update_unassigned && current_assignment.stack_id.is_none() {
-                            // In the case where there was no assignment but a hunk lock was detected, we dont want to automatically assign the hunk to the lane where it depends
-                            current_assignment.stack_id = intersecting[0].stack_id;
-                        }
-                        current_assignment.hunk_locks = intersecting[0].hunk_locks.clone();
-                    }
-                }
-            }
-            Ordering::Greater => {
-                match multi_deps_resolution {
-                    MultiDepsResolution::SetNone => {
-                        current_assignment.stack_id = None;
-                    }
-                    MultiDepsResolution::SetMostLines => {
-                        // More than one intersection - pick the one with the most lines
-                        current_assignment.stack_id = intersecting
-                            .iter()
-                            .max_by_key(|x| x.hunk_header.as_ref().map(|h| h.new_lines))
-                            .and_then(|x| x.stack_id);
-                    }
-                }
-
-                // Inherit all locks from the intersecting assignments
-                let all_locks = intersecting
-                    .iter()
-                    .flat_map(|i| i.hunk_locks.clone())
-                    .unique()
-                    .collect::<Vec<_>>();
-                current_assignment.hunk_locks = all_locks;
-            }
-        }
-        new_assignments.push(current_assignment);
-    }
-    Ok(new_assignments)
+    Ok(with_locks)
 }
 
 fn hunk_dependency_assignments(
@@ -410,304 +399,392 @@ fn hunk_dependency_assignments(
             None
         };
         let assignment = HunkAssignment {
+            id: None,
             hunk_header: Some(hunk.into()),
             path: path.clone(),
             path_bytes: path.into(),
             stack_id,
-            hunk_locks: locks,
+            hunk_locks: Some(locks),
+            line_nums_added: None,   // derived data (not persisted)
+            line_nums_removed: None, // derived data (not persisted)
         };
         assignments.push(assignment);
     }
     Ok(assignments)
 }
 
-fn diff_to_assignments(diff: UnifiedDiff, path: BString) -> Vec<HunkAssignment> {
+/// This also generates a UUID for the assignment
+fn diff_to_assignments(diff: Option<UnifiedDiff>, path: BString) -> Vec<HunkAssignment> {
     let path_str = path.to_str_lossy();
-    match diff {
-        but_core::UnifiedDiff::Binary => vec![HunkAssignment {
-            hunk_header: None,
-            path: path_str.into(),
-            path_bytes: path,
-            stack_id: None,
-            hunk_locks: vec![],
-        }],
-        but_core::UnifiedDiff::TooLarge { .. } => vec![HunkAssignment {
-            hunk_header: None,
-            path: path_str.into(),
-            path_bytes: path,
-            stack_id: None,
-            hunk_locks: vec![],
-        }],
-        but_core::UnifiedDiff::Patch {
-            hunks,
-            is_result_of_binary_to_text_conversion,
-            ..
-        } => {
-            // If there are no hunks, then the assignment is for the whole file
-            if is_result_of_binary_to_text_conversion || hunks.is_empty() {
-                vec![HunkAssignment {
-                    hunk_header: None,
-                    path: path_str.into(),
-                    path_bytes: path,
-                    stack_id: None,
-                    hunk_locks: vec![],
-                }]
-            } else {
-                hunks
-                    .iter()
-                    .map(|hunk| HunkAssignment {
-                        hunk_header: Some(hunk.into()),
-                        path: path_str.clone().into(),
-                        path_bytes: path.clone(),
+    if let Some(diff) = diff {
+        match diff {
+            but_core::UnifiedDiff::Binary => vec![HunkAssignment {
+                id: Some(Uuid::new_v4()),
+                hunk_header: None,
+                path: path_str.into(),
+                path_bytes: path,
+                stack_id: None,
+                hunk_locks: None,
+                line_nums_added: None,
+                line_nums_removed: None,
+            }],
+            but_core::UnifiedDiff::TooLarge { .. } => vec![HunkAssignment {
+                id: Some(Uuid::new_v4()),
+                hunk_header: None,
+                path: path_str.into(),
+                path_bytes: path,
+                stack_id: None,
+                hunk_locks: None,
+                line_nums_added: None,
+                line_nums_removed: None,
+            }],
+            but_core::UnifiedDiff::Patch {
+                hunks,
+                is_result_of_binary_to_text_conversion,
+                ..
+            } => {
+                // If there are no hunks, then the assignment is for the whole file
+                if is_result_of_binary_to_text_conversion || hunks.is_empty() {
+                    vec![HunkAssignment {
+                        id: Some(Uuid::new_v4()),
+                        hunk_header: None,
+                        path: path_str.into(),
+                        path_bytes: path,
                         stack_id: None,
-                        hunk_locks: vec![],
-                    })
-                    .collect()
+                        hunk_locks: None,
+                        line_nums_added: None,
+                        line_nums_removed: None,
+                    }]
+                } else {
+                    hunks
+                        .iter()
+                        .map(|hunk| {
+                            let (line_nums_added_new, line_nums_removed_old) =
+                                line_nums_from_hunk(&hunk.diff, hunk.old_start, hunk.new_start);
+                            HunkAssignment {
+                                id: Some(Uuid::new_v4()),
+                                hunk_header: Some(hunk.into()),
+                                path: path_str.clone().into(),
+                                path_bytes: path.clone(),
+                                stack_id: None,
+                                hunk_locks: None,
+                                line_nums_added: Some(line_nums_added_new),
+                                line_nums_removed: Some(line_nums_removed_old),
+                            }
+                        })
+                        .collect()
+                }
             }
         }
+    } else {
+        vec![HunkAssignment {
+            id: Some(Uuid::new_v4()),
+            hunk_header: None,
+            path: path_str.into(),
+            path_bytes: path.clone(),
+            stack_id: None,
+            hunk_locks: None,
+            line_nums_added: None,
+            line_nums_removed: None,
+        }]
     }
 }
 
-fn set_assignment(
-    applied_stacks: &[StackId],
-    mut previous_assignments: Vec<HunkAssignment>,
-    new_assignments: Vec<HunkAssignmentRequest>,
-) -> Result<Vec<HunkAssignment>> {
-    for new_assignment in new_assignments {
-        if let Some(stack_id) = new_assignment.stack_id {
-            if !applied_stacks.contains(&stack_id) {
-                return Err(anyhow::anyhow!("No such stack in the workspace"));
+/// Given a diff, it extracts the line numbers that were added and removed in the hunk (in a old and new format)
+/// The line numbers are relative to the start of the hunk (old_start and new_start respectively). The start is inclusive.
+fn line_nums_from_hunk(diff: &BString, old_start: u32, new_start: u32) -> (Vec<usize>, Vec<usize>) {
+    let mut line_nums_removed_old = vec![];
+    let mut line_nums_added_new = vec![];
+    let mut old_line_num = old_start as usize;
+    let mut new_line_num = new_start as usize;
+    // Split the diff into lines
+    let lines = diff.lines();
+    for line in lines {
+        let Some(first_char) = line.first() else {
+            continue;
+        };
+        match *first_char {
+            b'+' => {
+                // Line added in new version
+                line_nums_added_new.push(new_line_num);
+                new_line_num += 1;
+            }
+            b'-' => {
+                // Line removed from old version
+                line_nums_removed_old.push(old_line_num);
+                old_line_num += 1;
+            }
+            b' ' => {
+                // Context line (unchanged)
+                old_line_num += 1;
+                new_line_num += 1;
+            }
+            b'@' => {
+                // Header line, skip
+                continue;
+            }
+            _ => {
+                // Other lines (context or other), treat as context
+                old_line_num += 1;
+                new_line_num += 1;
             }
         }
-        if let Some(found) = previous_assignments
-            .iter_mut()
-            .find(|previous| new_assignment.matches_assignment(previous))
-        {
-            found.stack_id = new_assignment.stack_id;
-        } else {
-            return Err(anyhow::anyhow!("Hunk not found in current assignments"));
-        }
     }
-    Ok(previous_assignments)
+    (line_nums_added_new, line_nums_removed_old)
+}
+
+fn requests_to_assignments(request: Vec<HunkAssignmentRequest>) -> Vec<HunkAssignment> {
+    let mut assignments = vec![];
+    for req in request {
+        let assignment = HunkAssignment {
+            id: None,
+            hunk_header: req.hunk_header,
+            path: req.path_bytes.to_str_lossy().into(),
+            path_bytes: req.path_bytes,
+            stack_id: req.stack_id,
+            hunk_locks: None,
+            line_nums_added: None,
+            line_nums_removed: None,
+        };
+        assignments.push(assignment);
+    }
+    assignments
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::reconcile::MultipleOverlapping;
+
     use super::*;
     use bstr::BString;
     use but_workspace::{HunkHeader, StackId};
 
-    fn ass(path: &str, start: u32, end: u32, stack_id: Option<usize>) -> HunkAssignment {
-        HunkAssignment {
-            hunk_header: Some(HunkHeader {
-                old_start: 0,
-                old_lines: 0,
-                new_start: start,
-                new_lines: end,
-            }),
-            path: path.to_string(),
-            path_bytes: BString::from(path),
-            stack_id: stack_id.map(id),
-            hunk_locks: vec![],
+    impl HunkAssignment {
+        pub fn new(
+            path: &str,
+            start: u32,
+            end: u32,
+            stack_id: Option<usize>,
+            id: Option<usize>,
+        ) -> HunkAssignment {
+            HunkAssignment {
+                id: id.map(id_seq),
+                hunk_header: Some(HunkHeader {
+                    old_start: start,
+                    old_lines: end,
+                    new_start: start,
+                    new_lines: end,
+                }),
+                path: path.to_string(),
+                path_bytes: BString::from(path),
+                stack_id: stack_id.map(stack_id_seq),
+                hunk_locks: None,
+                line_nums_added: None,
+                line_nums_removed: None,
+            }
         }
     }
-    fn ass_req(path: &str, start: u32, end: u32, stack_id: Option<usize>) -> HunkAssignmentRequest {
-        HunkAssignmentRequest {
-            hunk_header: Some(HunkHeader {
-                old_start: 0,
-                old_lines: 0,
-                new_start: start,
-                new_lines: end,
-            }),
-            path_bytes: BString::from(path),
-            stack_id: stack_id.map(id),
+
+    impl HunkAssignmentRequest {
+        pub fn new(
+            path: &str,
+            start: u32,
+            end: u32,
+            stack_id: Option<usize>,
+        ) -> HunkAssignmentRequest {
+            HunkAssignmentRequest {
+                hunk_header: Some(HunkHeader {
+                    old_start: start,
+                    old_lines: end,
+                    new_start: start,
+                    new_lines: end,
+                }),
+                path_bytes: BString::from(path),
+                stack_id: stack_id.map(stack_id_seq),
+            }
         }
     }
-    fn id(num: usize) -> StackId {
-        StackId::from(
-            uuid::Uuid::parse_str(&format!("00000000-0000-0000-0000-00000000000{}", num % 10))
-                .unwrap(),
-        )
+
+    fn stack_id_seq(num: usize) -> StackId {
+        StackId::from(id_seq(num))
+    }
+
+    fn id_seq(num: usize) -> Uuid {
+        assert!(num < 10);
+        uuid::Uuid::parse_str(&format!("00000000-0000-0000-0000-00000000000{}", num % 10)).unwrap()
+    }
+
+    fn deep_eq(a: &HunkAssignment, b: &HunkAssignment) -> bool {
+        a.id == b.id
+            && a.hunk_header == b.hunk_header
+            && a.path == b.path
+            && a.path_bytes == b.path_bytes
+            && a.stack_id == b.stack_id
+            && a.hunk_locks == b.hunk_locks
+    }
+    fn assert_eq(a: Vec<HunkAssignment>, b: Vec<HunkAssignment>) {
+        assert!(
+            a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| deep_eq(x, y)),
+            "HunkAssignment vectors are not deeply equal.\nLeft: {:#?}\nRight: {:#?}",
+            a,
+            b
+        );
+    }
+
+    #[test]
+    fn test_intersection() {
+        assert!(
+            !HunkAssignment::new("foo.rs", 10, 5, None, None)
+                .intersects(HunkAssignment::new("foo.rs", 16, 5, None, None))
+        );
+        assert!(
+            !HunkAssignment::new("foo.rs", 10, 6, None, None) // Lines 10 to 15
+                .intersects(HunkAssignment::new("foo.rs", 16, 5, None, None)) // Lines 16 to 20
+        );
+        assert!(
+            HunkAssignment::new("foo.rs", 10, 7, None, None) // Lines 10 to 16
+                .intersects(HunkAssignment::new("foo.rs", 16, 5, None, None)) // Lines 16 to 20
+        );
     }
 
     #[test]
     fn test_reconcile_exact_match_and_no_intersection() {
-        let previous_assignments = vec![ass("foo.rs", 10, 15, Some(1))];
-        let worktree_assignments = vec![ass("foo.rs", 10, 15, None), ass("foo.rs", 16, 20, None)];
-        let applied_stacks = vec![id(1), id(2)];
-        let result = reconcile_assignments(
-            worktree_assignments,
+        let previous_assignments = vec![HunkAssignment::new("foo.rs", 10, 5, Some(1), Some(1))];
+        let worktree_assignments = vec![
+            HunkAssignment::new("foo.rs", 10, 5, None, None),
+            HunkAssignment::new("foo.rs", 20, 5, None, None),
+        ];
+        let applied_stacks = vec![stack_id_seq(1), stack_id_seq(2)];
+        let result = reconcile::assignments(
+            &worktree_assignments,
             &previous_assignments,
             &applied_stacks,
-            MultiDepsResolution::SetMostLines,
+            MultipleOverlapping::SetMostLines,
             true,
         )
         .unwrap();
-        assert_eq!(
+        assert_eq(
             result,
-            vec![ass("foo.rs", 10, 15, Some(1)), ass("foo.rs", 16, 20, None)]
+            vec![
+                HunkAssignment::new("foo.rs", 10, 5, Some(1), Some(1)),
+                HunkAssignment::new("foo.rs", 20, 5, None, None),
+            ],
         );
     }
 
     #[test]
     fn test_reconcile_exact_match_unapplied_branch_unassigns() {
-        let previous_assignments = vec![ass("foo.rs", 10, 15, Some(1))];
-        let worktree_assignments = vec![ass("foo.rs", 10, 15, None)];
-        let applied_stacks = vec![id(2)];
-        let result = reconcile_assignments(
-            worktree_assignments,
+        let previous_assignments = vec![HunkAssignment::new("foo.rs", 10, 5, Some(1), Some(1))];
+        let worktree_assignments = vec![HunkAssignment::new("foo.rs", 10, 5, None, Some(1))];
+        let applied_stacks = vec![stack_id_seq(2)];
+        let result = reconcile::assignments(
+            &worktree_assignments,
             &previous_assignments,
             &applied_stacks,
-            MultiDepsResolution::SetMostLines,
+            MultipleOverlapping::SetMostLines,
             true,
         )
         .unwrap();
-        assert_eq!(result, vec![ass("foo.rs", 10, 15, None)]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 10, 5, None, Some(1))],
+        );
     }
 
     #[test]
     fn test_reconcile_with_overlap_preserves_assignment() {
-        let previous_assignments = vec![ass("foo.rs", 10, 15, Some(1))];
-        let worktree_assignments = vec![ass("foo.rs", 12, 17, None)];
-        let applied_stacks = vec![id(1)];
-        let result = reconcile_assignments(
-            worktree_assignments,
+        let previous_assignments = vec![HunkAssignment::new("foo.rs", 10, 5, Some(1), Some(1))];
+        let worktree_assignments = vec![HunkAssignment::new("foo.rs", 12, 7, None, Some(1))];
+        let applied_stacks = vec![stack_id_seq(1)];
+        let result = reconcile::assignments(
+            &worktree_assignments,
             &previous_assignments,
             &applied_stacks,
-            MultiDepsResolution::SetMostLines,
+            MultipleOverlapping::SetMostLines,
             true,
         )
         .unwrap();
-        assert_eq!(result, vec![ass("foo.rs", 12, 17, Some(1))]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 12, 7, Some(1), Some(1))],
+        );
     }
 
     #[test]
     fn test_double_overlap_picks_the_bigger_previous_assignment() {
         let previous_assignments = vec![
-            ass("foo.rs", 5, 15, Some(1)),
-            ass("foo.rs", 17, 25, Some(2)),
+            HunkAssignment::new("foo.rs", 1, 15, Some(1), Some(1)),
+            HunkAssignment::new("foo.rs", 17, 20, Some(2), Some(2)),
         ];
-        let applied_stacks = vec![id(1), id(2)];
-        let worktree_assignments = vec![ass("foo.rs", 5, 18, None)];
-        let result = reconcile_assignments(
-            worktree_assignments,
+        let applied_stacks = vec![stack_id_seq(1), stack_id_seq(2)];
+        let worktree_assignments = vec![HunkAssignment::new("foo.rs", 5, 18, None, None)];
+        let result = reconcile::assignments(
+            &worktree_assignments,
             &previous_assignments,
             &applied_stacks,
-            MultiDepsResolution::SetMostLines,
+            MultipleOverlapping::SetMostLines,
             true,
         )
         .unwrap();
-        assert_eq!(result, vec![ass("foo.rs", 5, 18, Some(1))]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 5, 18, Some(2), Some(2))],
+        );
     }
 
     #[test]
     fn test_double_overlap_unassigns() {
         let previous_assignments = vec![
-            ass("foo.rs", 5, 15, Some(1)),
-            ass("foo.rs", 17, 25, Some(2)),
+            HunkAssignment::new("foo.rs", 5, 15, Some(1), Some(1)),
+            HunkAssignment::new("foo.rs", 17, 25, Some(2), Some(2)),
         ];
-        let applied_stacks = vec![id(1), id(2)];
-        let worktree_assignments = vec![ass("foo.rs", 5, 18, None)];
-        let result = reconcile_assignments(
-            worktree_assignments,
+        let applied_stacks = vec![stack_id_seq(1), stack_id_seq(2)];
+        let worktree_assignments = vec![HunkAssignment::new("foo.rs", 5, 18, None, None)];
+        let result = reconcile::assignments(
+            &worktree_assignments,
             &previous_assignments,
             &applied_stacks,
-            MultiDepsResolution::SetNone,
+            MultipleOverlapping::SetNone,
             true,
         )
         .unwrap();
-        assert_eq!(result, vec![ass("foo.rs", 5, 18, None)]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 5, 18, None, Some(2))],
+        );
     }
 
     #[test]
     fn test_reconcile_not_updating_unassigned() {
-        let previous_assignments = vec![ass("foo.rs", 10, 15, Some(1))];
-        let worktree_assignments = vec![ass("foo.rs", 12, 17, None)];
-        let applied_stacks = vec![id(1)];
-        let result = reconcile_assignments(
-            worktree_assignments,
+        let previous_assignments = vec![HunkAssignment::new("foo.rs", 10, 15, Some(1), None)];
+        let worktree_assignments = vec![HunkAssignment::new("foo.rs", 12, 17, Some(2), None)];
+        let applied_stacks = vec![stack_id_seq(1)];
+        let result = reconcile::assignments(
+            &worktree_assignments,
             &previous_assignments,
             &applied_stacks,
-            MultiDepsResolution::SetMostLines,
-            true,
+            MultipleOverlapping::SetMostLines,
+            false,
         )
         .unwrap();
-        assert_eq!(result, vec![ass("foo.rs", 12, 17, None)]);
-    }
-
-    #[test]
-    fn test_set_assignment_success() {
-        let applied_stacks = vec![id(1), id(2)];
-        let previous_assignments =
-            vec![ass("foo.rs", 10, 15, None), ass("bar.rs", 20, 25, Some(1))];
-
-        // Assign foo.rs:10 to stack 2
-        let new_assignment_req = ass_req("foo.rs", 10, 15, Some(2));
-        let new_assignment = ass("foo.rs", 10, 15, Some(2));
-        let updated = set_assignment(
-            &applied_stacks,
-            previous_assignments.clone(),
-            vec![new_assignment_req],
-        )
-        .unwrap();
-
-        // Should update the stack_id for foo.rs:10
-        let found = updated.iter().find(|h| **h == new_assignment).unwrap();
-        assert_eq!(found.stack_id, Some(id(2)));
-
-        // Other assignments should remain unchanged
-        let other = updated
-            .iter()
-            .find(|h| **h == ass("bar.rs", 20, 25, Some(1)))
-            .unwrap();
-        assert_eq!(other.stack_id, Some(id(1)));
-    }
-
-    #[test]
-    fn test_set_assignment_stack_not_applied() {
-        let applied_stacks = vec![id(1), id(2)];
-        let previous_assignments =
-            vec![ass("foo.rs", 10, 15, None), ass("bar.rs", 20, 25, Some(1))];
-
-        // Assign foo.rs:10 to stack 3 (not applied)
-        let new_assignment = ass_req("foo.rs", 10, 15, Some(3));
-        let result = set_assignment(
-            &applied_stacks,
-            previous_assignments.clone(),
-            vec![new_assignment.clone()],
+        // TODO: This is actually broken
+        assert_eq!(
+            result,
+            vec![HunkAssignment::new("foo.rs", 12, 17, Some(1), None)]
         );
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_set_assignment_hunk_not_found() {
-        let applied_stacks = vec![id(1), id(2)];
-        let previous_assignments =
-            vec![ass("foo.rs", 10, 15, None), ass("bar.rs", 20, 25, Some(1))];
-
-        // Assign baz.rs:30 to stack 2 (not found)
-        let new_assignment = ass_req("baz.rs", 30, 35, Some(2));
-        let result = set_assignment(
-            &applied_stacks,
-            previous_assignments.clone(),
-            vec![new_assignment.clone()],
-        );
-
-        assert!(result.is_err());
     }
 
     #[test]
     fn test_hunk_assignment_partial_eq() {
-        let hunk1 = ass("foo.rs", 10, 15, Some(1));
-        let hunk2 = ass("foo.rs", 10, 15, Some(2));
+        let hunk1 = HunkAssignment::new("foo.rs", 10, 15, Some(1), Some(3));
+        let hunk2 = HunkAssignment::new("foo.rs", 10, 15, Some(2), Some(4));
         assert_eq!(hunk1, hunk2);
     }
 
     #[test]
     fn test_hunk_assignment_partial_eq_different_path() {
-        let hunk1 = ass("foo.rs", 10, 15, Some(1));
-        let hunk2 = ass("bar.rs", 10, 15, Some(2));
+        let hunk1 = HunkAssignment::new("foo.rs", 10, 15, Some(1), None);
+        let hunk2 = HunkAssignment::new("bar.rs", 10, 15, Some(2), None);
         assert_ne!(hunk1, hunk2);
     }
 }

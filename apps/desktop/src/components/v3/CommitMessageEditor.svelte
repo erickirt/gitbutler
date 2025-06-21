@@ -42,7 +42,7 @@
 		onCancel,
 		disabledAction,
 		loading,
-		title,
+		title = $bindable(),
 		description,
 		existingCommitId
 	}: Props = $props();
@@ -60,11 +60,10 @@
 	const stackSelection = $derived(stackState?.selection);
 
 	const suggestionsHandler = new CommitSuggestions(aiService, uiState);
-	const selectedChanges = $derived(uncommittedService.selectedChanges(stackId));
 	const diffInputArgs = $derived<DiffInputContextArgs>(
 		existingCommitId
 			? { type: 'commit', projectId, commitId: existingCommitId }
-			: { type: 'change-selection', projectId, selectedChanges: selectedChanges.current }
+			: { type: 'change-selection', projectId, uncommittedService, stackId }
 	);
 	const diffInputContext = $derived(
 		new DiffInputContext(worktreeService, diffService, stackService, diffInputArgs)
@@ -84,14 +83,15 @@
 
 	$effect(() => {
 		if (generatedText) {
-			const { title, description } = splitMessage(generatedText);
-			if (titleInput) titleInput.value = title;
-			composer?.setText(description);
+			const newMessage = splitMessage(generatedText);
+			title = newMessage.title;
+
+			composer?.setText(newMessage.description);
 		}
 	});
 
 	function beginGeneration() {
-		if (titleInput) titleInput.value = '';
+		title = '';
 		composer?.setText('');
 		generatedText = '';
 	}
@@ -128,42 +128,40 @@
 	let composer = $state<ReturnType<typeof MessageEditor>>();
 	let titleInput = $state<HTMLInputElement>();
 
-	function getTitle() {
-		return titleInput?.value || '';
-	}
-
 	async function getDescription() {
 		return (await composer?.getPlaintext()) || '';
 	}
 
 	async function emitAction() {
-		const newTitle = getTitle();
 		const newDescription = await getDescription();
-		action({ title: newTitle, description: newDescription });
+		action({ title, description: newDescription });
 	}
 
 	async function handleCancel() {
-		const newTitle = getTitle();
 		const newDescription = await getDescription();
-		onCancel({ title: newTitle, description: newDescription });
+		onCancel({ title, description: newDescription });
 	}
 </script>
 
-<div class="commit-message-wrap">
+<div role="presentation" class="commit-message-wrap">
 	<MessageEditorInput
 		testId={TestId.CommitDrawerTitleInput}
 		bind:ref={titleInput}
-		value={title}
+		bind:value={title}
+		placeholder="Commit title"
 		onchange={(value) => onChange?.({ title: value })}
 		onkeydown={async (e: KeyboardEvent) => {
 			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
 				emitAction();
 			}
-
 			if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
 				e.preventDefault();
 				composer?.focus();
+			}
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				handleCancel();
 			}
 		}}
 	/>
@@ -172,6 +170,7 @@
 		bind:this={composer}
 		initialValue={description}
 		placeholder="Your commit message"
+		enableRuler
 		{projectId}
 		{onAiButtonClick}
 		{canUseAI}
@@ -180,17 +179,20 @@
 		onChange={(text: string) => {
 			onChange?.({ description: text });
 		}}
-		enableFileUpload
 		onKeyDown={(e: KeyboardEvent) => {
 			if (e.key === 'Tab' && e.shiftKey) {
 				e.preventDefault();
 				titleInput?.focus();
 				return true;
 			}
-
 			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
 				emitAction();
+				return true;
+			}
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				handleCancel();
 				return true;
 			}
 
@@ -198,6 +200,7 @@
 		}}
 	/>
 </div>
+
 <EditorFooter onCancel={handleCancel}>
 	<Button
 		testId={TestId.CommitDrawerActionButton}
@@ -205,16 +208,16 @@
 		onclick={emitAction}
 		disabled={disabledAction}
 		{loading}
-		width={126}>{actionLabel}</Button
+		wide>{actionLabel}</Button
 	>
 </EditorFooter>
 
 <style lang="postcss">
 	.commit-message-wrap {
 		display: flex;
+		position: relative;
 		flex: 1;
 		flex-direction: column;
 		min-height: 0;
-		gap: 10px;
 	}
 </style>

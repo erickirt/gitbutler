@@ -217,12 +217,7 @@ export class StackService {
 	}
 
 	get newStack() {
-		return this.api.endpoints.createStack.useMutation({
-			sideEffect: (result, args) => {
-				this.uiState.project(args.projectId).stackId.set(result.id);
-				this.uiState.stack(result.id).selection.set({ branchName: result.heads[0]!.name });
-			}
-		});
+		return this.api.endpoints.createStack.useMutation();
 	}
 
 	get newStackMutation() {
@@ -339,6 +334,15 @@ export class StackService {
 		);
 	}
 
+	fetchCommitById(projectId: string, stackId: string, commitId: string) {
+		return this.api.endpoints.stackDetails.fetch(
+			{ projectId, stackId },
+			{
+				transform: ({ commits }) => commitSelectors.selectById(commits, commitId)
+			}
+		);
+	}
+
 	upstreamCommits(projectId: string, stackId: string, branchName: string) {
 		return this.api.endpoints.stackDetails.useQuery(
 			{ projectId, stackId },
@@ -433,11 +437,15 @@ export class StackService {
 		);
 	}
 
-	commitChangesByPaths(projectId: string, commitId: string, paths: string[]) {
-		return this.api.endpoints.commitDetails.useQuery(
+	async commitChangesByPaths(projectId: string, commitId: string, paths: string[]) {
+		const result = await this.api.endpoints.commitDetails.fetch(
 			{ projectId, commitId },
 			{ transform: (result) => selectChangesByPaths(result.changes, paths) }
 		);
+		if (result.error) {
+			throw result.error;
+		}
+		return result.data || [];
 	}
 
 	commitDetails(projectId: string, commitId: string) {
@@ -494,14 +502,14 @@ export class StackService {
 		);
 	}
 
-	branchChangesByPaths(args: {
+	async branchChangesByPaths(args: {
 		projectId: string;
 		stackId?: string;
 		branchName: string;
 		remote?: string;
 		paths: string[];
 	}) {
-		return this.api.endpoints.branchChanges.useQuery(
+		const result = await this.api.endpoints.branchChanges.fetch(
 			{
 				projectId: args.projectId,
 				stackId: args.stackId,
@@ -510,6 +518,10 @@ export class StackService {
 			},
 			{ transform: (result) => selectChangesByPaths(result, args.paths) }
 		);
+		if (result.error) {
+			throw result.error;
+		}
+		return result.data || [];
 	}
 
 	get updateCommitMessage() {
@@ -517,12 +529,7 @@ export class StackService {
 	}
 
 	get newBranch() {
-		return this.api.endpoints.newBranch.useMutation({
-			sideEffect: (_, args) => {
-				this.uiState.project(args.projectId).stackId.set(args.stackId);
-				this.uiState.stack(args.stackId).selection.set({ branchName: args.request.name });
-			}
-		});
+		return this.api.endpoints.newBranch.useMutation();
 	}
 
 	async uncommit(args: {
@@ -981,9 +988,8 @@ function injectEndpoints(api: ClientState['backendApi']) {
 					command: 'changes_in_branch',
 					params: { projectId, stackId, branchName, remote }
 				}),
-				providesTags: (_result, _error, { branchName }) => [
-					...providesItem(ReduxTag.BranchChanges, branchName)
-				],
+				providesTags: (_result, _error, { stackId }) =>
+					stackId ? providesItem(ReduxTag.BranchChanges, stackId) : [],
 				transformResponse(rsp: TreeChanges) {
 					return changesAdapter.addMany(changesAdapter.getInitialState(), rsp.changes);
 				}
@@ -1027,23 +1033,22 @@ function injectEndpoints(api: ClientState['backendApi']) {
 				]
 			}),
 			amendCommit: build.mutation<
-				string /** Return value is the update commit value. */,
+				string /** Return value is the updated commit id. */,
 				{
 					projectId: string;
 					stackId: string;
-					branchName: string; // Provided only for invalidating `BranchDetails`.
 					commitId: string;
 					worktreeChanges: DiffSpec[];
 				}
 			>({
-				query: ({ projectId, stackId, branchName: _, commitId, worktreeChanges }) => ({
+				query: ({ projectId, stackId, commitId, worktreeChanges }) => ({
 					command: 'amend_virtual_branch',
 					params: { projectId, stackId, commitId, worktreeChanges },
 					actionName: 'Amend Commit'
 				}),
 				invalidatesTags: (_result, _error, args) => [
 					invalidatesList(ReduxTag.WorktreeChanges),
-					invalidatesItem(ReduxTag.BranchChanges, args.branchName),
+					invalidatesItem(ReduxTag.BranchChanges, args.stackId),
 					invalidatesItem(ReduxTag.StackDetails, args.stackId)
 				]
 			}),
@@ -1121,20 +1126,23 @@ function injectEndpoints(api: ClientState['backendApi']) {
 					changes: DiffSpec[];
 					commitId: string;
 					stackId: string;
+					assignTo?: string;
 				}
 			>({
-				query: ({ projectId, changes, commitId, stackId }) => ({
+				query: ({ projectId, changes, commitId, stackId, assignTo }) => ({
 					command: 'uncommit_changes',
 					params: {
 						projectId,
 						changes,
 						commitId,
-						stackId
+						stackId,
+						assignTo
 					},
 					actionName: 'Uncommit Changes'
 				}),
 				invalidatesTags(_result, _error, arg) {
 					return [
+						invalidatesItem(ReduxTag.BranchChanges, arg.stackId),
 						invalidatesItem(ReduxTag.StackDetails, arg.stackId),
 						invalidatesList(ReduxTag.WorktreeChanges)
 					];

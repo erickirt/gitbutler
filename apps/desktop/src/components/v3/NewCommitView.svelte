@@ -1,6 +1,6 @@
 <script lang="ts">
+	import AsyncRender from '$components/v3/AsyncRender.svelte';
 	import CommitMessageEditor from '$components/v3/CommitMessageEditor.svelte';
-	import Drawer from '$components/v3/Drawer.svelte';
 	import { projectRunCommitHooks } from '$lib/config/config';
 	import { HooksService } from '$lib/hooks/hooksService';
 	import { type DiffSpec } from '$lib/hunks/hunk';
@@ -8,15 +8,15 @@
 	import { UncommittedService } from '$lib/selection/uncommittedService.svelte';
 	import { StackService, type RejectionReason } from '$lib/stacks/stackService.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
-	import { TestId } from '$lib/testing/testIds';
 	import { inject } from '@gitbutler/shared/context';
 	import toasts from '@gitbutler/ui/toasts';
 
 	type Props = {
 		projectId: string;
 		stackId?: string;
+		onclose?: () => void;
 	};
-	const { projectId }: Props = $props();
+	const { projectId, stackId, onclose }: Props = $props();
 
 	const [stackService, uiState, hooksService, uncommittedService] = inject(
 		StackService,
@@ -26,8 +26,6 @@
 	);
 
 	const projectState = $derived(uiState.project(projectId));
-	const targetStackId = $derived(projectState.stackId.current);
-	const sourceStackId = $derived(projectState.commitSourceId.current);
 
 	const [createCommitInStack, commitCreation] = stackService.createCommit;
 
@@ -77,14 +75,15 @@
 		return failed;
 	}
 
-	const stackState = $derived(targetStackId ? uiState.stack(targetStackId) : undefined);
+	const stackState = $derived(stackId ? uiState.stack(stackId) : undefined);
 	const selection = $derived(stackState?.selection.current);
 	const selectedCommitId = $derived(selection?.commitId);
 
-	const selectedLines = $derived(uncommittedService.selectedLines());
-	const topBranchResult = $derived(
-		targetStackId ? stackService.branches(projectId, targetStackId) : undefined
-	);
+	const exclusiveAction = $derived(projectState.exclusiveAction.current);
+	const commitAction = $derived(exclusiveAction?.type === 'commit' ? exclusiveAction : undefined);
+
+	const selectedLines = $derived(uncommittedService.selectedLines(stackId));
+	const topBranchResult = $derived(stackId ? stackService.branches(projectId, stackId) : undefined);
 	const topBranchName = $derived(topBranchResult?.current.data?.at(0)?.name);
 
 	const draftBranchName = $derived(uiState.global.draftBranchName.current);
@@ -95,16 +94,15 @@
 	);
 
 	let input = $state<ReturnType<typeof CommitMessageEditor>>();
-	let drawer = $state<ReturnType<typeof Drawer>>();
 
 	async function createCommit(message: string) {
-		let finalStackId = targetStackId;
-		let finalBranchName = selectedBranchName || topBranchName;
+		let finalStackId = stackId;
+		let finalBranchName = commitAction?.branchName || topBranchName;
 
 		if (!finalStackId) {
 			const stack = await createNewStack({
 				projectId,
-				branch: { name: draftBranchName }
+				branch: { name: draftBranchName, order: 0 }
 			});
 			finalStackId = stack.id;
 			projectState.stackId.set(finalStackId);
@@ -120,15 +118,15 @@
 			throw new Error('No branch selected!');
 		}
 
-		const worktreeChanges = await uncommittedService.worktreeChanges(projectId, sourceStackId);
+		const worktreeChanges = await uncommittedService.worktreeChanges(projectId, stackId);
 
 		const preHookFailed = await runPreHook(worktreeChanges);
 		if (preHookFailed) return;
 
 		const response = await createCommitInStack({
 			projectId,
-			stackId: finalStackId,
 			parentId: selectedCommitId,
+			stackId: finalStackId,
 			message: message,
 			stackBranchName: finalBranchName,
 			worktreeChanges
@@ -145,11 +143,7 @@
 			projectState.commitDescription.set('');
 
 			// Close the drawer.
-			projectState.drawerPage.set(undefined);
-
-			// Select the newly created commit.
-			// Using `finalStackId` here because `stackState` might not have updated yet.
-			uiState.stack(finalStackId).selection.set({ branchName: finalBranchName, commitId: newId });
+			projectState.exclusiveAction.set(undefined);
 
 			// Clear change/hunk selection used for creating the commit.
 			uncommittedService.clearHunkSelection();
@@ -206,23 +200,17 @@
 	function cancel(args: { title: string; description: string }) {
 		projectState.commitTitle.set(args.title);
 		projectState.commitDescription.set(args.description);
-		drawer?.onClose();
+		projectState.exclusiveAction.set(undefined);
+		uncommittedService.uncheckAll(null);
+		onclose?.();
 	}
 </script>
 
-<Drawer
-	testId={TestId.NewCommitDrawer}
-	bind:this={drawer}
-	{projectId}
-	stackId={targetStackId}
-	title="Create commit"
-	disableScroll
-	minHeight={20}
->
+<AsyncRender>
 	<CommitMessageEditor
 		bind:this={input}
 		{projectId}
-		stackId={sourceStackId}
+		{stackId}
 		actionLabel="Create commit"
 		action={({ title, description }) => handleCommitCreation(title, description)}
 		onChange={({ title, description }) => handleMessageUpdate(title, description)}
@@ -232,4 +220,4 @@
 		title={projectState.commitTitle.current}
 		description={projectState.commitDescription.current}
 	/>
-</Drawer>
+</AsyncRender>

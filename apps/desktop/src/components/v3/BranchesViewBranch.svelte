@@ -1,8 +1,9 @@
 <script lang="ts">
+	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
 	import ReduxResult from '$components/ReduxResult.svelte';
 	import BranchCard from '$components/v3/BranchCard.svelte';
 	import CommitRow from '$components/v3/CommitRow.svelte';
-	import { pushStatusToColor, pushStatusToIcon } from '$lib/stacks/stack';
+	import { pushStatusToColor, pushStatusToIcon, type BranchDetails } from '$lib/stacks/stack';
 	import { StackService } from '$lib/stacks/stackService.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
 	import { getContext } from '@gitbutler/shared/context';
@@ -33,31 +34,43 @@
 
 <ReduxResult result={branchResult.current} {projectId} {stackId} {onerror}>
 	{#snippet children(branch, env)}
-		{@const commitColor = getColorFromBranchType(pushStatusToColor(branch.pushStatus))}
-		<BranchCard
-			type="normal-branch"
-			first={isTopBranch}
-			lineColor={commitColor}
-			projectId={env.projectId}
-			branchName={branch.name}
-			active
-			{isTopBranch}
-			isNewBranch={branch.commits?.length === 0}
-			iconName={pushStatusToIcon(branch.pushStatus)}
-			trackingBranch={branch.remoteTrackingBranch || undefined}
-			readonly
-			selected={branchesState.current.branchName === branch.name &&
-				branchesState.current.stackId === env.stackId &&
-				!branchesState.current.commitId}
-			onclick={() => {
-				branchesState.current = {
-					branchName,
-					stackId: env.stackId,
-					remote
-				};
-			}}
-		>
-			{#snippet branchContent()}
+		{#if stackId}
+			{@render branchCard(branch, env)}
+		{:else}
+			<ConfigurableScrollableContainer>
+				{@render branchCard(branch, env)}
+			</ConfigurableScrollableContainer>
+		{/if}
+	{/snippet}
+</ReduxResult>
+
+{#snippet branchCard(branch: BranchDetails, env: { projectId: string; stackId?: string })}
+	{@const commitColor = getColorFromBranchType(pushStatusToColor(branch.pushStatus))}
+	<BranchCard
+		type="normal-branch"
+		first={isTopBranch}
+		lineColor={commitColor}
+		projectId={env.projectId}
+		branchName={branch.name}
+		active
+		{isTopBranch}
+		isNewBranch={branch.commits?.length === 0}
+		iconName={pushStatusToIcon(branch.pushStatus)}
+		trackingBranch={branch.remoteTrackingBranch || undefined}
+		readonly
+		selected={branchesState.current.branchName === branch.name &&
+			branchesState.current.stackId === env.stackId &&
+			!branchesState.current.commitId}
+		onclick={() => {
+			branchesState.current = {
+				branchName,
+				stackId: env.stackId,
+				remote
+			};
+		}}
+	>
+		{#snippet branchContent()}
+			<div class="branch-commits hide-when-empty">
 				{#each branch.upstreamCommits || [] as commit, idx}
 					<CommitRow
 						disableCommitActions
@@ -66,7 +79,6 @@
 						commitMessage={commit.message}
 						createdAt={commit.createdAt}
 						commitId={commit.id}
-						projectId={env.projectId}
 						branchName={branch.name}
 						selected={commit.id === branchesState?.current.commitId}
 						onclick={() => {
@@ -87,7 +99,6 @@
 						commitMessage={commit.message}
 						createdAt={commit.createdAt}
 						commitId={commit.id}
-						projectId={env.projectId}
 						branchName={branch.name}
 						selected={commit.id === branchesState?.current.commitId}
 						onclick={() => {
@@ -102,7 +113,13 @@
 						active
 					/>
 				{/each}
-			{/snippet}
-		</BranchCard>
-	{/snippet}
-</ReduxResult>
+			</div>
+		{/snippet}
+	</BranchCard>
+{/snippet}
+
+<style lang="postcss">
+	.branch-commits {
+		border-top: 1px solid var(--clr-border-2);
+	}
+</style>

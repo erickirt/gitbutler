@@ -1,58 +1,49 @@
 //! This crate implements various automations that GitButler can perform.
 
 use std::{
-    collections::HashMap,
     fmt::{Debug, Display},
     str::FromStr,
 };
 
-use but_workspace::{DiffSpec, VirtualBranchesTomlMetadata, ui::StackEntry};
+use but_workspace::ui::StackEntry;
 use gitbutler_branch::BranchCreateRequest;
 use gitbutler_command_context::CommandContext;
 use gitbutler_oxidize::ObjectIdExt;
 use gitbutler_project::access::WorktreeWritePermission;
 use gitbutler_stack::{Target, VirtualBranchesHandle};
+pub use openai::{CredentialsKind, OpenAiProvider};
 use serde::{Deserialize, Serialize};
 
 mod action;
+mod gb_client;
 mod generate;
+mod openai;
+pub mod reword;
+mod serialize;
 mod simple;
+mod workflow;
 pub use action::ActionListing;
+pub use action::Source;
 pub use action::list_actions;
-pub use action::revert;
+use but_graph::VirtualBranchesTomlMetadata;
 use strum::EnumString;
+use uuid::Uuid;
+pub use workflow::WorkflowList;
+pub use workflow::list_workflows;
 
 pub fn handle_changes(
     ctx: &mut CommandContext,
+    openai: &Option<OpenAiProvider>,
     change_summary: &str,
     external_prompt: Option<String>,
     handler: ActionHandler,
-) -> anyhow::Result<Outcome> {
+    source: Source,
+) -> anyhow::Result<(Uuid, Outcome)> {
     match handler {
         ActionHandler::HandleChangesSimple => {
-            simple::handle_changes(ctx, change_summary, external_prompt)
+            simple::handle_changes(ctx, openai, change_summary, external_prompt, source)
         }
     }
-}
-
-/// If there are multiple diffs spces where path and previous_path are the same, collapse them into one.
-fn flatten_diff_specs(input: Vec<DiffSpec>) -> Vec<DiffSpec> {
-    let mut output: HashMap<String, DiffSpec> = HashMap::new();
-    for spec in input {
-        let key = format!(
-            "{}:{}",
-            spec.path,
-            spec.previous_path
-                .clone()
-                .map(|p| p.to_string())
-                .unwrap_or_default()
-        );
-        output
-            .entry(key)
-            .and_modify(|e| e.hunk_headers.extend(spec.hunk_headers.clone()))
-            .or_insert(spec);
-    }
-    output.into_values().collect()
 }
 
 fn default_target_setting_if_none(
@@ -138,7 +129,7 @@ impl Display for ActionHandler {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Outcome {
-    updated_branches: Vec<UpdatedBranch>,
+    pub updated_branches: Vec<UpdatedBranch>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

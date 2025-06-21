@@ -1,27 +1,38 @@
 <script lang="ts">
 	import Dropzone from '$components/Dropzone.svelte';
+	import MultiStackCreateNew from '$components/v3/MultiStackCreateNew.svelte';
+	import { DiffService } from '$lib/hunks/diffService.svelte';
+	import { UncommittedService } from '$lib/selection/uncommittedService.svelte';
 	import { OutsideLaneDzHandler } from '$lib/stacks/dropHandler';
 	import { StackService } from '$lib/stacks/stackService.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
 	import { inject } from '@gitbutler/shared/context';
 	import { intersectionObserver } from '@gitbutler/ui/utils/intersectionObserver';
+	import type { Snippet } from 'svelte';
 
 	interface Props {
 		viewport: HTMLElement;
 		projectId: string;
-		isSingleMode?: boolean;
+		title?: Snippet<[activated: boolean]>;
+		description?: Snippet<[activated: boolean]>;
 		onVisible?: (visible: boolean) => void;
 	}
 
-	const { viewport, projectId, isSingleMode, onVisible }: Props = $props();
+	const { viewport, projectId, title, description, onVisible }: Props = $props();
 
-	const [stackService, uiState] = inject(StackService, UiState);
-	const dzHandler = $derived(new OutsideLaneDzHandler(stackService, projectId, uiState));
+	const [stackService, uiState, uncommittedService, diffService] = inject(
+		StackService,
+		UiState,
+		UncommittedService,
+		DiffService
+	);
+	const dzHandler = $derived(
+		new OutsideLaneDzHandler(stackService, projectId, uiState, uncommittedService, diffService)
+	);
 </script>
 
 <div
 	class="hidden-dropzone"
-	class:hidden-dropzone__single-mode={isSingleMode}
 	use:intersectionObserver={{
 		callback: (entry) => {
 			if (entry?.isIntersecting) {
@@ -50,10 +61,13 @@
 					>
 						<g class="hidden-dropzone__svg__plus-list">
 							<path
+								d="M11.001 8C11.001 3.58172 14.5827 0 19.001 0L63.4681 0C67.8863 0 71.4681 3.58172 71.4681 8V61.5474C71.4681 65.9657 67.8863 69.5474 63.4681 69.5474L19.001 69.5474C14.5827 69.5474 11.001 65.9657 11.001 61.5474L11.001 8Z"
+								fill="var(--clr-bg-2)"
+							/>
+							<path
 								opacity="0.3"
 								d="M11.001 8C11.001 3.58172 14.5827 0 19.001 0L63.4681 0C67.8863 0 71.4681 3.58172 71.4681 8V61.5474C71.4681 65.9657 67.8863 69.5474 63.4681 69.5474L19.001 69.5474C14.5827 69.5474 11.001 65.9657 11.001 61.5474L11.001 8Z"
 								fill="var(--clr-scale-ntrl-70)"
-								vector-effect="non-scaling-stroke"
 							/>
 							<path
 								d="M41.5 11V39M58 25L25 25"
@@ -93,10 +107,20 @@
 						/>
 					</svg>
 
-					<p class="hidden-dropzone__label text-13 text-body">
-						Drag and drop files<br />to create a new branch.
-					</p>
+					<div class="hidden-dropzone__text">
+						{#if title}
+							<h4 class="text-15 text-body text-bold hidden-dropzone__title hide-when-empty">
+								{@render title(activated)}
+							</h4>
+						{/if}
+						{#if description}
+							<p class="hidden-dropzone__label text-13 text-body hide-when-empty">
+								{@render description(activated)}
+							</p>
+						{/if}
+					</div>
 				</div>
+				<MultiStackCreateNew {projectId} />
 			</div>
 		{/snippet}
 	</Dropzone>
@@ -106,40 +130,22 @@
 	.hidden-dropzone {
 		display: flex;
 		position: relative;
-		flex: 1;
-		flex-shrink: 0;
-		flex-direction: column;
-		width: 100%;
-		min-width: 340px;
+		min-width: 400px;
+		max-width: 400px;
 		height: 100%;
-		min-height: 340px;
-
-		/* overflow: hidden; */
-
-		user-select: none;
-	}
-
-	.hidden-dropzone__single-mode {
-		flex-basis: calc(100% - 30px);
-		scroll-snap-align: start;
+		overflow: hidden;
+		border-right: 1px solid var(--clr-border-2);
 	}
 
 	.hidden-dropzone__lane {
 		display: flex;
-		/* position: absolute; */
-		/* top: 0;
-		left: 0; */
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-
-		overflow: hidden;
+		margin-bottom: 20px;
 		gap: 10px;
-		border-right: 1px solid var(--clr-border-2);
-		/* opacity: 0.7;
-		transition: opacity 0.1s; */
 
 		/* SVG ANIMATION */
 		&.activated {
@@ -157,17 +163,12 @@
 				transform: unset;
 			}
 
-			& .hidden-dropzone__svg__plus-list path:nth-child(1) {
+			& .hidden-dropzone__svg__plus-list path:nth-child(2) {
 				fill: var(--clr-scale-pop-60);
 				opacity: 0.2;
 			}
-			& .hidden-dropzone__svg__plus-list path:nth-child(2) {
+			& .hidden-dropzone__svg__plus-list path:nth-child(3) {
 				stroke: oklch(from var(--clr-scale-pop-40) l c h / 0.5);
-			}
-
-			& .hidden-dropzone__label {
-				transform: translateY(0);
-				opacity: 1;
 			}
 		}
 		&.hovered {
@@ -200,14 +201,18 @@
 		}
 	}
 
+	.hidden-dropzone__title {
+		color: var(--clr-text-2);
+	}
+
 	.hidden-dropzone__content {
 		display: flex;
 		z-index: var(--z-ground);
 		position: relative;
 		flex-direction: column;
 		align-items: center;
-		gap: 10px;
-
+		margin-bottom: 16px;
+		gap: 12px;
 		pointer-events: none;
 
 		&:after {
@@ -215,26 +220,33 @@
 			position: absolute;
 			top: calc(50% - 30px);
 			left: 50%;
-			width: 400px;
-			height: 400px;
+			width: 420px;
+			height: 420px;
 			transform: translate(-50%, -50%);
 			border-radius: 100%;
-			background: radial-gradient(var(--clr-bg-2) 0%, oklch(from var(--clr-bg-2) l c h / 0) 50%);
+			background: radial-gradient(var(--clr-bg-2) 10%, oklch(from var(--clr-bg-2) l c h / 0) 50%);
 			content: '';
-			/* opacity: 0; */
-			transition: opacity 0.1s;
+			/* background: radial-gradient(red 0%, oklch(from red l c h / 0) 50%); */
+			opacity: 0.9;
 		}
 	}
 
-	.hidden-dropzone__label {
+	.hidden-dropzone__text {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 		transform: translateY(5px);
+		text-align: center;
+		transition: transform 0.2s;
+	}
+
+	.hidden-dropzone__title {
+		margin-top: 4px;
+	}
+
+	.hidden-dropzone__label {
 		color: var(--clr-text-3);
 		text-align: center;
-		opacity: 1;
-		transition:
-			opacity 0.15s,
-			transform 0.15s;
-		will-change: opacity, transform;
 	}
 
 	/* SVG */
@@ -259,19 +271,19 @@
 		will-change: stroke, fill, opacity;
 	}
 	.hidden-dropzone__svg__back-list {
-		transform: translateY(14px) translateX(6px) rotate(10deg);
+		transform: translateY(8px) translateX(6px) rotate(10deg);
 		transform-origin: center;
 		transition: transform 0.15s;
 		will-change: transform;
 	}
 	.hidden-dropzone__svg__front-list {
-		transform: translateY(10px) translateX(2px) rotate(-7deg);
+		transform: translateY(6px) translateX(2px) rotate(-7deg);
 		transform-origin: center;
 		transition: transform 0.15s;
 		will-change: transform;
 	}
 	.hidden-dropzone__svg__hand {
-		transform: translateY(12px) translateX(10px) rotate(10deg) scale(0.9);
+		transform: translateY(8px) translateX(10px) rotate(10deg) scale(0.9);
 		transform-origin: center;
 		transition: transform 0.2s;
 		will-change: transform;

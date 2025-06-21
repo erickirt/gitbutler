@@ -1,8 +1,10 @@
 <script lang="ts">
 	import dependentBranchSvg from '$components/v3/stackTabs/assets/dependent-branch.svg?raw';
 	import newStackSvg from '$components/v3/stackTabs/assets/new-stack.svg?raw';
+	import { UncommittedService } from '$lib/selection/uncommittedService.svelte';
 	import { StackService } from '$lib/stacks/stackService.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
+	import { ElementId, TestId } from '$lib/testing/testIds';
 	import { sleep } from '$lib/utils/sleep';
 	import { inject } from '@gitbutler/shared/context';
 	import Button from '@gitbutler/ui/Button.svelte';
@@ -14,14 +16,12 @@
 
 	type Props = {
 		el?: HTMLButtonElement;
-		scrollerEl?: HTMLDivElement;
 		projectId: string;
 		stackId?: string;
-		noStacks: boolean;
 	};
 
-	let { el = $bindable(), scrollerEl, projectId, stackId, noStacks }: Props = $props();
-	const [stackService, uiState] = inject(StackService, UiState);
+	let { projectId, stackId }: Props = $props();
+	const [stackService, uiState] = inject(StackService, UiState, UncommittedService);
 	const [createNewStack, stackCreation] = stackService.newStack;
 	const [createNewBranch, branchCreation] = stackService.newBranch;
 
@@ -63,8 +63,6 @@
 				stackId,
 				request: { targetPatch: undefined, name: slugifiedRefName }
 			});
-
-			uiState.stack(stackId).selection.set({ branchName: slugifiedRefName });
 			createRefModal?.close();
 		}
 
@@ -74,23 +72,6 @@
 
 	const isAddingNew = $derived(stackCreation.current.isLoading || branchCreation.current.isLoading);
 
-	function handleArrowNavigation(event: KeyboardEvent) {
-		if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-			event.preventDefault();
-			const target = scrollerEl as HTMLDivElement;
-			// first child
-			const firstChild = target.firstElementChild as HTMLButtonElement;
-			// last child
-			const lastChild = target.lastElementChild as HTMLButtonElement;
-
-			if (event.key === 'ArrowRight') {
-				firstChild.focus();
-			} else if (event.key === 'ArrowLeft') {
-				lastChild.focus();
-			}
-		}
-	}
-
 	async function showAndPrefillName() {
 		createRefModal?.show();
 		createRefName = (await stackService.newBranchName(projectId))?.data ?? '';
@@ -99,42 +80,25 @@
 	// TODO: it would be nice to remember the last selected option for the next time the modal is opened
 </script>
 
-<button
-	aria-label="new stack"
-	type="button"
-	class="new-stack-btn"
-	class:no-stacks={noStacks}
-	onclick={() => showAndPrefillName()}
-	bind:this={el}
-	onkeydown={handleArrowNavigation}
->
-	{#if noStacks}
-		<p class="text-14 text-semibold truncate">Create new branch</p>
-	{/if}
+<div class="multi-stack-create-new">
+	<div class="multi-stack-create-new__button-wrap">
+		<Button
+			type="button"
+			onclick={() => showAndPrefillName()}
+			testId={TestId.CreateStackButton}
+			kind="outline"
+			icon="plus-small"
+		>
+			New branch
+		</Button>
+	</div>
+</div>
 
-	<svg
-		class="new-stack-icon"
-		width="16"
-		height="16"
-		viewBox="0 0 20 20"
-		fill="none"
-		xmlns="http://www.w3.org/2000/svg"
-	>
-		<path
-			d="M0 10H20M10 0L10 20"
-			stroke="currentColor"
-			opacity="var(--plus-icon-opacity)"
-			stroke-width="1.5"
-			vector-effect="non-scaling-stroke"
-		/>
-	</svg>
-</button>
-
-<Modal bind:this={createRefModal} width={500}>
+<Modal bind:this={createRefModal} width={500} testId={TestId.CreateNewBranchModal}>
 	<div class="content-wrap">
 		<Textbox
 			label="New branch"
-			id="newRemoteName"
+			id={ElementId.NewBranchNameInput}
 			bind:value={createRefName}
 			autofocus
 			helperText={generatedNameDiverges ? `Will be created as '${slugifiedRefName}'` : undefined}
@@ -161,13 +125,12 @@
 			<!-- Option 2 -->
 			<label
 				for="new-dependent"
-				class="radio-label"
-				class:disabled={noStacks}
+				class="radio-label disabled"
 				class:radio-selected={createRefType === 'dependent'}
 			>
 				<div class="radio-btn">
 					<RadioButton
-						disabled={noStacks}
+						disabled
 						name="create-new"
 						id="new-dependent"
 						onchange={handleOptionSelect}
@@ -213,6 +176,7 @@
 					onclick={addNew}
 					disabled={!createRefName}
 					loading={isAddingNew}
+					testId={TestId.ConfirmSubmit}
 				>
 					Create branch
 				</Button>
@@ -222,40 +186,17 @@
 </Modal>
 
 <style lang="postcss">
-	/* BUTTON */
-	.new-stack-btn {
-		--plus-icon-opacity: 0.7;
+	.multi-stack-create-new {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		height: 100%;
-		padding: 12px 15px;
-		overflow: hidden;
-		gap: 10px;
-		border-left: 1px solid var(--clr-border-2);
-		color: var(--clr-text-1);
-
-		transition:
-			color var(--transition-fast),
-			background var(--transition-fast);
-
-		&:hover,
-		&:focus {
-			--plus-icon-opacity: 1;
-		}
-
-		&:hover {
-			background: var(--clr-bg-1-muted);
-		}
-
-		&:focus {
-			outline: none;
-			background: var(--clr-stack-tab-active);
-		}
+		gap: 6px;
 	}
 
-	.new-stack-icon {
-		flex-shrink: 0;
+	.multi-stack-create-new__button-wrap {
+		display: flex;
+		border-radius: var(--radius-btn);
+		background-color: var(--clr-bg-2);
 	}
 
 	/* MODAL WINDOW */

@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use crate::IgnoredWorktreeChange;
+use crate::{IgnoredWorktreeChange, UnifiedDiff};
 use bstr::BString;
 use gitbutler_serde::BStringForFrontend;
 use gix::object::tree::EntryKind;
@@ -12,6 +12,16 @@ pub struct WorktreeChanges {
     pub changes: Vec<TreeChange>,
     /// Changes that were in the index that we can't handle. The user can see them and interact with them to clear them out before a commit can be made.
     pub ignored_changes: Vec<IgnoredWorktreeChange>,
+}
+
+impl WorktreeChanges {
+    pub fn try_as_unidiff_string(
+        &self,
+        repo: &gix::Repository,
+        context_lines: u32,
+    ) -> anyhow::Result<String> {
+        changes_to_unidiff_string(self.changes.clone(), repo, context_lines)
+    }
 }
 
 impl From<crate::WorktreeChanges> for WorktreeChanges {
@@ -36,6 +46,62 @@ pub struct TreeChanges {
     pub changes: Vec<TreeChange>,
     /// The stats of the changes.
     pub stats: TreeStats,
+}
+
+impl TreeChanges {
+    pub fn try_as_unidiff_string(
+        &self,
+        repo: &gix::Repository,
+        context_lines: u32,
+    ) -> anyhow::Result<String> {
+        changes_to_unidiff_string(self.changes.clone(), repo, context_lines)
+    }
+}
+
+fn changes_to_unidiff_string(
+    changes: Vec<TreeChange>,
+    repo: &gix::Repository,
+    context_lines: u32,
+) -> anyhow::Result<String> {
+    let mut builder = String::new();
+    for change in changes {
+        match &change.status {
+            TreeStatus::Addition { .. } => {
+                builder.push_str("--- /dev/null\n");
+                builder.push_str(&format!("+++ b/{}\n", &change.path.to_string()));
+            }
+            TreeStatus::Deletion { .. } => {
+                builder.push_str(&format!("+++ a/{}\n", &change.path.to_string()));
+                builder.push_str("--- /dev/null\n");
+            }
+            TreeStatus::Modification { .. } => {
+                builder.push_str(&format!("--- a/{}\n", &change.path.to_string()));
+                builder.push_str(&format!("+++ b/{}\n", &change.path.to_string()));
+            }
+            TreeStatus::Rename { previous_path, .. } => {
+                let previous_path = previous_path.to_string();
+                builder.push_str(&format!("rename from {}\n", previous_path));
+                builder.push_str(&format!("rename to {}\n", &change.path.to_string()));
+            }
+        }
+        match crate::TreeChange::from(change).unified_diff(repo, context_lines)? {
+            Some(UnifiedDiff::Patch {
+                hunks,
+                is_result_of_binary_to_text_conversion,
+                ..
+            }) => {
+                if is_result_of_binary_to_text_conversion {
+                    continue;
+                }
+                for hunk in hunks {
+                    builder.push_str(&hunk.diff.to_string());
+                    builder.push('\n');
+                }
+            }
+            _ => continue,
+        }
+    }
+    Ok(builder)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -268,44 +334,28 @@ impl From<&(crate::TreeChange, crate::UnifiedDiff)> for ChangeUnifiedDiff {
         }
     }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", content = "subject")]
-pub enum ReducedTreeStatus {
-    Addition,
-    Deletion,
-    Modification,
-    Rename {
-        #[serde(rename = "previousPath")]
-        previous_path: BStringForFrontend,
-    },
-}
-impl From<crate::TreeStatus> for ReducedTreeStatus {
-    fn from(value: crate::TreeStatus) -> Self {
-        match value {
-            crate::TreeStatus::Addition { .. } => ReducedTreeStatus::Addition,
-            crate::TreeStatus::Deletion { .. } => ReducedTreeStatus::Deletion,
-            crate::TreeStatus::Modification { .. } => ReducedTreeStatus::Modification,
-            crate::TreeStatus::Rename { previous_path, .. } => ReducedTreeStatus::Rename {
-                previous_path: previous_path.clone().into(),
-            },
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FlatChangeUnifiedDiff {
     pub path: BStringForFrontend,
-    pub status: ReducedTreeStatus,
-    diff: crate::UnifiedDiff,
+    pub status: String,
+    pub diff: crate::UnifiedDiff,
+}
+
+fn status_to_string(status: &crate::TreeStatus) -> String {
+    match status {
+        crate::TreeStatus::Addition { .. } => "addition".to_string(),
+        crate::TreeStatus::Deletion { .. } => "deletion".to_string(),
+        crate::TreeStatus::Modification { .. } => "modification".to_string(),
+        crate::TreeStatus::Rename { .. } => "rename".to_string(),
+    }
 }
 
 impl From<&(crate::TreeChange, crate::UnifiedDiff)> for FlatChangeUnifiedDiff {
     fn from(unified_diff: &(crate::TreeChange, crate::UnifiedDiff)) -> Self {
         FlatChangeUnifiedDiff {
             path: unified_diff.0.path.clone().into(),
-            status: unified_diff.0.status.clone().into(),
+            status: status_to_string(&unified_diff.0.status),
             diff: unified_diff.1.clone(),
         }
     }

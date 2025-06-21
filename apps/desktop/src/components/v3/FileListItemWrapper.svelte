@@ -4,6 +4,7 @@
 	import { conflictEntryHint } from '$lib/conflictEntryPresence';
 	import { draggableChips } from '$lib/dragging/draggable';
 	import { ChangeDropData } from '$lib/dragging/draggables';
+	import { DropzoneRegistry } from '$lib/dragging/registry';
 	import { getFilename } from '$lib/files/utils';
 	import { type TreeChange } from '$lib/hunks/change';
 	import { IdSelection } from '$lib/selection/idSelection.svelte';
@@ -35,7 +36,7 @@
 		depth?: number;
 		executable?: boolean;
 		showCheckbox?: boolean;
-		draggable: boolean;
+		draggable?: boolean;
 		onclick?: (e: MouseEvent) => void;
 		onkeydown?: (e: KeyboardEvent) => void;
 		onCloseClick?: () => void;
@@ -65,11 +66,10 @@
 
 	const idSelection = getContext(IdSelection);
 	const uncommittedService = getContext(UncommittedService);
+	const dropzoneRegistry = getContext(DropzoneRegistry);
 
 	let contextMenu = $state<ReturnType<typeof FileContextMenu>>();
 	let draggableEl: HTMLDivElement | undefined = $state();
-
-	const selectedChanges = $derived(idSelection.treeChanges(projectId, selectionId));
 
 	const previousTooltipText = $derived(
 		(change.status.subject as Rename).previousPath
@@ -97,17 +97,12 @@
 
 	const checkStatus = $derived(uncommittedService.fileCheckStatus(stackId, change.path));
 
-	function onContextMenu(e: MouseEvent) {
-		if (
-			selectedChanges &&
-			selectedChanges.current.isSuccess &&
-			idSelection.has(change.path, selectionId)
-		) {
-			const changes: TreeChange[] = selectedChanges.current.data;
+	async function onContextMenu(e: MouseEvent) {
+		const changes = await idSelection.treeChanges(projectId, selectionId);
+		if (idSelection.has(change.path, selectionId)) {
 			contextMenu?.open(e, { changes });
 			return;
 		}
-
 		contextMenu?.open(e, { changes: [change] });
 	}
 
@@ -126,11 +121,12 @@
 	use:draggableChips={{
 		label: getFilename(change.path),
 		filePath: change.path,
-		data: new ChangeDropData(change, uncommittedService, idSelection, selectionId, stackId || null),
+		data: new ChangeDropData(projectId, change, idSelection, selectionId, stackId || null),
 		viewportId: 'board-viewport',
 		selector: '.selected-draggable',
 		disabled: draggableDisabled,
-		chipType: 'file'
+		chipType: 'file',
+		dropzoneRegistry
 	}}
 >
 	<FileContextMenu
@@ -186,8 +182,11 @@
 
 <style lang="postcss">
 	.filelistitem-wrapper {
-		display: flex;
-		flex-direction: column;
+		/* We have two nested divs for one file, but a block within a block
+		   seems fine. It seems we cannot have them both be flex boxes, it
+		   makes any :hover css trigger excessive layout passes, thus making
+		   the interface super slow. */
+		display: block;
 	}
 	.filelistitem-header {
 		z-index: var(--z-lifted);

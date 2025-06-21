@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { SETTINGS, type Settings } from '$lib/settings/userSettings';
-	import { getContextStoreBySymbol } from '@gitbutler/shared/context';
+	import { ResizeSync } from '$lib/utils/resizeSync';
+	import { getContext, getContextStoreBySymbol } from '@gitbutler/shared/context';
+	import { persistWithExpiration } from '@gitbutler/shared/persisted';
+	import { on } from 'svelte/events';
+	import { writable } from 'svelte/store';
 
 	interface Props {
+		/** Default value */
+		defaultValue?: number;
 		/** The element that is being resized */
 		viewport: HTMLElement;
 		/** Sets direction of resizing for viewport */
@@ -13,12 +19,19 @@
 		zIndex?: string;
 		/** imitate border */
 		imitateBorder?: boolean;
-		imitateBorderColor?: string;
-
+		borderColor?: string;
+		/** Other resizers with the same name will receive same updates. */
+		syncName?: string;
+		/** Name under which the latest width is stored. */
+		persistId?: string;
 		/** Minimum width for the resizable element */
 		minWidth?: number;
 		maxWidth?: number;
 		minHeight?: number;
+		/** Enabled, but does not set the width/height on the dom element */
+		passive?: boolean;
+		/** Doubles or halves the width on double click */
+		dblclickSize?: boolean;
 
 		// Actions
 		onHeight?: (height: number) => void;
@@ -30,18 +43,20 @@
 	}
 
 	const {
+		defaultValue,
 		viewport,
 		direction,
-		zIndex = 'var(--z-lifted)',
+		zIndex = 'var(--z-floating)',
 		minWidth = 0,
 		maxWidth = 120,
 		minHeight = 0,
 		borderRadius = 'none',
 		imitateBorder,
-		imitateBorderColor = 'var(--clr-border-2)',
-
-		onHeight,
-		onWidth,
+		borderColor = 'var(--clr-border-2)',
+		syncName,
+		persistId,
+		passive,
+		dblclickSize,
 		onResizing,
 		onOverflow,
 		onHover,
@@ -50,7 +65,16 @@
 
 	const orientation = $derived(['left', 'right'].includes(direction) ? 'horizontal' : 'vertical');
 	const userSettings = getContextStoreBySymbol<Settings>(SETTINGS);
+	const resizeSync = getContext(ResizeSync);
 	const base = $derived($userSettings.zoom * 16);
+
+	let value = $derived(
+		persistId
+			? persistWithExpiration(defaultValue, persistId, 1440)
+			: writable<number | undefined>()
+	);
+
+	const resizerId = Symbol();
 
 	let initial = 0;
 	let dragging = $state(false);
@@ -69,37 +93,38 @@
 		onResizing?.(true);
 	}
 
-	function onOverflowValue(currentValue: number, minVal: number) {
-		if (currentValue < minVal) {
-			onOverflow?.(minVal - currentValue);
-		}
-	}
-
 	function onMouseMove(e: MouseEvent) {
 		dragging = true;
+		let newValue: number | undefined;
+		let overflow: number | undefined;
 		if (direction === 'down') {
 			let height = (e.clientY - initial) / base;
-			onHeight?.(Math.max(height, minHeight));
-
-			onOverflowValue(height, minHeight);
+			newValue = Math.max(height, minHeight);
+			overflow = minHeight - height;
 		}
 		if (direction === 'up') {
 			let height = (document.body.scrollHeight - e.clientY - initial) / base;
-			onHeight?.(Math.max(height, minHeight));
-
-			onOverflowValue(height, minHeight);
+			newValue = Math.max(height, minHeight);
+			overflow = minHeight - height;
 		}
 		if (direction === 'right') {
 			let width = (e.clientX - initial + 2) / base;
-			onWidth?.(Math.min(Math.max(width, minWidth), maxWidth));
-
-			onOverflowValue(width, minWidth);
+			newValue = Math.min(Math.max(width, minWidth), maxWidth);
+			overflow = minWidth - width;
 		}
 		if (direction === 'left') {
 			let width = (document.body.scrollWidth - e.clientX - initial) / base;
-			onWidth?.(Math.min(Math.max(width, minWidth), maxWidth));
-
-			onOverflowValue(width, minWidth);
+			newValue = Math.min(Math.max(width, minWidth), maxWidth);
+			overflow = minWidth - width;
+		}
+		if (newValue) {
+			updateDom(newValue);
+		}
+		if (overflow) {
+			onOverflow?.(overflow);
+		}
+		if (e.shiftKey && syncName && newValue !== undefined) {
+			resizeSync.emit(syncName, resizerId, newValue);
 		}
 	}
 
@@ -110,8 +135,59 @@
 		onResizing?.(false);
 	}
 
+	function updateDom(newValue: number) {
+		if (passive) {
+			viewport.style.width = '';
+			viewport.style.height = '';
+			return;
+		}
+		if (direction === 'left' || direction === 'right') {
+			viewport.style.width = newValue + 'rem';
+		} else if (direction === 'up' || direction === 'down') {
+			viewport.style.height = newValue + 'rem';
+		}
+		value.set(newValue);
+	}
+
 	function isHovered(isHovered: boolean) {
 		onHover?.(isHovered);
+	}
+
+	$effect(() => {
+		if (syncName) {
+			return resizeSync.subscribe({
+				key: syncName,
+				resizerId,
+				callback: (newValue) => {
+					value.set(newValue);
+					updateDom(newValue);
+				}
+			});
+		}
+	});
+
+	$effect(() => {
+		if ($value && viewport) {
+			updateDom($value);
+		}
+	});
+
+	$effect(() => {
+		if (viewport && dblclickSize) {
+			return on(viewport, 'dblclick', cycleWidth);
+		}
+	});
+
+	function cycleWidth() {
+		// noop for now - way too many false positives where accidentally double-clicking causes content shift
+		//
+		// if (direction === 'up' || direction === 'down') return;
+		// const width = $value || viewport.offsetWidth;
+		// if (width && width > maxWidth / 2) {
+		// 	value.set(Math.floor(width / 2));
+		// } else if (width) {
+		// 	value.set(Math.floor(width * 2));
+		// }
 	}
 </script>
 
@@ -124,6 +200,7 @@
 	tabindex="0"
 	role="slider"
 	aria-valuenow={viewport?.clientHeight}
+	class:imitate-border={imitateBorder}
 	class="resizer"
 	class:dragging
 	class:vertical={orientation === 'vertical'}
@@ -134,13 +211,9 @@
 	class:right={direction === 'right'}
 	style:z-index={zIndex}
 	style:--resizer-border-radius="var(--radius-{borderRadius})"
-	style:--border-imitation-color={imitateBorderColor}
+	style:--border-imitation-color={borderColor}
 >
 	<div class="resizer-line"></div>
-
-	{#if imitateBorder}
-		<div class="border-imitation"></div>
-	{/if}
 </div>
 
 <style lang="postcss">
@@ -148,10 +221,15 @@
 		--resizer-line-thickness: 0;
 		--resizer-line-color: transparent;
 		/* should be big for large radius */
-		--resizer-line-frame: 20px;
+		--resizer-line-frame: var(--resizer-border-radius, 1px);
 		position: absolute;
 		outline: none;
 		/* background-color: rgba(255, 0, 0, 0.2); */
+
+		&.imitate-border {
+			--resizer-line-color: var(--border-imitation-color);
+			--resizer-line-thickness: 1px;
+		}
 
 		&:hover,
 		&:focus,
@@ -184,10 +262,6 @@
 		& .resizer-line {
 			width: var(--resizer-line-frame);
 		}
-
-		& .border-imitation {
-			width: 1px;
-		}
 	}
 
 	.vertical {
@@ -198,10 +272,6 @@
 
 		& .resizer-line {
 			height: var(--resizer-line-frame);
-		}
-
-		& .border-imitation {
-			height: 1px;
 		}
 	}
 
@@ -214,10 +284,6 @@
 			border-top-right-radius: var(--resizer-border-radius);
 			border-bottom-right-radius: var(--resizer-border-radius);
 		}
-
-		& .border-imitation {
-			left: auto;
-		}
 	}
 	.left {
 		left: 0;
@@ -227,10 +293,6 @@
 			border-left: var(--resizer-line-thickness) solid var(--resizer-line-color);
 			border-top-left-radius: var(--resizer-border-radius);
 			border-bottom-left-radius: var(--resizer-border-radius);
-		}
-
-		& .border-imitation {
-			right: auto;
 		}
 	}
 	.up {
@@ -252,17 +314,5 @@
 			border-bottom-right-radius: var(--resizer-border-radius);
 			border-bottom-left-radius: var(--resizer-border-radius);
 		}
-	}
-
-	.border-imitation {
-		z-index: -1;
-		position: absolute;
-		top: 0;
-		right: 0;
-		bottom: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background-color: var(--border-imitation-color);
 	}
 </style>

@@ -6,6 +6,7 @@
 	import { type Snippet } from 'svelte';
 
 	interface Props {
+		viewport?: HTMLDivElement;
 		height?: string;
 		maxHeight?: string;
 		initiallyVisible?: boolean;
@@ -21,9 +22,11 @@
 		onscrollTop?: (visible: boolean) => void;
 		onscrollEnd?: (visible: boolean) => void;
 		onscroll?: (e: Event) => void;
+		onscrollexists?: (exists: boolean) => void;
 	}
 
-	const {
+	let {
+		viewport = $bindable(),
 		height,
 		maxHeight,
 		initiallyVisible,
@@ -38,7 +41,8 @@
 		onthumbdrag,
 		onscroll,
 		onscrollTop,
-		onscrollEnd
+		onscrollEnd,
+		onscrollexists
 	}: Props = $props();
 
 	const userSettings = getContextStoreBySymbol<Settings>(SETTINGS);
@@ -48,6 +52,7 @@
 
 <ScrollableContainer
 	bind:this={scroller}
+	bind:viewport
 	{height}
 	{maxHeight}
 	{initiallyVisible}
@@ -62,6 +67,7 @@
 	{onscrollTop}
 	{onscrollEnd}
 	{onscroll}
+	{onscrollexists}
 	whenToShow={$userSettings.scrollbarVisibilityState}
 >
 	{@render children()}

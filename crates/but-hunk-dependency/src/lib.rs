@@ -185,7 +185,7 @@ pub fn tree_changes_to_input_files(
     let mut files = Vec::new();
     for change in changes {
         let diff = change.unified_diff(repo, 0)?;
-        let UnifiedDiff::Patch { hunks, .. } = diff else {
+        let Some(UnifiedDiff::Patch { hunks, .. }) = diff else {
             trace::warn!(
                 "Skipping change at '{}' as it doesn't have hunks to calculate dependencies for (binary/too large)",
                 change.path

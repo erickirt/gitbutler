@@ -2,15 +2,14 @@
 	import type { Snippet } from 'svelte';
 
 	type Props = {
-		isVerticalMode: boolean;
 		children: Snippet<[boolean]>;
 	};
 
-	let { isVerticalMode, children }: Props = $props();
+	let { children }: Props = $props();
 	let isSticked = $state(true);
 </script>
 
-<div class="sticky-buttons" class:show-bg={!isVerticalMode} class:is-sticked={isSticked}>
+<div class="sticky-buttons" data-remove-from-draggable class:is-sticked={isSticked}>
 	{#if children}
 		{@render children(isSticked)}
 	{/if}
@@ -19,15 +18,9 @@
 <style lang="postcss">
 	.sticky-buttons {
 		display: flex;
-		padding-right: 12px;
-		padding-bottom: 14px;
-		padding-left: 12px;
+		padding: 12px 12px 14px 12px;
 		gap: 6px;
-
-		&.show-bg {
-			padding-top: 12px;
-			border-top: 1px solid var(--clr-border-2);
-			background-color: var(--clr-bg-1);
-		}
+		border-top: 1px solid var(--clr-border-2);
+		background-color: var(--clr-bg-1);
 	}
 </style>

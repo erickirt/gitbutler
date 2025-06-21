@@ -6,10 +6,11 @@
 	import BranchHeader from '$components/v3/BranchHeader.svelte';
 	import BranchHeaderContextMenu from '$components/v3/BranchHeaderContextMenu.svelte';
 	import PrNumberUpdater from '$components/v3/PrNumberUpdater.svelte';
-	import { MoveCommitDzHandler, StartCommitDzHandler } from '$lib/commits/dropHandler';
-	import { UncommittedService } from '$lib/selection/uncommittedService.svelte';
+	import ReviewView from '$components/v3/ReviewView.svelte';
+	import { MoveCommitDzHandler } from '$lib/commits/dropHandler';
 	import { StackService } from '$lib/stacks/stackService.svelte';
 	import { UiState } from '$lib/state/uiState.svelte';
+	import { TestId } from '$lib/testing/testIds';
 	import { inject } from '@gitbutler/shared/context';
 	import ReviewBadge from '@gitbutler/ui/ReviewBadge.svelte';
 	import { getTimeAgo } from '@gitbutler/ui/utils/timeAgo';
@@ -31,6 +32,8 @@
 
 	interface DraftBranchProps extends BranchCardProps {
 		type: 'draft-branch';
+		branchContent: Snippet;
+		buttons?: Snippet;
 	}
 
 	interface NormalBranchProps extends BranchCardProps {
@@ -60,6 +63,7 @@
 		contextMenu?: typeof BranchHeaderContextMenu;
 		onclick: () => void;
 		menu?: Snippet<[{ rightClickTrigger: HTMLElement }]>;
+		buttons?: Snippet;
 		branchContent: Snippet;
 	}
 
@@ -74,11 +78,7 @@
 
 	let { projectId, branchName, expand, active, lineColor, readonly, ...args }: Props = $props();
 
-	const [uiState, stackService, uncommittedService] = inject(
-		UiState,
-		StackService,
-		UncommittedService
-	);
+	const [uiState, stackService] = inject(UiState, StackService);
 
 	const [updateName, nameUpdate] = stackService.updateBranchName;
 
@@ -117,20 +117,14 @@
 	class:draft={args.type === 'draft-branch'}
 	class:expand
 	data-series-name={branchName}
+	data-testid={TestId.BranchCard}
 >
 	{#if args.type === 'stack-branch'}
 		{@const moveHandler = new MoveCommitDzHandler(stackService, args.stackId, projectId)}
-		{@const startCommitHandler = new StartCommitDzHandler({
-			uiState,
-			uncommittedService,
-			stackId: args.stackId,
-			projectId,
-			branchName
-		})}
 		{#if !args.prNumber}
 			<PrNumberUpdater {projectId} stackId={args.stackId} {branchName} />
 		{/if}
-		<Dropzone handlers={[moveHandler, startCommitHandler]}>
+		<Dropzone handlers={args.first ? [moveHandler] : []}>
 			{#snippet overlay({ hovered, activated, handler })}
 				{@const label = handler instanceof MoveCommitDzHandler ? 'Move here' : 'Start commit'}
 				<CardOverlay {hovered} {activated} {label} />
@@ -143,6 +137,7 @@
 				selectIndicator
 				draft={false}
 				{lineColor}
+				isCommitting={args.isCommitting}
 				iconName={args.iconName}
 				{updateBranchName}
 				isUpdatingName={nameUpdate.current.isLoading}
@@ -151,6 +146,7 @@
 				{isPushed}
 				onclick={args.onclick}
 				menu={args.menu}
+				buttons={args.buttons}
 			>
 				{#snippet emptyState()}
 					<span class="branch-header__empty-state-span">This is an empty branch.</span>
@@ -189,6 +185,16 @@
 				{/snippet}
 			</BranchHeader>
 		</Dropzone>
+		{#if stackState?.action.current === 'review'}
+			<div class="review-wrapper">
+				<ReviewView
+					{projectId}
+					{branchName}
+					stackId={args.stackId}
+					oncancel={() => stackState.action.set(undefined)}
+				/>
+			</div>
+		{/if}
 	{:else if args.type === 'normal-branch'}
 		<BranchHeader
 			{branchName}
@@ -232,9 +238,6 @@
 			readonly
 			isPushed
 		>
-			{#snippet emptyState()}
-				<!-- This will never happen -->
-			{/snippet}
 			{#snippet content()}
 				{#if args.lastUpdatedAt}
 					<span class="branch-header__item">
@@ -266,7 +269,7 @@
 		</BranchHeader>
 	{/if}
 
-	{#if args.type === 'stack-branch' || args.type === 'normal-branch'}
+	{#if args.type === 'stack-branch' || args.type === 'normal-branch' || args.type === 'draft-branch'}
 		{@render args.branchContent()}
 	{/if}
 </div>
@@ -277,12 +280,10 @@
 		position: relative;
 		flex-direction: column;
 		width: 100%;
+		overflow: hidden;
 		border: 1px solid var(--clr-border-2);
 		border-radius: var(--radius-ml);
 		background: var(--clr-bg-1);
-		&.draft {
-			border-radius: var(--radius-ml) var(--radius-ml) 0 0;
-		}
 	}
 	.expand {
 		height: 100%;
@@ -308,5 +309,10 @@
 	.branch-header__review-badges {
 		display: flex;
 		gap: 4px;
+	}
+
+	.review-wrapper {
+		padding: 12px;
+		border-top: 1px solid var(--clr-border-2);
 	}
 </style>

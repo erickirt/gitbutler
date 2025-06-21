@@ -1,7 +1,12 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
+mod event;
 use anyhow::Result;
-use but_action::ActionHandler;
+use but_action::{ActionHandler, Outcome, Source, reword::CommitEvent};
 use but_settings::AppSettings;
 use gitbutler_command_context::CommandContext;
 use gitbutler_project::Project;
@@ -12,21 +17,52 @@ use rmcp::{
     },
     schemars, tool,
 };
+use tracing_subscriber::{self, EnvFilter};
 
-pub(crate) async fn start() -> Result<()> {
+use crate::metrics::{Event, EventKind, Metrics};
+
+pub(crate) async fn start(app_settings: AppSettings) -> Result<()> {
+    // Initialize the tracing subscriber with file and stdout logging
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::DEBUG.into()))
+        .with_writer(std::io::stderr)
+        .with_ansi(false)
+        .init();
+
+    tracing::info!("Starting MCP server");
+
+    let client_info = Arc::new(Mutex::new(None));
     let transport = (tokio::io::stdin(), tokio::io::stdout());
-    let service = Mcp::new().serve(transport).await?;
+    let service = Mcp::new(app_settings, client_info.clone())
+        .serve(transport)
+        .await?;
+    let info = service.peer_info();
+    if let Ok(mut guard) = client_info.lock() {
+        guard.replace(info.client_info.clone());
+    }
     service.waiting().await?;
     Ok(())
 }
 
 #[derive(Debug, Clone)]
-pub struct Mcp {}
+pub struct Mcp {
+    app_settings: AppSettings,
+    metrics: Metrics,
+    client_info: Arc<Mutex<Option<Implementation>>>,
+    event_handler: event::Handler,
+}
 
 #[tool(tool_box)]
 impl Mcp {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(app_settings: AppSettings, client_info: Arc<Mutex<Option<Implementation>>>) -> Self {
+        let metrics = Metrics::new_with_background_handling(&app_settings);
+        let event_handler = event::Handler::new_with_background_handling();
+        Self {
+            app_settings,
+            metrics,
+            client_info,
+            event_handler,
+        }
     }
 
     #[tool(
@@ -36,6 +72,60 @@ impl Mcp {
         &self,
         #[tool(aggr)] request: GitButlerUpdateBranchesRequest,
     ) -> Result<CallToolResult, McpError> {
+        let client_info = self
+            .client_info
+            .lock()
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?
+            .clone();
+        let result = self.gitbutler_update_branches_inner(request, &client_info);
+        let error = result.as_ref().err().map(|e| e.to_string());
+        let updated_branches_count = result
+            .as_ref()
+            .ok()
+            .map(|outcome| outcome.updated_branches.len());
+        let commits_count = result.as_ref().ok().and_then(|outcome| {
+            outcome
+                .updated_branches
+                .iter()
+                .map(|branch| branch.new_commits.len())
+                .sum::<usize>()
+                .into()
+        });
+        let mut props = vec![
+            (
+                "endpoint".to_string(),
+                "gitbutler_update_branches".to_string(),
+            ),
+            (
+                "aiCredentialsKind".to_string(),
+                self.event_handler
+                    .credentials_kind()
+                    .map_or("None".to_string(), |k| k.to_string()),
+            ),
+        ];
+        if let Some(error) = &error {
+            props.push(("error".to_string(), error.to_string()));
+        }
+        if let Some(count) = updated_branches_count {
+            props.push(("updatedBranchesCount".to_string(), count.to_string()));
+        }
+        if let Some(count) = commits_count {
+            props.push(("commitsCreatedCount".to_string(), count.to_string()));
+        }
+        if let Some(client_info) = &client_info {
+            props.push(("clientName".to_string(), client_info.name.clone()));
+            props.push(("clientVersion".to_string(), client_info.version.clone()));
+        }
+        self.metrics.capture(Event::new(EventKind::Mcp, props));
+
+        result.map(|outcome| Ok(CallToolResult::success(vec![Content::json(outcome)?])))?
+    }
+
+    fn gitbutler_update_branches_inner(
+        &self,
+        request: GitButlerUpdateBranchesRequest,
+        client_info: &Option<Implementation>,
+    ) -> Result<Outcome, McpError> {
         if request.changes_summary.is_empty() {
             return Err(McpError::invalid_request(
                 "ChangesSummary cannot be empty".to_string(),
@@ -57,17 +147,36 @@ impl Mcp {
 
         let repo_path = PathBuf::from(request.current_working_directory.clone());
         let project = Project::from_path(&repo_path).expect("Failed to create project from path");
-        let ctx = &mut CommandContext::open(&project, AppSettings::default())
+        let ctx = &mut CommandContext::open(&project, self.app_settings.clone())
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        let response = but_action::handle_changes(
+        let (id, outcome) = but_action::handle_changes(
             ctx,
+            &None,
             &request.changes_summary,
-            Some(request.full_prompt),
+            Some(request.full_prompt.clone()),
             ActionHandler::HandleChangesSimple,
+            Source::Mcp(client_info.clone().map(Into::into)),
         )
         .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-        Ok(CallToolResult::success(vec![Content::json(response)?]))
+        // Trigger commit message generation for newly created commits
+        for branch in &outcome.updated_branches {
+            for commit in &branch.new_commits {
+                if let Ok(commit_id) = gix::ObjectId::from_str(commit) {
+                    let commit_event = CommitEvent {
+                        external_summary: request.changes_summary.clone(),
+                        external_prompt: request.full_prompt.clone(),
+                        branch_name: branch.branch_name.clone(),
+                        commit_id,
+                        project: project.clone(),
+                        app_settings: self.app_settings.clone(),
+                        trigger: id,
+                    };
+                    self.event_handler.process_commit(commit_event);
+                }
+            }
+        }
+        Ok(outcome)
     }
 }
 

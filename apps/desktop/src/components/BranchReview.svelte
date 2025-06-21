@@ -46,12 +46,9 @@
 	);
 
 	const allowedToPublishBR = $derived(!!canPublishReviewPlugin?.imports.allowedToPublishBR);
-	const canPublishBR = $derived(!!canPublishReviewPlugin?.imports.canPublishBR);
 	const canPublishPR = $derived(!!canPublishReviewPlugin?.imports.canPublishPR);
 	const ctaLabel = $derived(canPublishReviewPlugin?.imports.ctaLabel);
 	const branchEmpty = $derived(canPublishReviewPlugin?.imports.branchIsEmpty);
-
-	const showCreateButton = $derived(canPublishBR || canPublishPR);
 
 	const disabled = $derived(branchEmpty || branchConflicted);
 	const tooltip = $derived(
@@ -71,7 +68,7 @@
 		reactive(() => reviewId)
 	);
 
-	const ctaDisabled = $derived(reviewCreation ? !reviewCreation.imports.creationEnabled : false);
+	const submitDisabled = $derived(reviewCreation ? !reviewCreation.imports.creationEnabled : false);
 </script>
 
 <CanPublishReviewPlugin
@@ -117,8 +114,7 @@
 		{#snippet controls(close)}
 			<ReviewCreationControls
 				isSubmitting={!!reviewCreation?.imports.isLoading}
-				{ctaDisabled}
-				{canPublishBR}
+				{submitDisabled}
 				{canPublishPR}
 				onCancel={close}
 				onSubmit={async () => {
@@ -147,12 +143,14 @@
 		{@render branchStatus()}
 	{/if}
 
-	{#if showCreateButton}
+	{#if canPublishPR}
 		<Button
-			testId={TestId.BranchDrawerCreateReviewButton}
+			testId={TestId.CreateReviewButton}
 			onclick={() => {
 				if ($settingsStore?.featureFlags.v3) {
-					uiState.project(projectId).drawerPage.current = 'review';
+					if (stackId) {
+						uiState.stack(stackId).action.current = 'review';
+					}
 				} else {
 					modal?.show();
 				}

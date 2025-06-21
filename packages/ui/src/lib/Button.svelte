@@ -42,6 +42,7 @@
 		onkeydown?: (e: KeyboardEvent) => void;
 		// Snippets
 		children?: Snippet;
+		custom?: Snippet;
 	}
 </script>
 
@@ -86,7 +87,8 @@
 		onmousedown,
 		oncontextmenu,
 		onkeydown,
-		children
+		children,
+		custom
 	}: Props = $props();
 
 	async function handleAction(e: MouseEvent) {
@@ -137,7 +139,7 @@
 	>
 		{#if children}
 			<span
-				class="btn-label text-semibold"
+				class="btn-label text-semibold truncate"
 				class:text-12={size === 'button' || size === 'cta'}
 				class:text-11={size === 'tag'}
 				class:text-10={size === 'icon'}
@@ -155,6 +157,10 @@
 				{/if}
 			</div>
 		{/if}
+
+		{#if custom}
+			{@render custom()}
+		{/if}
 	</button>
 </Tooltip>
 
@@ -169,7 +175,7 @@
 		align-items: center;
 		justify-content: center;
 		transform-style: preserve-3d;
-		border-radius: var(--radius-m);
+		border-radius: var(--radius-btn);
 		backface-visibility: hidden;
 		background: color-mix(
 			in srgb,
@@ -213,7 +219,6 @@
 
 		/* Child elements */
 		.btn-label {
-			display: inline-flex;
 			padding: 0 2px;
 			white-space: nowrap;
 			pointer-events: none;

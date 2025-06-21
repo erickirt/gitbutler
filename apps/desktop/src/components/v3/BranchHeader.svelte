@@ -16,19 +16,17 @@
 		active: boolean | undefined;
 		readonly: boolean;
 		draft: boolean;
-
+		isCommitting?: boolean;
 		isPushed: boolean;
-
 		lineColor: string;
 		iconName: keyof typeof iconsJson;
-
 		onclick?: () => void;
 		updateBranchName: (name: string) => void;
 		isUpdatingName: boolean;
-
-		emptyState: Snippet;
+		emptyState?: Snippet;
 		content?: Snippet;
 		menu?: Snippet<[{ rightClickTrigger: HTMLElement }]>;
+		buttons?: Snippet;
 	};
 
 	const {
@@ -38,6 +36,7 @@
 		selectIndicator,
 		draft,
 		active,
+		isCommitting,
 		isUpdatingName,
 		readonly,
 		isPushed,
@@ -47,10 +46,13 @@
 		updateBranchName,
 		emptyState,
 		content,
-		menu
+		menu,
+		buttons
 	}: Props = $props();
 
 	let rightClickTrigger = $state<HTMLDivElement>();
+
+	const actionsVisible = $derived(!draft && !isCommitting && (buttons || menu));
 </script>
 
 <div
@@ -59,9 +61,9 @@
 	bind:this={rightClickTrigger}
 	role="button"
 	class="branch-header"
-	class:new-branch={isEmpty}
 	class:selected
 	class:draft
+	class:commiting={isCommitting}
 	{onclick}
 	onkeypress={onclick}
 	tabindex="0"
@@ -87,17 +89,11 @@
 					onChange={(name) => updateBranchName(name)}
 				/>
 			</div>
-
-			{#if menu}
-				<div class="branch-header__menu">
-					{@render menu({ rightClickTrigger })}
-				</div>
-			{/if}
 		</div>
 
 		{#if isEmpty}
 			<p class="text-12 text-body branch-header__empty-state">
-				{@render emptyState()}
+				{@render emptyState?.()}
 			</p>
 		{:else if content}
 			<div class="text-12 branch-header__details">
@@ -107,6 +103,21 @@
 	</div>
 </div>
 
+{#if actionsVisible}
+	<div class="branch-hedaer__actions-row" class:draft class:new-branch={isEmpty}>
+		{#if buttons}
+			<div class="text-12 branch-header__actions">
+				{@render buttons()}
+			</div>
+		{/if}
+		{#if menu}
+			<div class="branch-header__menu">
+				{@render menu({ rightClickTrigger })}
+			</div>
+		{/if}
+	</div>
+{/if}
+
 <style lang="postcss">
 	.branch-header {
 		--branch-selected-bg: var(--clr-bg-1);
@@ -114,20 +125,17 @@
 		display: flex;
 
 		position: relative;
+		flex-direction: column;
 		align-items: center;
 		justify-content: flex-start;
 		padding-right: 10px;
 		padding-left: 15px;
 		overflow: hidden;
-		border-bottom: 1px solid var(--clr-border-2);
-		border-top-right-radius: var(--radius-ml);
-		border-top-left-radius: var(--radius-ml);
+		/* border-bottom: 1px solid var(--clr-border-2); */
 		background-color: var(--branch-selected-bg);
 
 		/* Selected but NOT in focus */
-		&:hover {
-			--branch-selected-bg: var(--clr-bg-1-muted);
-		}
+		&:hover,
 		&:focus-within,
 		&.selected {
 			--branch-selected-bg: var(--clr-selected-not-in-focus-bg);
@@ -137,12 +145,6 @@
 		&:focus-within.selected {
 			--branch-selected-bg: var(--clr-selected-in-focus-bg);
 			--branch-selected-element-bg: var(--clr-selected-in-focus-element);
-		}
-
-		/* MODIFIERS */
-		&.new-branch {
-			border-bottom: none;
-			border-radius: var(--radius-ml);
 		}
 	}
 
@@ -188,12 +190,6 @@
 		min-width: 0;
 	}
 
-	.branch-header__menu {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
 	.branch-header__content {
 		display: flex;
 		flex: 1;
@@ -209,5 +205,31 @@
 	.branch-header__empty-state {
 		color: var(--clr-text-2);
 		opacity: 0.8;
+	}
+
+	.branch-hedaer__actions-row {
+		display: flex;
+		padding: 10px;
+		gap: 10px;
+		border-top: 1px solid var(--clr-border-2);
+		/* border-bottom: 1px solid var(--clr-border-2); */
+		background-color: var(--clr-bg-2);
+
+		/* MODIFIERS */
+		&.new-branch {
+			border-bottom: none;
+			border-radius: 0 0 var(--radius-ml) var(--radius-ml);
+		}
+	}
+	.branch-header__actions {
+		display: flex;
+		flex: 1;
+		width: 100%;
+		overflow: hidden;
+		gap: 6px;
+	}
+
+	.branch-header__menu {
+		display: flex;
 	}
 </style>

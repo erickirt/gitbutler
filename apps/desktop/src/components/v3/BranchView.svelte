@@ -25,9 +25,11 @@
 		active?: boolean;
 		draggableFiles: boolean;
 		onerror?: (err: unknown) => void;
+		onclose?: () => void;
 	}
 
-	const { stackId, projectId, branchName, active, draggableFiles, onerror }: Props = $props();
+	const { stackId, projectId, branchName, active, draggableFiles, onerror, onclose }: Props =
+		$props();
 
 	const [stackService] = inject(StackService);
 
@@ -50,9 +52,9 @@
 	result={combineResults(branchesResult.current, branchResult.current, topCommitResult.current)}
 >
 	{#snippet children([branches, branch, topCommit], { stackId, projectId })}
-		{@const hasCommits = !!topCommit}
+		{@const hasCommits = !!topCommit || branch.upstreamCommits.length > 0}
 		{@const remoteTrackingBranch = branch.remoteTrackingBranch}
-		<Drawer testId={TestId.BranchDrawer} {projectId} {stackId}>
+		<Drawer testId={TestId.BranchView} {onclose}>
 			{#snippet header()}
 				<div class="branch__header">
 					{#if hasCommits}

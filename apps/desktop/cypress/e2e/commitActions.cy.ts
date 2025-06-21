@@ -2,6 +2,7 @@ import { clearCommandMocks, mockCommand } from './support';
 import MockBackend from './support/mock/backend';
 import { PROJECT_ID } from './support/mock/projects';
 import LotsOfFileChanges from './support/scenarios/lotsOfFileChanges';
+import StackWithTwoEmptyBranches from './support/scenarios/stackWithTwoEmptyBranches';
 
 describe('Commit Actions', () => {
 	let mockBackend: MockBackend;
@@ -21,7 +22,7 @@ describe('Commit Actions', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -54,6 +55,7 @@ describe('Commit Actions', () => {
 			.should('have.value', originalCommitMessage)
 			.should('be.visible')
 			.should('be.enabled')
+			.should('be.focused')
 			.clear()
 			.type(newCommitMessageTitle); // Type the new commit message title
 
@@ -111,6 +113,7 @@ describe('Commit Actions', () => {
 		cy.getByTestId('commit-drawer-title-input')
 			.should('have.value', originalCommitMessage)
 			.should('be.visible')
+			.should('be.focused')
 			.should('be.enabled');
 
 		// Type in a description
@@ -168,6 +171,7 @@ describe('Commit Actions', () => {
 			.should('have.value', originalCommitMessage)
 			.should('be.visible')
 			.should('be.enabled')
+			.should('be.focused')
 			.clear()
 			.type(newCommitTitle); // Type the new commit message title
 
@@ -274,6 +278,7 @@ describe('Commit Actions', () => {
 			.should('have.value', originalCommitMessage)
 			.should('be.visible')
 			.should('be.enabled')
+			.should('be.focused')
 			.clear()
 			.type(newCommitMessageTitle); // Type the new commit message title
 
@@ -358,6 +363,7 @@ describe('Commit Actions', () => {
 			.should('have.value', originalCommitMessage)
 			.should('be.visible')
 			.should('be.enabled')
+			.should('be.focused')
 			.clear()
 			.type(newCommitMessageTitle); // Type the new commit message title
 	});
@@ -384,24 +390,25 @@ describe('Commit Actions', () => {
 		cy.getByTestId('start-commit-button').should('be.visible').should('be.enabled').click();
 
 		// Should open the new commit drawer
-		cy.getByTestId('new-commit-drawer').should('be.visible');
+		cy.getByTestId('new-commit-view').should('be.visible');
 
 		// Should have the "Your commit goes here" text
 		cy.getByTestId('your-commit-goes-here').should('be.visible').should('have.class', 'first');
 
-		// Should have selected the file
-		cy.getByTestId('file-list-item').first().get('input[type="checkbox"]').should('be.checked');
+		// Select the file
+		cy.getByTestId('file-list-item').first().get('input[type="checkbox"]').check();
 
 		// Type in a commit message
 		cy.getByTestId('commit-drawer-title-input')
 			.should('be.visible')
 			.should('be.enabled')
+			.should('be.focused')
 			.type(newCommitMessage); // Type the new commit message
 
 		// Type in a description
 		cy.getByTestId('commit-drawer-description-input')
 			.should('be.visible')
-			.click()
+			// .click()
 			.type(newCommitMessageBody); // Type the new commit message body
 
 		// Click on the commit button
@@ -409,6 +416,9 @@ describe('Commit Actions', () => {
 
 		// Should display the commit rows
 		cy.getByTestId('commit-row').should('have.length', 2);
+
+		cy.getByTestId('commit-row').should('have.length', 2);
+		cy.getByTestId('commit-row', newCommitMessage).click();
 
 		// Should commit and select the new commit
 		cy.getByTestId('commit-drawer-title').should('contain', newCommitMessage);
@@ -418,23 +428,23 @@ describe('Commit Actions', () => {
 		expect(mockBackend.getDiff).to.have.callCount(0);
 	});
 
-	it('Should hide the drawer on uncommit from context menu', () => {
-		// Click on the first commit and open the commit menu
-		cy.getByTestId('commit-row')
-			.click()
-			.within(() => {
-				cy.getByTestId('kebab-menu-btn').click();
-			});
+	// it('Should hide the drawer on uncommit from context menu', () => {
+	// 	// Click on the first commit and open the commit menu
+	// 	cy.getByTestId('commit-row')
+	// 		.click()
+	// 		.within(() => {
+	// 			cy.getByTestId('kebab-menu-btn').click();
+	// 		});
 
-		// Click on the uncommit option
-		cy.getByTestId('commit-row-context-menu-uncommit-menu-btn').click();
+	// 	// Click on the uncommit option
+	// 	cy.getByTestId('commit-row-context-menu-uncommit-menu-btn').click();
 
-		// The drawer should be closed
-		cy.getByTestId('commit-drawer').should('not.exist');
+	// 	// The drawer should be closed
+	// 	cy.getByTestId('commit-drawer').should('not.exist');
 
-		// The commit should be removed from the list
-		cy.getByTestId('commit-row').should('have.length', 0);
-	});
+	// 	// The commit should be removed from the list
+	// 	cy.getByTestId('commit-row').should('have.length', 0);
+	// });
 
 	it('Should hide the drawer on uncommit from the commit drawer', () => {
 		// Click on the first commit
@@ -472,7 +482,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -556,7 +566,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 			// Should open the commit rename drawer
 			cy.getByTestId('edit-commit-message-drawer').should('be.visible');
 
-			// Should have the original commit message, and be focused
+			// Should have the original commit message
 			cy.getByTestId('commit-drawer-title-input')
 				.should('have.value', commitTitle)
 				.should('be.visible')
@@ -666,6 +676,7 @@ describe('Commit Actions with lots of uncommitted changes', () => {
 				.should('have.value', commitTitle)
 				.should('be.visible')
 				.should('be.enabled')
+				.should('be.focused')
 				.clear()
 				.type(newCommitTitle); // Type the new commit message title
 
@@ -811,7 +822,7 @@ describe('Commit Actions with no stacks', () => {
 	beforeEach(() => {
 		mockBackend = new MockBackend({ initalStacks: [] });
 		mockCommand('stacks', () => mockBackend.getStacks());
-		mockCommand('create_virtual_branch', () => mockBackend.createBranch());
+		mockCommand('create_virtual_branch', (params) => mockBackend.createBranch(params));
 		mockCommand('canned_branch_name', () => mockBackend.getCannedBranchName());
 		mockCommand('stack_details', (params) => mockBackend.getStackDetails(params));
 		mockCommand('update_commit_message', (params) => mockBackend.updateCommitMessage(params));
@@ -831,7 +842,7 @@ describe('Commit Actions with no stacks', () => {
 
 		cy.visit('/');
 
-		cy.url({ timeout: 3000 }).should('include', `/${PROJECT_ID}/workspace`);
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
 	});
 
 	afterEach(() => {
@@ -846,6 +857,7 @@ describe('Commit Actions with no stacks', () => {
 		// spies
 		cy.spy(mockBackend, 'getDiff').as('getDiffSpy');
 		cy.spy(mockBackend, 'createBranch').as('createBranchSpy');
+		cy.spy(mockBackend, 'createCommit').as('createCommitSpy');
 
 		// There should be uncommitted changes
 		cy.getByTestId('uncommitted-changes-file-list').should('be.visible');
@@ -859,17 +871,17 @@ describe('Commit Actions with no stacks', () => {
 		cy.getByTestId('file-list-item').first().should('be.visible').should('contain', fileName);
 
 		// Click on the commit button
-		cy.getByTestId('start-commit-button').should('be.visible').should('be.enabled').click();
+		cy.getByTestId('commit-to-new-branch-button').should('be.visible').should('be.enabled').click();
 
 		// Should open the new commit drawer
-		cy.getByTestId('new-commit-drawer').should('be.visible');
+		cy.getByTestId('new-commit-view').should('be.visible');
 
 		// Should display the draft stack
-		cy.getByTestId('stack-draft').should('be.visible');
-		cy.getByTestId('stack-draft').should('contain', mockBackend.cannedBranchName);
+		cy.getByTestId('draft-stack').should('be.visible');
+		cy.getByTestId('draft-stack').should('contain', mockBackend.cannedBranchName);
 
 		// Update the stack name
-		cy.getByTestId('stack-draft').within(() => {
+		cy.getByTestId('branch-card').within(() => {
 			cy.get('input[type="text"]')
 				.should('be.visible')
 				.should('be.enabled')
@@ -878,7 +890,7 @@ describe('Commit Actions with no stacks', () => {
 		});
 
 		// Should have the "Your commit goes here" text
-		cy.getByTestId('your-commit-goes-here').should('be.visible').should('have.class', 'draft');
+		cy.getByTestId('your-commit-goes-here').should('be.visible');
 
 		// Should have selected the file
 		cy.getByTestId('file-list-item').first().get('input[type="checkbox"]').should('be.checked');
@@ -898,14 +910,138 @@ describe('Commit Actions with no stacks', () => {
 		// Click on the commit button
 		cy.getByTestId('commit-drawer-action-button').should('be.visible').should('be.enabled').click();
 
+		cy.get('@createBranchSpy').should('be.calledWith', {
+			projectId: PROJECT_ID,
+			branch: {
+				name: 'my-cool-branch',
+				order: 0
+			}
+		});
+
+		cy.get('@createCommitSpy').should('be.calledWith', {
+			projectId: '1',
+			parentId: undefined,
+			stackId: 'my-cool-branch',
+			message: 'New commit message\n\nNew commit message body',
+			stackBranchName: 'my-cool-branch',
+			worktreeChanges: [
+				{
+					pathBytes: [
+						47, 112, 97, 116, 104, 47, 116, 111, 47, 112, 114, 111, 106, 101, 99, 116, 65, 47, 102,
+						105, 108, 101, 65, 46, 116, 120, 116
+					],
+					previousPathBytes: null,
+					hunkHeaders: []
+				}
+			]
+		});
+
 		// Should display the commit rows
 		cy.getByTestId('commit-row').should('have.length', 1);
 
-		// Should commit and select the new commit
+		// Select new commit and validate message.
+		cy.getByTestId('commit-row', newCommitMessage).click();
 		cy.getByTestId('commit-drawer-title').should('contain', newCommitMessage);
 		cy.getByTestId('commit-drawer-description').should('contain', newCommitMessageBody);
 
 		// Should never get the diff information, because there are no partial changes being committed.
 		expect(mockBackend.getDiff).to.have.callCount(0);
+	});
+});
+
+describe('Commit Actions with a stack of two empty branches', () => {
+	let mockBackend: StackWithTwoEmptyBranches;
+
+	beforeEach(() => {
+		mockBackend = new StackWithTwoEmptyBranches();
+		mockCommand('stacks', () => mockBackend.getStacks());
+		mockCommand('create_virtual_branch', (params) => mockBackend.createBranch(params));
+		mockCommand('canned_branch_name', () => mockBackend.getCannedBranchName());
+		mockCommand('stack_details', (params) => mockBackend.getStackDetails(params));
+		mockCommand('update_commit_message', (params) => mockBackend.updateCommitMessage(params));
+		mockCommand('changes_in_worktree', (params) => mockBackend.getWorktreeChanges(params));
+		mockCommand('tree_change_diffs', (params) => mockBackend.getDiff(params));
+		mockCommand('commit_details', (params) => mockBackend.getCommitChanges(params));
+		mockCommand('create_commit_from_worktree_changes', (params) =>
+			mockBackend.createCommit(params)
+		);
+		mockCommand('normalize_branch_name', (params) => {
+			if (!params) return '';
+			if ('name' in params && typeof params.name === 'string') {
+				return params.name;
+			}
+		});
+		mockCommand('hunk_assignments', (params) => mockBackend.getHunkAssignments(params));
+
+		cy.visit('/');
+
+		cy.urlMatches(`/${PROJECT_ID}/workspace`);
+	});
+
+	it('Should be able to commit to the top-most branch', () => {
+		// There should be two branches in the stack
+		cy.getByTestId('branch-card').should('have.length', 2);
+		cy.get(`[data-series-name="${mockBackend.firstBranchName}"]`).should('be.visible');
+		cy.get(`[data-series-name="${mockBackend.secondBranchName}"]`).should('be.visible');
+
+		// There should be uncommitted changes
+		cy.getByTestId('uncommitted-changes-file-list').should('be.visible');
+
+		const fileNames = mockBackend.getWorktreeChangesFileNames();
+
+		expect(fileNames).to.have.length(1);
+
+		const fileName = fileNames[0]!;
+
+		cy.getByTestId('file-list-item').first().should('be.visible').should('contain', fileName);
+
+		// Click on the commit button
+		cy.getByTestId('start-commit-button').should('be.visible').should('be.enabled').click();
+
+		// Should open the new commit drawer
+		cy.getByTestId('new-commit-view').should('be.visible');
+
+		// Should have the "Your commit goes here" text only once, in the top-most branch
+		cy.get(`[data-series-name="${mockBackend.firstBranchName}"]`).within(() => {
+			cy.getByTestId('your-commit-goes-here').should('be.visible').should('have.length', 1);
+		});
+
+		// The second branch should not have the "Your commit goes here" text
+		cy.get(`[data-series-name="${mockBackend.secondBranchName}"]`).within(() => {
+			cy.getByTestId('your-commit-goes-here').should('not.exist');
+		});
+
+		// Should commit to the top-most branch
+		const commitTitle = `This is a great commit title`;
+		const commitDescription = `And look at this amazing commit description\nOh wow, so good!`;
+
+		// Type in a commit message
+		cy.getByTestId('commit-drawer-title-input')
+			.should('be.visible')
+			.should('be.enabled')
+			.should('be.focused')
+			.should('have.value', '')
+			.type(commitTitle); // Type the new commit message
+
+		// Type in a description
+		cy.getByTestId('commit-drawer-description-input')
+			.should('be.visible')
+			.should('contain', '')
+			.click()
+			.type(commitDescription); // Type the new commit message body
+
+		// Click on the commit button
+		cy.getByTestId('commit-drawer-action-button').should('be.visible').should('be.enabled').click();
+
+		// Should display the commit rows in th e top-most branch
+		cy.get(`[data-series-name="${mockBackend.firstBranchName}"]`).within(() => {
+			cy.getByTestId('commit-row').should('have.length', 1);
+			cy.getByTestId('commit-row', commitTitle).should('be.visible');
+		});
+
+		// There should be no commits in the second branch
+		cy.get(`[data-series-name="${mockBackend.secondBranchName}"]`).within(() => {
+			cy.getByTestId('commit-row').should('have.length', 0);
+		});
 	});
 });

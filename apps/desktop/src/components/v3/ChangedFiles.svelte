@@ -1,5 +1,4 @@
 <script lang="ts">
-	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
 	import FileList from '$components/v3/FileList.svelte';
 	import FileListMode from '$components/v3/FileListMode.svelte';
 	import emptyFolderSvg from '$lib/assets/empty-state/empty-folder.svg?raw';
@@ -32,11 +31,9 @@
 	}: Props = $props();
 
 	let listMode: 'list' | 'tree' = $state('tree');
-
-	let scrollTopIsVisible = $state(true);
 </script>
 
-<div class="changed-files__header" class:sticked={!scrollTopIsVisible}>
+<div class="changed-files__header">
 	<div class="changed-files__header-left">
 		<h4 class="text-14 text-semibold truncate">{title}</h4>
 		<Badge>{changes.length}</Badge>
@@ -44,23 +41,16 @@
 	<FileListMode bind:mode={listMode} persist="committed" />
 </div>
 {#if changes.length > 0}
-	<ConfigurableScrollableContainer
-		zIndex="var(--z-floating)"
-		onscrollTop={(visible) => {
-			scrollTopIsVisible = visible;
-		}}
-	>
-		<FileList
-			{selectionId}
-			{projectId}
-			{stackId}
-			{changes}
-			{listMode}
-			{active}
-			{conflictEntries}
-			{draggableFiles}
-		/>
-	</ConfigurableScrollableContainer>
+	<FileList
+		{selectionId}
+		{projectId}
+		{stackId}
+		{changes}
+		{listMode}
+		{active}
+		{conflictEntries}
+		{draggableFiles}
+	/>
 {:else}
 	<EmptyStatePlaceholder image={emptyFolderSvg} width={180} gap={4}>
 		{#snippet caption()}
@@ -76,11 +66,9 @@
 		justify-content: space-between;
 		padding: 10px 10px 10px 14px;
 		gap: 8px;
-		background-color: var(--clr-bg-1);
-
-		&.sticked {
-			border-bottom: 1px solid var(--clr-border-2);
-		}
+		border-top: 1px solid var(--clr-border-2);
+		border-bottom: 1px solid var(--clr-border-2);
+		background-color: var(--clr-bg-2);
 	}
 
 	.changed-files__header-left {

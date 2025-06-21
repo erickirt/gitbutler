@@ -1,13 +1,14 @@
-use crate::branch::{LocalCommit, LocalCommitRelation};
 use crate::integrated::IsCommitIntegrated;
+use crate::ref_info::ui::{Commit, Segment};
+use crate::ref_info::ui::{LocalCommit, LocalCommitRelation, RemoteCommit};
 use crate::ui::{CommitState, PushStatus, StackDetails};
 use crate::{
-    RefInfo, StacksFilter, VirtualBranchesTomlMetadata, branch, head_info, id_from_name_v2_to_v3,
-    ref_info, state_handle, ui,
+    RefInfo, StacksFilter, branch, head_info, id_from_name_v2_to_v3, ref_info, state_handle, ui,
 };
 use anyhow::Context;
 use bstr::BString;
 use but_core::RefMetadata;
+use but_graph::{SegmentMetadata, VirtualBranchesTomlMetadata};
 use gitbutler_command_context::CommandContext;
 use gitbutler_commit::commit_ext::CommitExt;
 use gitbutler_oxidize::{ObjectIdExt, OidExt, git2_signature_to_gix_signature};
@@ -110,6 +111,7 @@ fn try_from_stack_v3(
             .map(|h| h.tip)
             .unwrap_or(repo.object_hash().null()),
         heads,
+        order: None,
     })
 }
 
@@ -165,6 +167,7 @@ pub fn stacks_v3(
                     tip,
                 }],
                 tip,
+                order: None,
             })
         }
         Ok(out)
@@ -408,12 +411,7 @@ pub fn stack_details_v3(
                 stack
                     .segments
                     .get(idx + 1)
-                    .and_then(|below| {
-                        below
-                            .commits_unique_from_tip
-                            .first()
-                            .map(|commit| commit.id)
-                    })
+                    .and_then(|below| below.commits.first().map(|commit| commit.id))
                     .or(stack.base),
             )
         })
@@ -432,14 +430,14 @@ pub fn stack_details_v3(
 
 impl ui::BranchDetails {
     fn from_segment(
-        branch::StackSegment {
+        Segment {
+            id: _,
             ref_name,
-            ref_location: _,
-            commits_unique_from_tip,
+            commits: commits_unique_from_tip,
             commits_unique_in_remote_tracking_branch,
             remote_tracking_ref_name,
             metadata,
-        }: &branch::StackSegment,
+        }: &Segment,
         previous_tip_or_stack_base: Option<gix::ObjectId>,
     ) -> anyhow::Result<Self> {
         let ref_name = ref_name
@@ -447,13 +445,14 @@ impl ui::BranchDetails {
             .context("Can't handle a stack yet whose tip isn't pointed to by a ref")?;
         let (description, updated_at, review_id, pr_number) = metadata
             .clone()
-            .map(|meta| {
-                (
+            .and_then(|meta| match meta {
+                SegmentMetadata::Branch(meta) => Some((
                     meta.description,
                     meta.ref_info.updated_at,
                     meta.review.review_id,
                     meta.review.pull_request,
-                )
+                )),
+                SegmentMetadata::Workspace(_) => None,
             })
             .unwrap_or_default();
         let base_commit = previous_tip_or_stack_base
@@ -515,8 +514,8 @@ impl PushStatus {
     ///         if it was deleted on the remote?
     fn derive_from_commits(
         has_remote_tracking_ref: bool,
-        commits_unique_from_tip: &[branch::LocalCommit],
-        commits_unique_in_remote_tracking_branch: &[branch::RemoteCommit],
+        commits_unique_from_tip: &[LocalCommit],
+        commits_unique_in_remote_tracking_branch: &[RemoteCommit],
     ) -> Self {
         if !has_remote_tracking_ref {
             // Generally, don't do anything if no remote relationship is set up (anymore).
@@ -553,19 +552,24 @@ impl PushStatus {
     }
 }
 
-impl From<&branch::RemoteCommit> for ui::UpstreamCommit {
+impl From<&RemoteCommit> for ui::UpstreamCommit {
     fn from(
-        branch::RemoteCommit {
+        RemoteCommit {
             inner:
-                branch::Commit {
+                Commit {
                     id,
                     parent_ids: _,
                     message,
                     author,
+                    // TODO: also pass refs for the frontend.
+                    refs: _,
+                    // TODO: also pass flags for the frontend.
+                    flags: _,
+                    // TODO: Represent this in the UI (maybe) and/or deal with divergence of the local and remote tracking branch.
+                    has_conflicts: _,
                 },
-            // TODO: Represent this in the UI (maybe) and/or deal with divergence of the local and remote tracking branch.
             has_conflicts: _,
-        }: &branch::RemoteCommit,
+        }: &RemoteCommit,
     ) -> Self {
         ui::UpstreamCommit {
             id: *id,
@@ -582,14 +586,18 @@ impl From<&LocalCommit> for ui::Commit {
     fn from(
         LocalCommit {
             inner:
-                branch::Commit {
+                Commit {
                     id,
                     parent_ids,
                     message,
                     author,
+                    // TODO: also pass refs
+                    refs: _,
+                    // TODO: also flags refs
+                    flags: _,
+                    has_conflicts,
                 },
             relation,
-            has_conflicts,
         }: &LocalCommit,
     ) -> Self {
         ui::Commit {
@@ -606,7 +614,7 @@ impl From<&LocalCommit> for ui::Commit {
     }
 }
 
-impl From<branch::LocalCommitRelation> for ui::CommitState {
+impl From<LocalCommitRelation> for ui::CommitState {
     fn from(value: LocalCommitRelation) -> Self {
         use ui::CommitState as E;
         match value {
