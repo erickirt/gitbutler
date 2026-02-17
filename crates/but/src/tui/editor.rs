@@ -102,6 +102,7 @@ enum MenuAction {
     Cancel,
     WordWrap,
     ShowHelp,
+    ShowAbout,
 }
 
 const MENU_TITLES: &[&str] = &["File", "View", "Help"];
@@ -116,29 +117,54 @@ fn menu_items(menu_index: usize) -> &'static [MenuItem] {
 }
 
 static FILE_MENU: [MenuItem; 3] = [
-    MenuItem { label: "Save", shortcut: "Ctrl+S", action: MenuAction::Save },
-    MenuItem { label: "Save & Quit", shortcut: "Ctrl+Q", action: MenuAction::SaveAndQuit },
-    MenuItem { label: "Cancel", shortcut: "Esc", action: MenuAction::Cancel },
+    MenuItem {
+        label: "Save",
+        shortcut: "Ctrl+S",
+        action: MenuAction::Save,
+    },
+    MenuItem {
+        label: "Save & Quit",
+        shortcut: "Ctrl+Q",
+        action: MenuAction::SaveAndQuit,
+    },
+    MenuItem {
+        label: "Cancel",
+        shortcut: "Esc",
+        action: MenuAction::Cancel,
+    },
 ];
 
-static VIEW_MENU: [MenuItem; 1] = [
-    MenuItem { label: "Word Wrap", shortcut: "Alt+Z", action: MenuAction::WordWrap },
-];
+static VIEW_MENU: [MenuItem; 1] = [MenuItem {
+    label: "Word Wrap",
+    shortcut: "Alt+Z",
+    action: MenuAction::WordWrap,
+}];
 
-static HELP_MENU: [MenuItem; 1] = [
-    MenuItem { label: "Keyboard Shortcuts", shortcut: "", action: MenuAction::ShowHelp },
+static HELP_MENU: [MenuItem; 2] = [
+    MenuItem {
+        label: "Keyboard Shortcuts",
+        shortcut: "",
+        action: MenuAction::ShowHelp,
+    },
+    MenuItem {
+        label: "About",
+        shortcut: "",
+        action: MenuAction::ShowAbout,
+    },
 ];
 
 // ── Help overlay ─────────────────────────────────────────────────────────────
 
+#[derive(Default)]
 struct HelpOverlay {
     active: bool,
 }
 
-impl Default for HelpOverlay {
-    fn default() -> Self {
-        Self { active: false }
-    }
+// ── About overlay ────────────────────────────────────────────────────────────
+
+#[derive(Default)]
+struct AboutOverlay {
+    active: bool,
 }
 
 // ── Editor state ─────────────────────────────────────────────────────────────
@@ -157,8 +183,9 @@ struct EditorApp {
     // Menus
     active_menu: Option<usize>,
     menu_item_index: usize,
-    // Help overlay
+    // Overlays
     help_overlay: HelpOverlay,
+    about_overlay: AboutOverlay,
     // Layout cache (set during render)
     editor_area: Rect,
     gutter_width: u16,
@@ -190,6 +217,7 @@ impl EditorApp {
             active_menu: None,
             menu_item_index: 0,
             help_overlay: HelpOverlay::default(),
+            about_overlay: AboutOverlay::default(),
             editor_area: Rect::default(),
             gutter_width: 4,
             highlight_save_hint: false,
@@ -291,7 +319,9 @@ impl EditorApp {
     fn execute_menu_action(&mut self, action: MenuAction) {
         self.active_menu = None;
         match action {
-            MenuAction::Save => { self.save_on_quit = true; /* save handled externally */ }
+            MenuAction::Save => {
+                self.save_on_quit = true; /* save handled externally */
+            }
             MenuAction::SaveAndQuit => {
                 self.save_on_quit = true;
                 self.should_quit = true;
@@ -303,6 +333,9 @@ impl EditorApp {
             MenuAction::WordWrap => self.word_wrap = !self.word_wrap,
             MenuAction::ShowHelp => {
                 self.help_overlay.active = !self.help_overlay.active;
+            }
+            MenuAction::ShowAbout => {
+                self.about_overlay.active = !self.about_overlay.active;
             }
         }
     }
@@ -320,10 +353,20 @@ impl EditorApp {
 
         // If help overlay is active, any key dismisses it
         if self.help_overlay.active {
-            if let Event::Key(key) = ev {
-                if key.kind == KeyEventKind::Press {
-                    self.help_overlay.active = false;
-                }
+            if let Event::Key(key) = ev
+                && key.kind == KeyEventKind::Press
+            {
+                self.help_overlay.active = false;
+            }
+            return;
+        }
+
+        // If about overlay is active, any key dismisses it
+        if self.about_overlay.active {
+            if let Event::Key(key) = ev
+                && key.kind == KeyEventKind::Press
+            {
+                self.about_overlay.active = false;
             }
             return;
         }
@@ -355,11 +398,15 @@ impl EditorApp {
 
                     // ── Navigation ────────────────────────────────────
                     KeyCode::Up => {
-                        if self.cursor_row > 0 { self.cursor_row -= 1; }
+                        if self.cursor_row > 0 {
+                            self.cursor_row -= 1;
+                        }
                         self.clamp_cursor();
                     }
                     KeyCode::Down => {
-                        if self.cursor_row + 1 < self.lines.len() { self.cursor_row += 1; }
+                        if self.cursor_row + 1 < self.lines.len() {
+                            self.cursor_row += 1;
+                        }
                         self.clamp_cursor();
                     }
                     KeyCode::Left => {
@@ -393,11 +440,15 @@ impl EditorApp {
                         }
                     }
                     KeyCode::Home => {
-                        if ctrl { self.cursor_row = 0; }
+                        if ctrl {
+                            self.cursor_row = 0;
+                        }
                         self.cursor_col = 0;
                     }
                     KeyCode::End => {
-                        if ctrl { self.cursor_row = self.lines.len() - 1; }
+                        if ctrl {
+                            self.cursor_row = self.lines.len() - 1;
+                        }
                         self.cursor_col = self.lines[self.cursor_row].len();
                     }
                     KeyCode::PageUp => {
@@ -651,6 +702,11 @@ fn render(frame: &mut ratatui::Frame, app: &mut EditorApp) {
     if app.help_overlay.active {
         render_help_overlay(frame);
     }
+
+    // Render about overlay if active
+    if app.about_overlay.active {
+        render_about_overlay(frame);
+    }
 }
 
 fn render_menu_bar(frame: &mut ratatui::Frame, app: &EditorApp, area: Rect) {
@@ -688,7 +744,11 @@ fn render_editor(frame: &mut ratatui::Frame, app: &mut EditorApp, area: Rect) {
     app.ensure_cursor_visible();
 
     // 72-char guide line position (only for commit message mode)
-    let guide_col = if app.mode == EditorMode::CommitMessage { Some(72) } else { None };
+    let guide_col = if app.mode == EditorMode::CommitMessage {
+        Some(72)
+    } else {
+        None
+    };
 
     for row_offset in 0..visible_rows {
         let line_idx = app.scroll_row + row_offset;
@@ -883,7 +943,10 @@ fn render_help_overlay(frame: &mut ratatui::Frame) {
     frame.render_widget(Clear, rect);
 
     let help_text = vec![
-        Line::styled("  Keyboard Shortcuts", Style::default().fg(MENU_ACTIVE_BG).add_modifier(Modifier::BOLD)),
+        Line::styled(
+            "  Keyboard Shortcuts",
+            Style::default().fg(MENU_ACTIVE_BG).add_modifier(Modifier::BOLD),
+        ),
         Line::raw(""),
         Line::styled("  Ctrl+Q        Save & Quit", Style::default().fg(DROPDOWN_FG)),
         Line::styled("  Ctrl+S        Save", Style::default().fg(DROPDOWN_FG)),
@@ -902,6 +965,51 @@ fn render_help_overlay(frame: &mut ratatui::Frame) {
             .style(Style::default().bg(DROPDOWN_BG)),
     );
     frame.render_widget(help, rect);
+}
+
+fn render_about_overlay(frame: &mut ratatui::Frame) {
+    let screen = frame.area();
+    let width = 40u16.min(screen.width.saturating_sub(4));
+    let height = 7u16.min(screen.height.saturating_sub(4));
+    let x = (screen.width.saturating_sub(width)) / 2;
+    let y = (screen.height.saturating_sub(height)) / 2;
+    let rect = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, rect);
+
+    let about_text = vec![
+        Line::raw(""),
+        Line::styled(
+            "  Made with ❤️ in Berlin",
+            Style::default()
+                .fg(DROPDOWN_FG)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Line::styled(
+            "  by GitButler",
+            Style::default()
+                .fg(DROPDOWN_FG)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Line::raw(""),
+        Line::styled(
+            "  Press any key to close",
+            Style::default().fg(Color::DarkGray),
+        ),
+    ];
+
+    let about = Paragraph::new(about_text).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" About ")
+            .border_style(
+                Style::default()
+                    .fg(Color::Rgb(140, 140, 180))
+                    .bg(DROPDOWN_BG),
+            )
+            .style(Style::default().bg(DROPDOWN_BG)),
+    );
+    frame.render_widget(about, rect);
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
