@@ -51,6 +51,12 @@ impl ToReferenceSelector for &gix::refs::FullNameRef {
     }
 }
 
+impl ToReferenceSelector for gix::refs::FullName {
+    fn to_reference_selector(&self, editor: &Editor) -> Result<Selector> {
+        editor.select_reference(self.as_ref())
+    }
+}
+
 /// Operations for mutating the commit graph
 impl Editor {
     /// Get a selector to a particular commit in the graph
