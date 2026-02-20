@@ -10,6 +10,9 @@ readme = "../../README.md"
 publish = false
 rust-version.workspace = true
 
+[package.metadata.cargo-machete]
+ignored = ["futures", "napi", "napi-derive", "tauri"]
+
 [lib]
 doctest = false
 
