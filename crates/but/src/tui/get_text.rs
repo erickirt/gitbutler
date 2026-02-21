@@ -47,7 +47,9 @@ pub fn from_editor(
     }
 
     match get_editor_command() {
-        Some(editor_cmd) => from_external_editor(&editor_cmd, filename_safe_intent, initial_text),
+        Some(editor_cmd) => {
+            from_external_editor(&editor_cmd, filename_safe_intent, initial_text, file_suffix)
+        }
         None => from_builtin_editor(filename_safe_intent, initial_text),
     }
 }
@@ -57,6 +59,7 @@ fn from_external_editor(
     editor_cmd: &str,
     filename_safe_intent: &str,
     initial_text: &str,
+    file_suffix: &str,
 ) -> Result<BString> {
     // Create a temporary file with the initial text
     let tempfile = tempfile::Builder::new()
