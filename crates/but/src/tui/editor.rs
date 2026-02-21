@@ -104,18 +104,16 @@ enum MenuAction {
     Save,
     SaveAndQuit,
     Cancel,
-    WordWrap,
     ShowHelp,
     ShowAbout,
 }
 
-const MENU_TITLES: &[&str] = &["File", "View", "Help"];
+const MENU_TITLES: &[&str] = &["File", "Help"];
 
 fn menu_items(menu_index: usize) -> &'static [MenuItem] {
     match menu_index {
         0 => &FILE_MENU,
-        1 => &VIEW_MENU,
-        2 => &HELP_MENU,
+        1 => &HELP_MENU,
         _ => &[],
     }
 }
@@ -137,12 +135,6 @@ static FILE_MENU: [MenuItem; 3] = [
         action: MenuAction::Cancel,
     },
 ];
-
-static VIEW_MENU: [MenuItem; 1] = [MenuItem {
-    label: "Word Wrap",
-    shortcut: "Alt+Z",
-    action: MenuAction::WordWrap,
-}];
 
 static HELP_MENU: [MenuItem; 2] = [
     MenuItem {
@@ -182,7 +174,6 @@ struct EditorApp {
     modified: bool,
     should_quit: bool,
     save_on_quit: bool,
-    word_wrap: bool,
     mode: EditorMode,
     // Menus
     active_menu: Option<usize>,
@@ -220,7 +211,6 @@ impl EditorApp {
             modified: false,
             should_quit: false,
             save_on_quit: false,
-            word_wrap: false,
             mode,
             active_menu: None,
             menu_item_index: 0,
@@ -264,12 +254,10 @@ impl EditorApp {
         } else if self.cursor_row >= self.scroll_row + visible_rows {
             self.scroll_row = self.cursor_row - visible_rows + 1;
         }
-        if !self.word_wrap {
-            if self.cursor_col < self.scroll_col {
-                self.scroll_col = self.cursor_col;
-            } else if self.cursor_col >= self.scroll_col + visible_cols {
-                self.scroll_col = self.cursor_col - visible_cols + 1;
-            }
+        if self.cursor_col < self.scroll_col {
+            self.scroll_col = self.cursor_col;
+        } else if self.cursor_col >= self.scroll_col + visible_cols {
+            self.scroll_col = self.cursor_col - visible_cols + 1;
         }
     }
 
@@ -338,7 +326,6 @@ impl EditorApp {
                 self.save_on_quit = false;
                 self.should_quit = true;
             }
-            MenuAction::WordWrap => self.word_wrap = !self.word_wrap,
             MenuAction::ShowHelp => {
                 self.help_overlay.active = !self.help_overlay.active;
             }
@@ -388,7 +375,6 @@ impl EditorApp {
             Event::Key(key) if key.kind == KeyEventKind::Press => {
                 let mods = key.modifiers;
                 let ctrl = mods.contains(KeyModifiers::CONTROL);
-                let alt = mods.contains(KeyModifiers::ALT);
 
                 match key.code {
                     // ── Ctrl shortcuts ────────────────────────────────
@@ -397,11 +383,6 @@ impl EditorApp {
                     }
                     KeyCode::Char('q') if ctrl => {
                         self.execute_menu_action(MenuAction::SaveAndQuit);
-                    }
-
-                    // ── Alt shortcuts ─────────────────────────────────
-                    KeyCode::Char('z') if alt => {
-                        self.word_wrap = !self.word_wrap;
                     }
 
                     // ── Navigation ────────────────────────────────────
@@ -792,7 +773,7 @@ fn render_editor(frame: &mut ratatui::Frame, app: &mut EditorApp, area: Rect) {
 
         if line_idx < app.lines.len() {
             let line = &app.lines[line_idx];
-            let display_start = if app.word_wrap { 0 } else { app.scroll_col };
+            let display_start = app.scroll_col;
 
             let mut spans = Vec::new();
             let mut byte_col = 0usize; // byte offset — used for cursor detection
@@ -999,23 +980,40 @@ fn render_help_overlay(frame: &mut ratatui::Frame) {
     let help_text = vec![
         Line::styled(
             "  Keyboard Shortcuts",
-            Style::default().fg(MENU_ACTIVE_BG).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(MENU_ACTIVE_BG)
+                .add_modifier(Modifier::BOLD),
         ),
         Line::raw(""),
-        Line::styled("  Ctrl+Q        Save & Quit", Style::default().fg(DROPDOWN_FG)),
+        Line::styled(
+            "  Ctrl+Q        Save & Quit",
+            Style::default().fg(DROPDOWN_FG),
+        ),
         Line::styled("  Ctrl+S        Save", Style::default().fg(DROPDOWN_FG)),
-        Line::styled("  Esc           Highlight save hint", Style::default().fg(DROPDOWN_FG)),
-        Line::styled("  Alt+Z         Toggle Word Wrap", Style::default().fg(DROPDOWN_FG)),
-        Line::styled("  F10           Open Menu", Style::default().fg(DROPDOWN_FG)),
+        Line::styled(
+            "  Esc           Highlight save hint",
+            Style::default().fg(DROPDOWN_FG),
+        ),
+        Line::styled(
+            "  F10           Open Menu",
+            Style::default().fg(DROPDOWN_FG),
+        ),
         Line::raw(""),
-        Line::styled("  Press any key to close", Style::default().fg(Color::DarkGray)),
+        Line::styled(
+            "  Press any key to close",
+            Style::default().fg(Color::DarkGray),
+        ),
     ];
 
     let help = Paragraph::new(help_text).block(
         Block::default()
             .borders(Borders::ALL)
             .title(" Help ")
-            .border_style(Style::default().fg(Color::Rgb(140, 140, 180)).bg(DROPDOWN_BG))
+            .border_style(
+                Style::default()
+                    .fg(Color::Rgb(140, 140, 180))
+                    .bg(DROPDOWN_BG),
+            )
             .style(Style::default().bg(DROPDOWN_BG)),
     );
     frame.render_widget(help, rect);
