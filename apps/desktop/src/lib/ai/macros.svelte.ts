@@ -9,7 +9,7 @@ type GenerateCommitMessageParams = {
 	onToken?: (token: string) => void;
 	useHaiku?: boolean;
 	useEmojiStyle?: boolean;
-	useBriefStyle?: boolean;
+	useExtraConciseStyle?: boolean;
 };
 
 export default class AIMacros {
@@ -51,7 +51,7 @@ export default class AIMacros {
 			diffInput,
 			useHaiku: params.useHaiku ?? false,
 			useEmojiStyle: params.useEmojiStyle ?? false,
-			useBriefStyle: params.useBriefStyle ?? false,
+			useExtraConciseStyle: params.useExtraConciseStyle ?? false,
 			commitTemplate: prompt,
 			branchName: params.branchName,
 			onToken: params.onToken

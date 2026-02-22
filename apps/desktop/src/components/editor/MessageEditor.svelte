@@ -2,7 +2,7 @@
 	export type AiButtonClickParams = {
 		useHaiku?: boolean;
 		useEmojiStyle?: boolean;
-		useBriefStyle?: boolean;
+		useExtraConciseStyle?: boolean;
 	};
 </script>
 
@@ -223,7 +223,7 @@
 		onAiButtonClick({
 			useHaiku: $commitGenerationHaiku,
 			useEmojiStyle: $commitGenerationUseEmojis,
-			useBriefStyle: $commitGenerationExtraConcise
+			useExtraConciseStyle: $commitGenerationExtraConcise
 		});
 	}
 

@@ -12,7 +12,7 @@ Use a semantic commit prefix.
 Hard wrap lines at 72 characters.
 Ensure the title is only 50 characters.
 Do not start any lines with the hash symbol.
-%{brief_style}
+%{extra_concise_style}
 %{emoji_style}
 
 Here is my git diff:

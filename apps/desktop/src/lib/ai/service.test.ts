@@ -287,7 +287,7 @@ describe('AIService', () => {
 			);
 		});
 
-		test('When the commit is in brief mode, When the AI returns a title and body, it takes just the title', async () => {
+		test('When the commit is in extra concise mode, When the AI returns a title and body, it takes just the title', async () => {
 			const { aiService } = buildDefaultServices();
 
 			const clientResponse = 'one\nnew line';
@@ -297,7 +297,7 @@ describe('AIService', () => {
 			);
 
 			expect(
-				await aiService.summarizeCommit({ diffInput: exampleDiffs, useBriefStyle: true })
+				await aiService.summarizeCommit({ diffInput: exampleDiffs, useExtraConciseStyle: true })
 			).toStrictEqual('one');
 		});
 	});
