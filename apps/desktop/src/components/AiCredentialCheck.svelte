@@ -127,7 +127,7 @@
 			const aiResult = await aiService.summarizeCommit({
 				diffInput: testDiff,
 				useEmojiStyle: false,
-				useBriefStyle: false,
+				useExtraConciseStyle: false,
 				onToken: (token) => {
 					// Append each token as it comes in
 					streamingResult += token;
