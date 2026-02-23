@@ -122,9 +122,23 @@ pub fn list(
         });
     }
 
-    // Filter out branches with no commits on them unless --empty is requested
+    // Filter out branches with no commits ahead of target unless --empty is requested.
+    // A branch has 0 commits ahead when its tip equals the target, or when it is an
+    // ancestor of the target (all its commits are already in the target).
     if let Some(target_oid) = target_oid_for_filter {
-        branches.retain(|branch| branch.head != target_oid);
+        let git2_repo = ctx.git2_repo.get()?;
+        branches.retain(|branch| {
+            if branch.head == target_oid {
+                return false;
+            }
+            // graph_descendant_of(a, b) = "is a descended from b?"
+            // So graph_descendant_of(target, branch.head) = "is branch.head an ancestor of target?"
+            // If true, all branch commits are already in the target → 0 commits ahead.
+            !git2_repo
+                .graph_descendant_of(target_oid, branch.head)
+                .unwrap_or(false)
+        });
+        drop(git2_repo);
     }
 
     // Filter out dependabot branches unless --all is specified
