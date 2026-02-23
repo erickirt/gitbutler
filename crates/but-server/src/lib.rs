@@ -999,6 +999,26 @@ async fn handle_command(
                 Err(e) => Err(e),
             }
         }
+        "set_review_auto_merge" => {
+            let params = deserialize_json(request.params);
+            match params {
+                Ok(params) => {
+                    let result = legacy::forge::set_review_auto_merge_cmd(params).await;
+                    result.map(|_| json!({"result": "success"}))
+                }
+                Err(e) => Err(e),
+            }
+        }
+        "set_review_draftiness" => {
+            let params = deserialize_json(request.params);
+            match params {
+                Ok(params) => {
+                    let result = legacy::forge::set_review_draftiness_cmd(params).await;
+                    result.map(|_| json!({"result": "success"}))
+                }
+                Err(e) => Err(e),
+            }
+        }
         "update_review_footers" => {
             let params = deserialize_json(request.params);
             match params {

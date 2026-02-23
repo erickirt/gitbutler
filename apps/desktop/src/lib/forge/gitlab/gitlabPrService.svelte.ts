@@ -13,19 +13,22 @@ import type {
 	PullRequest,
 } from "$lib/forge/interface/types";
 import type { QueryOptions } from "$lib/state/butlerModule";
-import type { GitLabApi } from "$lib/state/clientState.svelte";
+import type { BackendApi, GitLabApi } from "$lib/state/clientState.svelte";
 import type { StartQueryActionCreatorOptions } from "@reduxjs/toolkit/query";
 
 export class GitLabPrService implements ForgePrService {
 	readonly unit = { name: "Merge request", abbr: "MR", symbol: "!" };
 	loading = writable(false);
 	private api: ReturnType<typeof injectEndpoints>;
+	private backendApi: ReturnType<typeof injectBackendEndpoints>;
 
 	constructor(
 		gitlabApi: GitLabApi,
+		backendApi: BackendApi,
 		private posthog?: PostHogWrapper,
 	) {
 		this.api = injectEndpoints(gitlabApi);
+		this.backendApi = injectBackendEndpoints(backendApi);
 	}
 
 	async createPr({
@@ -96,9 +99,33 @@ export class GitLabPrService implements ForgePrService {
 		await this.api.endpoints.updatePr.mutate({ number, update });
 	}
 
-	async setDraft(number: number, draft: boolean) {
-		await this.api.endpoints.setDraft.mutate({ number, draft });
+	async setDraft(projectId: string, reviewId: number, draft: boolean) {
+		await this.backendApi.endpoints.setDraftMR.mutate({ projectId, reviewId, draft });
 	}
+}
+
+function injectBackendEndpoints(api: BackendApi) {
+	return api.injectEndpoints({
+		endpoints: (build) => ({
+			setAutoMergeMR: build.mutation<
+				void,
+				{ projectId: string; reviewId: number; enable: boolean }
+			>({
+				extraOptions: { command: "set_review_auto_merge" },
+				query: (args) => args,
+				invalidatesTags: (_res, _err, { reviewId }) => [
+					invalidatesItem(ReduxTag.GitlabMRs, reviewId),
+				],
+			}),
+			setDraftMR: build.mutation<void, { projectId: string; reviewId: number; draft: boolean }>({
+				extraOptions: { command: "set_review_draftiness" },
+				query: (args) => args,
+				invalidatesTags: (_res, _err, { reviewId }) => [
+					invalidatesItem(ReduxTag.GitlabMRs, reviewId),
+				],
+			}),
+		}),
+	});
 }
 
 function injectEndpoints(api: GitLabApi) {
@@ -122,8 +149,7 @@ function injectEndpoints(api: GitLabApi) {
 						return { error: toSerializable(e) };
 					}
 				},
-				providesTags: (_result, _error, args) =>
-					providesItem(ReduxTag.GitLabPullRequests, args.number),
+				providesTags: (_result, _error, args) => providesItem(ReduxTag.GitlabMRs, args.number),
 			}),
 			createPr: build.mutation<
 				PullRequest,
@@ -147,7 +173,7 @@ function injectEndpoints(api: GitLabApi) {
 						return { error: toSerializable(e) };
 					}
 				},
-				invalidatesTags: (result) => [invalidatesItem(ReduxTag.GitLabPullRequests, result?.number)],
+				invalidatesTags: (result) => [invalidatesItem(ReduxTag.GitlabMRs, result?.number)],
 			}),
 			mergePr: build.mutation<undefined, { number: number; method: MergeMethod }>({
 				queryFn: async ({ number, method }, query) => {
@@ -167,7 +193,7 @@ function injectEndpoints(api: GitLabApi) {
 						return { error: toSerializable(e) };
 					}
 				},
-				invalidatesTags: [invalidatesList(ReduxTag.GitLabPullRequests)],
+				invalidatesTags: [invalidatesList(ReduxTag.GitlabMRs)],
 			}),
 			updatePr: build.mutation<
 				void,
@@ -192,30 +218,7 @@ function injectEndpoints(api: GitLabApi) {
 						return { error: toSerializable(e) };
 					}
 				},
-				invalidatesTags: [invalidatesList(ReduxTag.GitLabPullRequests)],
-			}),
-			setDraft: build.mutation<void, { number: number; draft: boolean }>({
-				queryFn: async ({ number, draft }, query) => {
-					try {
-						const { api, upstreamProjectId } = gitlab(query.extra);
-						// GitLab uses title prefix to mark drafts
-						const mr = await api.MergeRequests.show(upstreamProjectId, number);
-						let title = mr.title;
-
-						// Remove existing draft prefixes
-						title = title.replace(/^\s*(Draft:\s*|\[Draft\]\s*|\(Draft\)\s*)/i, "");
-
-						if (draft) {
-							title = `Draft: ${title}`;
-						}
-
-						await api.MergeRequests.edit(upstreamProjectId, number, { title });
-						return { data: undefined };
-					} catch (e: unknown) {
-						return { error: toSerializable(e) };
-					}
-				},
-				invalidatesTags: [invalidatesList(ReduxTag.GitLabPullRequests)],
+				invalidatesTags: [invalidatesList(ReduxTag.GitlabMRs)],
 			}),
 		}),
 	});

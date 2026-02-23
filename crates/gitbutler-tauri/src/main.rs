@@ -328,6 +328,8 @@ fn main() -> anyhow::Result<()> {
                 legacy::forge::tauri_list_reviews::list_reviews,
                 legacy::forge::tauri_publish_review::publish_review,
                 legacy::forge::tauri_merge_review::merge_review,
+                legacy::forge::tauri_set_review_auto_merge::set_review_auto_merge,
+                legacy::forge::tauri_set_review_draftiness::set_review_draftiness,
                 legacy::forge::tauri_update_review_footers::update_review_footers,
                 legacy::cli::tauri_install_cli::install_cli,
                 legacy::cli::tauri_cli_path::cli_path,
