@@ -46,15 +46,19 @@
 //! Add a new optional string named 'note' to ClaudePermissionRequest in @crates/but-db/tests/db/table/claude.rs
 //! ```
 #![expect(clippy::inconsistent_digit_grouping)]
+#![deny(missing_docs)]
 
 #[cfg(feature = "poll")]
+/// Polling helpers to watch for database-backed state changes.
 pub mod poll;
 
 mod handle;
 mod table;
 mod transaction;
 
+/// Cache database helpers and typed accessors.
 pub mod cache;
+/// Migration helpers for applying and configuring database schema updates.
 pub mod migration;
 
 use std::path::PathBuf;
