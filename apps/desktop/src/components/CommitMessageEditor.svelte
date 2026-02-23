@@ -19,7 +19,7 @@
 	import { Button, TestId } from "@gitbutler/ui";
 	import { IME_COMPOSITION_HANDLER } from "@gitbutler/ui/utils/imeHandling";
 
-	import { tick } from "svelte";
+	import { tick, untrack } from "svelte";
 
 	type Props = {
 		projectId: string;
@@ -97,7 +97,10 @@
 		if (generatedText) {
 			const newMessage = splitMessage(generatedText);
 			title = newMessage.title;
-			composer?.setText(newMessage.description);
+			// Untrack composer so this effect doesn't re-fire when the editor
+			// is recreated (e.g. floating mode toggle), which would overwrite
+			// user edits made after generation.
+			untrack(() => composer?.setText(newMessage.description));
 		}
 	});
 
