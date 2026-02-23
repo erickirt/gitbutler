@@ -6,10 +6,12 @@ use but_settings::AppSettings;
 use serde::{Deserialize, Serialize};
 
 mod client;
+mod graphql;
 pub mod pr;
 pub use client::{
-    CheckRun, CreatePullRequestParams, GitHubClient, GitHubPrLabel, GitHubUser, MergeMethod,
-    MergePullRequestParams, PullRequest, UpdatePullRequestParams,
+    AutoMergeEnableParams, AutoMergeState, CheckRun, CreatePullRequestParams, GitHubClient,
+    GitHubPrLabel, GitHubUser, MergeMethod, MergePullRequestParams, PullRequest,
+    SetPullRequestAutoMergeParams, SetPullRequestDraftStateParams, UpdatePullRequestParams,
 };
 mod token;
 pub use token::GithubAccountIdentifier;
