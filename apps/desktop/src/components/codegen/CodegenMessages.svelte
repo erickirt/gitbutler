@@ -1,21 +1,21 @@
 <script lang="ts">
-	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
-	import PreviewHeader from '$components/PreviewHeader.svelte';
-	import ReduxResult from '$components/ReduxResult.svelte';
-	import AddedDirectories from '$components/codegen/AddedDirectories.svelte';
-	import ClaudeCheck from '$components/codegen/ClaudeCheck.svelte';
-	import CodegenAskUserQuestion from '$components/codegen/CodegenAskUserQuestion.svelte';
-	import CodegenChatClaudeNotAvaliableBanner from '$components/codegen/CodegenChatClaudeNotAvaliableBanner.svelte';
-	import CodegenChatClaudeNotRegistered from '$components/codegen/CodegenChatClaudeNotRegistered.svelte';
-	import CodegenClaudeMessage from '$components/codegen/CodegenClaudeMessage.svelte';
-	import CodegenInput from '$components/codegen/CodegenInput.svelte';
-	import CodegenPromptConfigModal from '$components/codegen/CodegenPromptConfigModal.svelte';
-	import CodegenServiceMessageThinking from '$components/codegen/CodegenServiceMessageThinking.svelte';
-	import CodegenServiceMessageUseTool from '$components/codegen/CodegenServiceMessageUseTool.svelte';
-	import CodegenTodoAccordion from '$components/codegen/CodegenTodoAccordion.svelte';
-	import noClaudeCodeSvg from '$lib/assets/empty-state/claude-disconected.svg?raw';
-	import laneNewSvg from '$lib/assets/empty-state/lane-new.svg?raw';
-	import { CLAUDE_CODE_SERVICE } from '$lib/codegen/claude';
+	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
+	import PreviewHeader from "$components/PreviewHeader.svelte";
+	import ReduxResult from "$components/ReduxResult.svelte";
+	import AddedDirectories from "$components/codegen/AddedDirectories.svelte";
+	import ClaudeCheck from "$components/codegen/ClaudeCheck.svelte";
+	import CodegenAskUserQuestion from "$components/codegen/CodegenAskUserQuestion.svelte";
+	import CodegenChatClaudeNotAvaliableBanner from "$components/codegen/CodegenChatClaudeNotAvaliableBanner.svelte";
+	import CodegenChatClaudeNotRegistered from "$components/codegen/CodegenChatClaudeNotRegistered.svelte";
+	import CodegenClaudeMessage from "$components/codegen/CodegenClaudeMessage.svelte";
+	import CodegenInput from "$components/codegen/CodegenInput.svelte";
+	import CodegenPromptConfigModal from "$components/codegen/CodegenPromptConfigModal.svelte";
+	import CodegenServiceMessageThinking from "$components/codegen/CodegenServiceMessageThinking.svelte";
+	import CodegenServiceMessageUseTool from "$components/codegen/CodegenServiceMessageUseTool.svelte";
+	import CodegenTodoAccordion from "$components/codegen/CodegenTodoAccordion.svelte";
+	import noClaudeCodeSvg from "$lib/assets/empty-state/claude-disconected.svg?raw";
+	import laneNewSvg from "$lib/assets/empty-state/lane-new.svg?raw";
+	import { CLAUDE_CODE_SERVICE } from "$lib/codegen/claude";
 	import {
 		currentStatus,
 		thinkingOrCompactingStartedAt,
@@ -23,17 +23,17 @@
 		usageStats,
 		formatMessages,
 		getTodos,
-		type Message
-	} from '$lib/codegen/messages';
-	import { parseTemplates } from '$lib/codegen/templateParser';
+		type Message,
+	} from "$lib/codegen/messages";
+	import { parseTemplates } from "$lib/codegen/templateParser";
 
-	import { SETTINGS_SERVICE } from '$lib/config/appSettingsV2';
-	import { RULES_SERVICE } from '$lib/rules/rulesService.svelte';
-	import { SETTINGS } from '$lib/settings/userSettings';
-	import { UI_STATE } from '$lib/state/uiState.svelte';
-	import { formatCompactNumber } from '$lib/utils/number';
-	import { getEditorUri, URL_SERVICE } from '$lib/utils/url';
-	import { inject } from '@gitbutler/core/context';
+	import { SETTINGS_SERVICE } from "$lib/config/appSettingsV2";
+	import { RULES_SERVICE } from "$lib/rules/rulesService.svelte";
+	import { SETTINGS } from "$lib/settings/userSettings";
+	import { UI_STATE } from "$lib/state/uiState.svelte";
+	import { formatCompactNumber } from "$lib/utils/number";
+	import { getEditorUri, URL_SERVICE } from "$lib/utils/url";
+	import { inject } from "@gitbutler/core/context";
 	import {
 		Button,
 		ContextMenu,
@@ -44,19 +44,19 @@
 		Modal,
 		Tooltip,
 		Link,
-		SkeletonBone
-	} from '@gitbutler/ui';
+		SkeletonBone,
+	} from "@gitbutler/ui";
 
-	import VirtualList from '@gitbutler/ui/components/VirtualList.svelte';
-	import { focusable } from '@gitbutler/ui/focus/focusable';
+	import VirtualList from "@gitbutler/ui/components/VirtualList.svelte";
+	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import type {
 		ClaudeMessage,
 		ThinkingLevel,
 		ModelType,
 		PermissionMode,
 		PermissionDecision,
-		ClaudePermissionRequest
-	} from '$lib/codegen/types';
+		ClaudePermissionRequest,
+	} from "$lib/codegen/types";
 
 	type Props = {
 		projectId: string;
@@ -96,7 +96,7 @@
 		onSubmit,
 		onMcpSettings,
 		onAnswerQuestion,
-		onRetryConfig
+		onRetryConfig,
 	}: Props = $props();
 
 	const stableBranchName = $derived(branchName);
@@ -129,28 +129,28 @@
 	// Track expanded state for tool calls by message createdAt timestamp
 	const toolCallExpandedState = {
 		groups: new Map<string, boolean>(),
-		individual: new Map<string, boolean>()
+		individual: new Map<string, boolean>(),
 	};
 
 	const modelOptions: { label: string; value: ModelType }[] = [
-		{ label: 'Haiku', value: 'haiku' },
-		{ label: 'Sonnet', value: 'sonnet' },
-		{ label: 'Sonnet 1m', value: 'sonnet[1m]' },
-		{ label: 'Opus', value: 'opus' },
-		{ label: 'Opus Planning', value: 'opusplan' }
+		{ label: "Haiku", value: "haiku" },
+		{ label: "Sonnet", value: "sonnet" },
+		{ label: "Sonnet 1m", value: "sonnet[1m]" },
+		{ label: "Opus", value: "opus" },
+		{ label: "Opus Planning", value: "opusplan" },
 	];
 
 	const thinkingLevels: { label: string; shortLabel: string; value: ThinkingLevel }[] = [
-		{ label: 'Normal', shortLabel: 'Normal', value: 'normal' },
-		{ label: 'Think', shortLabel: 'Think', value: 'think' },
-		{ label: 'Mega think', shortLabel: 'Mega', value: 'megaThink' },
-		{ label: 'Ultra think', shortLabel: 'Ultra', value: 'ultraThink' }
+		{ label: "Normal", shortLabel: "Normal", value: "normal" },
+		{ label: "Think", shortLabel: "Think", value: "think" },
+		{ label: "Mega think", shortLabel: "Mega", value: "megaThink" },
+		{ label: "Ultra think", shortLabel: "Ultra", value: "ultraThink" },
 	];
 
 	const permissionModeOptions: { label: string; value: PermissionMode }[] = [
-		{ label: 'Edit with permission', value: 'default' },
-		{ label: 'Planning', value: 'plan' },
-		{ label: 'Accept edits', value: 'acceptEdits' }
+		{ label: "Edit with permission", value: "default" },
+		{ label: "Planning", value: "plan" },
+		{ label: "Accept edits", value: "acceptEdits" },
 	];
 
 	const promptTemplates = $derived(claudeCodeService.promptTemplates(projectId));
@@ -158,7 +158,7 @@
 
 	// Parse templates once and cache the results
 	const parsedTemplates = $derived(
-		promptTemplates.response ? parseTemplates(promptTemplates.response) : []
+		promptTemplates.response ? parseTemplates(promptTemplates.response) : [],
 	);
 
 	async function openPromptConfigDir(path: string) {
@@ -167,7 +167,7 @@
 		const editorUri = getEditorUri({
 			schemeId: $userSettings.defaultCodeEditor.schemeIdentifer,
 			path: [path],
-			searchParams: { windowId: '_blank' }
+			searchParams: { windowId: "_blank" },
 		});
 
 		urlService.openExternalUrl(editorUri);
@@ -181,13 +181,13 @@
 	async function onPermissionDecision(
 		id: string,
 		decision: PermissionDecision,
-		useWildcard: boolean
+		useWildcard: boolean,
 	) {
 		await claudeCodeService.updatePermissionRequest({
 			projectId,
 			requestId: id,
 			decision,
-			useWildcard
+			useWildcard,
 		});
 	}
 
@@ -207,29 +207,29 @@
 	}
 
 	function getPermissionModeIcon(
-		mode: PermissionMode
-	): 'edit-with-permissions' | 'checklist' | 'allow-all' {
+		mode: PermissionMode,
+	): "edit-with-permissions" | "checklist" | "allow-all" {
 		switch (mode) {
-			case 'default':
-				return 'edit-with-permissions';
-			case 'plan':
-				return 'checklist';
-			case 'acceptEdits':
-				return 'allow-all';
+			case "default":
+				return "edit-with-permissions";
+			case "plan":
+				return "checklist";
+			case "acceptEdits":
+				return "allow-all";
 			default:
-				return 'edit-with-permissions';
+				return "edit-with-permissions";
 		}
 	}
 
 	function thinkingLevelToUiLabel(level: ThinkingLevel, short: boolean = false): string {
 		const thinkingLevel = thinkingLevels.find((t) => t.value === level);
-		if (!thinkingLevel) return 'Normal';
+		if (!thinkingLevel) return "Normal";
 		return short ? thinkingLevel.shortLabel : thinkingLevel.label;
 	}
 
 	async function insertTemplate(templateContent: string) {
 		const currentPrompt = await inputRef?.getText();
-		const newPrompt = currentPrompt + (currentPrompt ? '\n\n' : '') + templateContent;
+		const newPrompt = currentPrompt + (currentPrompt ? "\n\n" : "") + templateContent;
 		onChange?.(newPrompt);
 		inputRef?.setText(newPrompt);
 		templateContextMenu?.close();
@@ -249,7 +249,7 @@
 	async function compactContext() {
 		await claudeCodeService.compactHistory({
 			projectId,
-			stackId
+			stackId,
 		});
 	}
 
@@ -258,14 +258,14 @@
 		const rules = await rulesService.fetchListWorkspaceRules(projectId);
 		const toDelete = rules.filter((rule) =>
 			rule.filters.some(
-				(filter) => filter.type === 'claudeCodeSessionId' && filter.subject === sessionId
-			)
+				(filter) => filter.type === "claudeCodeSessionId" && filter.subject === sessionId,
+			),
 		);
 
 		for (const rule of toDelete) {
 			await rulesService.deleteWorkspaceRuleMutate({
 				projectId,
-				ruleId: rule.id
+				ruleId: rule.id,
 			});
 		}
 	}
@@ -275,10 +275,10 @@
 	$effect(() => {
 		const activeIds = new Set(
 			formattedMessages.flatMap((message) =>
-				message.source === 'claude' && 'subtype' in message && message.subtype === 'askUserQuestion'
+				message.source === "claude" && "subtype" in message && message.subtype === "askUserQuestion"
 					? [message.toolUseId]
-					: []
-			)
+					: [],
+			),
 		);
 		let changed = false;
 		for (const id of Object.keys(dismissedAskUserQuestions)) {
@@ -295,9 +295,9 @@
 		for (let i = formattedMessages.length - 1; i >= 0; i -= 1) {
 			const message = formattedMessages[i];
 			if (
-				message?.source === 'claude' &&
-				'subtype' in message &&
-				message.subtype === 'askUserQuestion' &&
+				message?.source === "claude" &&
+				"subtype" in message &&
+				message.subtype === "askUserQuestion" &&
 				!message.answered &&
 				!dismissedAskUserQuestions[message.toolUseId]
 			) {
@@ -308,11 +308,11 @@
 	});
 	const messagesForList = $derived.by(() =>
 		formattedMessages.filter((message) => {
-			if (message.source !== 'claude' || !('subtype' in message)) {
+			if (message.source !== "claude" || !("subtype" in message)) {
 				return true;
 			}
-			return message.subtype !== 'askUserQuestion' || message.answered;
-		})
+			return message.subtype !== "askUserQuestion" || message.answered;
+		}),
 	);
 </script>
 
@@ -419,7 +419,7 @@
 									!hasRulesToClear ||
 									!events ||
 									events.length === 0 ||
-									['running', 'compacting'].includes(currentStatus(events, isStackActive))}
+									["running", "compacting"].includes(currentStatus(events, isStackActive))}
 
 								{#if onMcpSettings}
 									<ContextMenuSection>
@@ -460,7 +460,7 @@
 			</PreviewHeader>
 
 			<div class="chat-container">
-				{#if claudeAvailable.status !== 'available' && formattedMessages.length === 0}
+				{#if claudeAvailable.status !== "available" && formattedMessages.length === 0}
 					<ConfigurableScrollableContainer childrenWrapDisplay="contents">
 						<div class="no-agent-placeholder">
 							<div class="no-agent-placeholder__content">
@@ -522,7 +522,7 @@
 						{/snippet}
 						{@const thinkingStatus = currentStatus(events, isStackActive)}
 						{@const startAt = thinkingOrCompactingStartedAt(events)}
-						{#if ['running', 'compacting'].includes(thinkingStatus) && startAt}
+						{#if ["running", "compacting"].includes(thinkingStatus) && startAt}
 							{@const status = userFeedbackStatus(formattedMessages)}
 							{#if status.waitingForFeedback}
 								<CodegenServiceMessageUseTool toolCall={status.toolCall} />
@@ -530,7 +530,7 @@
 								<CodegenServiceMessageThinking
 									{startAt}
 									msSpentWaiting={status.msSpentWaiting}
-									overrideWord={thinkingStatus === 'compacting' ? 'compacting' : undefined}
+									overrideWord={thinkingStatus === "compacting" ? "compacting" : undefined}
 								/>
 							{/if}
 						{/if}
@@ -540,14 +540,14 @@
 					<CodegenTodoAccordion {todos} />
 				{/if}
 			</div>
-			{#if claudeAvailable.status !== 'available'}
+			{#if claudeAvailable.status !== "available"}
 				{#if formattedMessages.length > 0}
 					<CodegenChatClaudeNotAvaliableBanner
 						onSettingsBtnClick={() => {
 							uiState.global.modal.set({
-								type: 'project-settings',
+								type: "project-settings",
 								projectId,
-								selectedId: 'agent'
+								selectedId: "agent",
 							});
 						}}
 					/>
@@ -572,7 +572,7 @@
 							onCancel={async () => {
 								dismissedAskUserQuestions = {
 									...dismissedAskUserQuestions,
-									[pendingAskUserQuestion.toolUseId]: true
+									[pendingAskUserQuestion.toolUseId]: true,
 								};
 								await onAbort?.();
 							}}
@@ -590,9 +590,9 @@
 							{projectId}
 							{stackId}
 							branchName={stableBranchName}
-							value={initialPrompt || ''}
-							loading={['running', 'compacting'].includes(status)}
-							compacting={status === 'compacting'}
+							value={initialPrompt || ""}
+							loading={["running", "compacting"].includes(status)}
+							compacting={status === "compacting"}
 							{onChange}
 							onSubmit={async (prompt) => {
 								await onSubmit?.(prompt);
@@ -605,7 +605,7 @@
 						>
 							{#snippet actionsOnLeft()}
 								{@const permissionModeLabel = permissionModeOptions.find(
-									(a) => a.value === selectedPermissionMode
+									(a) => a.value === selectedPermissionMode,
 								)?.label}
 
 								<div class="flex m-right-4 gap-2">
@@ -623,7 +623,7 @@
 										reversedDirection
 										onclick={() => thinkingModeContextMenu?.toggle()}
 										tooltip="Thinking mode"
-										children={selectedThinkingLevel === 'normal' ? undefined : thinkingBtnText}
+										children={selectedThinkingLevel === "normal" ? undefined : thinkingBtnText}
 									/>
 									<Button
 										bind:el={permissionModeTrigger}
@@ -632,7 +632,7 @@
 										shrinkable
 										onclick={() => permissionModeContextMenu?.toggle()}
 										tooltip={$settingsService?.claude.dangerouslyAllowAllPermissions
-											? 'Permission modes disable when all permissions are allowed'
+											? "Permission modes disable when all permissions are allowed"
 											: permissionModeLabel}
 										disabled={$settingsService?.claude.dangerouslyAllowAllPermissions}
 									/>
@@ -744,7 +744,7 @@
 					<ContextMenuItem
 						label={displayName}
 						emoji={template.parsed.emoji || undefined}
-						icon={template.parsed.emoji ? undefined : 'script'}
+						icon={template.parsed.emoji ? undefined : "script"}
 						onclick={() => {
 							insertTemplate(template.parsed.content);
 						}}

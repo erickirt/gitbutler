@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { BACKEND } from '$lib/backend';
-	import { showError } from '$lib/notifications/toasts';
-	import { handleAddProjectOutcome } from '$lib/project/project';
-	import { PROJECTS_SERVICE } from '$lib/project/projectsService';
-	import { projectPath } from '$lib/routes/routes.svelte';
-	import { inject } from '@gitbutler/core/context';
+	import { goto } from "$app/navigation";
+	import { BACKEND } from "$lib/backend";
+	import { showError } from "$lib/notifications/toasts";
+	import { handleAddProjectOutcome } from "$lib/project/project";
+	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
+	import { projectPath } from "$lib/routes/routes.svelte";
+	import { inject } from "@gitbutler/core/context";
 
 	const projectsService = inject(PROJECTS_SERVICE);
 	const backend = inject(BACKEND);
@@ -30,8 +30,8 @@
 				handleAddProjectOutcome(outcome, (project) => goto(projectPath(project.id)));
 			}
 		} catch (e: unknown) {
-			console.error('Failed to add project from drop', e);
-			showError('Failed to add project', 'Something went wrong while adding the dropped folder.');
+			console.error("Failed to add project from drop", e);
+			showError("Failed to add project", "Something went wrong while adding the dropped folder.");
 		} finally {
 			isProcessing = false;
 		}
@@ -43,11 +43,11 @@
 			const unlistenPromise = webview.onDragDropEvent((event) => {
 				const { type } = event.payload;
 
-				if (type === 'enter') {
+				if (type === "enter") {
 					isDraggingOver = true;
-				} else if (type === 'leave') {
+				} else if (type === "leave") {
 					isDraggingOver = false;
-				} else if (type === 'drop') {
+				} else if (type === "drop") {
 					handleDrop(event.payload.paths);
 				}
 			});

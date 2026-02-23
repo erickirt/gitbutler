@@ -1,7 +1,7 @@
 <script lang="ts">
-	import osIcons from '$lib/data/os-icons.json';
-	import { RELEASE_OS_ORDER } from '$lib/utils/releaseUtils';
-	import type { Build } from '$lib/types/releases';
+	import osIcons from "$lib/data/os-icons.json";
+	import { RELEASE_OS_ORDER } from "$lib/utils/releaseUtils";
+	import type { Build } from "$lib/types/releases";
 
 	interface Props {
 		builds: Build[];
@@ -10,34 +10,34 @@
 	const { builds }: Props = $props();
 
 	function getBuildDisplayName(build: Build): string {
-		if (build.os === 'darwin') {
+		if (build.os === "darwin") {
 			const platform = build.platform.toLowerCase();
 			if (
-				build.arch === 'aarch64' ||
-				platform.includes('silicon') ||
-				platform.includes('aarch64')
+				build.arch === "aarch64" ||
+				platform.includes("silicon") ||
+				platform.includes("aarch64")
 			) {
-				return 'Apple Silicon';
+				return "Apple Silicon";
 			}
-			if (build.arch === 'x86_64' || platform.includes('intel') || platform.includes('x86_64')) {
-				return 'Intel Mac';
+			if (build.arch === "x86_64" || platform.includes("intel") || platform.includes("x86_64")) {
+				return "Intel Mac";
 			}
-			return platform.startsWith('macos') ? build.platform : `macOS ${build.platform}`;
+			return platform.startsWith("macos") ? build.platform : `macOS ${build.platform}`;
 		}
 
-		if (build.os === 'windows') {
+		if (build.os === "windows") {
 			const file = build.file.toLowerCase();
-			if (file.includes('msi')) return 'Windows (MSI)';
-			if (file.includes('exe')) return 'Windows (EXE)';
-			return 'Windows';
+			if (file.includes("msi")) return "Windows (MSI)";
+			if (file.includes("exe")) return "Windows (EXE)";
+			return "Windows";
 		}
 
-		if (build.os === 'linux') {
-			const arch = build.arch === 'aarch64' ? 'ARM64' : 'Intel';
+		if (build.os === "linux") {
+			const arch = build.arch === "aarch64" ? "ARM64" : "Intel";
 			const file = build.file.toLowerCase();
-			if (file.includes('appimage')) return `Linux ${arch} (AppImage)`;
-			if (file.includes('deb')) return `Linux ${arch} (Deb)`;
-			if (file.includes('rpm')) return `Linux ${arch} (RPM)`;
+			if (file.includes("appimage")) return `Linux ${arch} (AppImage)`;
+			if (file.includes("deb")) return `Linux ${arch} (Deb)`;
+			if (file.includes("rpm")) return `Linux ${arch} (RPM)`;
 			return `Linux ${arch} (CLI)`;
 		}
 
@@ -45,32 +45,32 @@
 	}
 
 	function getIconKey(os: string): keyof typeof osIcons {
-		if (os === 'darwin') return 'macos';
-		if (os === 'windows' || os === 'linux') return os;
-		return 'linux';
+		if (os === "darwin") return "macos";
+		if (os === "windows" || os === "linux") return os;
+		return "linux";
 	}
 
 	function getBuildSortRank(build: Build): number {
-		if (build.os === 'darwin') {
-			if (build.arch === 'aarch64') return 0;
-			if (build.arch === 'x86_64') return 1;
+		if (build.os === "darwin") {
+			if (build.arch === "aarch64") return 0;
+			if (build.arch === "x86_64") return 1;
 			return 2;
 		}
 
-		if (build.os === 'windows') {
+		if (build.os === "windows") {
 			const file = build.file.toLowerCase();
-			if (file.includes('msi')) return 0;
-			if (file.includes('exe')) return 1;
+			if (file.includes("msi")) return 0;
+			if (file.includes("exe")) return 1;
 			return 2;
 		}
 
-		if (build.os === 'linux') {
-			const archRank = build.arch === 'aarch64' ? 1 : 0;
+		if (build.os === "linux") {
+			const archRank = build.arch === "aarch64" ? 1 : 0;
 			const file = build.file.toLowerCase();
 			let packageRank = 3;
-			if (file.includes('appimage')) packageRank = 0;
-			else if (file.includes('deb')) packageRank = 1;
-			else if (file.includes('rpm')) packageRank = 2;
+			if (file.includes("appimage")) packageRank = 0;
+			else if (file.includes("deb")) packageRank = 1;
+			else if (file.includes("rpm")) packageRank = 2;
 
 			return archRank * 10 + packageRank;
 		}
@@ -102,7 +102,7 @@
 				acc[build.os].push(build);
 				return acc;
 			},
-			{} as Record<string, Build[]>
+			{} as Record<string, Build[]>,
 		);
 
 		for (const osBuilds of Object.values(grouped)) {

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Footer from '$lib/components/marketing/Footer.svelte';
-	import Header from '$lib/components/marketing/Header.svelte';
-	import ReleaseDownloadLinks from '$lib/components/marketing/ReleaseDownloadLinks.svelte';
-	import osIcons from '$lib/data/os-icons.json';
-	import { Icon } from '@gitbutler/ui';
-	import type { Release } from '$lib/types/releases';
-	import type { LatestReleaseBuilds } from '$lib/utils/releaseUtils';
+	import Footer from "$lib/components/marketing/Footer.svelte";
+	import Header from "$lib/components/marketing/Header.svelte";
+	import ReleaseDownloadLinks from "$lib/components/marketing/ReleaseDownloadLinks.svelte";
+	import osIcons from "$lib/data/os-icons.json";
+	import { Icon } from "@gitbutler/ui";
+	import type { Release } from "$lib/types/releases";
+	import type { LatestReleaseBuilds } from "$lib/utils/releaseUtils";
 
 	interface Props {
 		data: {
@@ -43,14 +43,14 @@
 						<span>Latest release</span>
 						<span> • </span>
 						<span
-							>{new Date(latestNightly.released_at).toLocaleDateString('en-GB', {
-								day: 'numeric',
-								month: 'long',
-								year: 'numeric'
-							})} at {new Date(latestNightly.released_at).toLocaleTimeString('en-GB', {
-								hour: '2-digit',
-								minute: '2-digit',
-								hour12: false
+							>{new Date(latestNightly.released_at).toLocaleDateString("en-GB", {
+								day: "numeric",
+								month: "long",
+								year: "numeric",
+							})} at {new Date(latestNightly.released_at).toLocaleTimeString("en-GB", {
+								hour: "2-digit",
+								minute: "2-digit",
+								hour12: false,
 							})}
 						</span>
 						<span> • </span>
@@ -214,15 +214,15 @@
 						<span class="release-row__version">{release.version}</span>
 						<div class="release-row__info">
 							<span class="release-row__date">
-								{new Date(release.released_at).toLocaleDateString('en-GB', {
-									day: 'numeric',
-									month: 'short',
-									year: 'numeric'
+								{new Date(release.released_at).toLocaleDateString("en-GB", {
+									day: "numeric",
+									month: "short",
+									year: "numeric",
 								})},
-								{new Date(release.released_at).toLocaleTimeString('en-GB', {
-									hour: '2-digit',
-									minute: '2-digit',
-									hour12: false
+								{new Date(release.released_at).toLocaleTimeString("en-GB", {
+									hour: "2-digit",
+									minute: "2-digit",
+									hour12: false,
 								})},
 							</span>
 							<div class="flex items-center gap-2">
@@ -337,7 +337,7 @@
 				transparent 2px,
 				transparent 6px
 			);
-			content: '';
+			content: "";
 			pointer-events: none;
 		}
 

@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          repository: 'gitbutlerapp/gitbutler'
+          repository: "gitbutlerapp/gitbutler"
       - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6
         with:
-          configuration-path: '.github/pr-labeler.yml'
+          configuration-path: ".github/pr-labeler.yml"

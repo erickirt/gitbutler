@@ -1,39 +1,39 @@
 version: 2
 
 updates:
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     cooldown:
       default-days: 7
 
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     cooldown:
       default-days: 7
     ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '*lexical*'
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "*lexical*"
         # Lexical must match svelte-lexical, updating manually.
-        update-types: ['version-update:semver-minor']
+        update-types: ["version-update:semver-minor"]
     groups:
       npm-updates:
         update-types: [minor, patch]
 
-  - package-ecosystem: 'cargo'
-    directory: '/'
+  - package-ecosystem: "cargo"
+    directory: "/"
     schedule:
-      interval: 'monthly'
+      interval: "monthly"
     cooldown:
       default-days: 7
     ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'libsqlite3-sys'
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "libsqlite3-sys"
     groups:
       rust-updates:
         update-types: [minor, patch]

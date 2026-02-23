@@ -1,9 +1,9 @@
-import { Outlet, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
-import type { ProjectForFrontend } from '@gitbutler/but-sdk';
+import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import type { ProjectForFrontend } from "@gitbutler/but-sdk";
 
 function RootLayout(): React.JSX.Element {
 	return (
-		<main style={{ fontFamily: 'system-ui', margin: '2rem' }}>
+		<main style={{ fontFamily: "system-ui", margin: "2rem" }}>
 			<h1>GitButler Lite</h1>
 			<Outlet />
 		</main>
@@ -11,17 +11,17 @@ function RootLayout(): React.JSX.Element {
 }
 
 const rootRoute = createRootRoute({
-	component: RootLayout
+	component: RootLayout,
 });
 
 const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
-	path: '/',
+	path: "/",
 	component: HomePage,
 	loader: async () => {
 		const projects = await window.lite.listProjects();
 		return { projects };
-	}
+	},
 });
 
 function HomePage(): React.JSX.Element {
@@ -56,7 +56,7 @@ const routeTree = rootRoute.addChildren([indexRoute]);
 
 export const router = createRouter({ routeTree });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
 	interface Register {
 		router: typeof router;
 	}

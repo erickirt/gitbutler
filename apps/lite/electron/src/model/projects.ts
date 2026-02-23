@@ -1,4 +1,4 @@
-import { listProjectsNapi } from '@gitbutler/but-sdk';
+import { listProjectsNapi } from "@gitbutler/but-sdk";
 
 export function listProjects() {
 	return listProjectsNapi([]);

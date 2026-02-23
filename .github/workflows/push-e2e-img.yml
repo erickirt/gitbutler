@@ -4,7 +4,7 @@ on:
     branches:
       - master
     paths:
-      - 'e2e/blackbox/Dockerfile'
+      - "e2e/blackbox/Dockerfile"
 
 jobs:
   docker_publish:
@@ -26,6 +26,6 @@ jobs:
       - name: Build and push container image
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: 'e2e/blackbox/Dockerfile'
+          context: "e2e/blackbox/Dockerfile"
           push: true
           tags: ghcr.io/gitbutler/e2e-runner:latest

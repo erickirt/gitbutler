@@ -1,22 +1,22 @@
-import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
-import { storybookSveltekitPlugin } from '@storybook/sveltekit/vite-plugin';
+import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
+import { storybookSveltekitPlugin } from "@storybook/sveltekit/vite-plugin";
 
 export default [
-	'vite.config.ts',
+	"vite.config.ts",
 	{
-		extends: 'vite.config.ts',
+		extends: "vite.config.ts",
 		plugins: [
-			storybookTest({ storybookScript: 'pnpm storybook --ci' }),
-			storybookSveltekitPlugin()
+			storybookTest({ storybookScript: "pnpm storybook --ci" }),
+			storybookSveltekitPlugin(),
 		],
 		test: {
 			browser: {
 				enabled: true,
 				headless: true,
-				instances: [{ browser: 'chromium' }],
-				provider: 'playwright'
+				instances: [{ browser: "chromium" }],
+				provider: "playwright",
 			},
-			setupFiles: ['./.storybook/vitest.setup.ts']
-		}
-	}
+			setupFiles: ["./.storybook/vitest.setup.ts"],
+		},
+	},
 ];
