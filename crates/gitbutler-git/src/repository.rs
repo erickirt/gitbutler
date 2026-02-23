@@ -139,9 +139,6 @@ where
         .with_file_name("gitbutler-git-askpass")
         .with_extension(std::env::consts::EXE_EXTENSION);
 
-    #[cfg(unix)]
-    let setsid_path = current_exe.with_file_name("gitbutler-git-setsid");
-
     let res = executor.stat(&askpath_path).await.map_err(Error::<E>::Exec);
     if res.is_err() {
         let (path, prefix) = if let Some(workdir) = std::env::current_dir().ok().and_then(|cwd| {
@@ -172,12 +169,6 @@ where
     }
     let askpath_stat = res?;
 
-    #[cfg(unix)]
-    let setsid_stat = executor
-        .stat(&setsid_path)
-        .await
-        .map_err(Error::<E>::Exec)?;
-
     #[expect(unsafe_code)]
     let sock_server = unsafe { executor.create_askpass_server() }
         .await
@@ -193,33 +184,30 @@ where
     let mut envs = envs.unwrap_or_default();
     envs.insert("GITBUTLER_ASKPASS_PIPE".into(), sock_server.to_string());
     envs.insert("GITBUTLER_ASKPASS_SECRET".into(), secret.clone());
-    envs.insert("SSH_ASKPASS".into(), askpath_path.display().to_string());
 
-    // DISPLAY is required by SSH to check SSH_ASKPASS.
-    // Please don't ask us why, it's unclear.
-    if !std::env::var("DISPLAY")
-        .map(|v| !v.is_empty())
-        .unwrap_or(false)
-    {
-        envs.insert("DISPLAY".into(), ":".into());
-    }
+    // Note: SSH_ASKPASS_REQUIRE is available since SSH 8.4, which was released in 2020, and as
+    // such has further backwards compatibility than we do with the Tauri GUI in general. At this
+    // point it is therefore relatively safe to depend on this behavior.
+    //
+    // See https://www.openssh.org/txt/release-8.4
+    //
+    // At the time of writing, our oldest supported Linux distro is Ubuntu 22.04, and it has OpenSSH 8.9: https://packages.ubuntu.com/jammy/openssh-client
+    //
+    // macOS has shipped with OpenSSH 8.6 since Monterey (2021): https://www.reddit.com/r/MacOSBeta/comments/nzouk2/monterey_ssh_version/
+    //
+    // Windows 11 does not have a concept of a controlling terminal, but appears to require
+    // SSH_ASKPASS_REQUIRE=force to look at SSH_ASKPASS: https://github.com/PowerShell/Win32-OpenSSH/issues/2115
+    //
+    // Note that when setting SSH_ASKPASS_REQUIRE to force, we do NOT need to set DISPLAY and we do
+    // NOT need to disconnect from the controlling terminal, as is otherwise the case for SSH to
+    // consider having a peek at the SSH_ASKPASS variable.
+    //
+    // See the OpenSSH client manual for more info.
+    envs.insert("SSH_ASKPASS".into(), askpath_path.display().to_string());
+    envs.insert("SSH_ASKPASS_REQUIRE".into(), "force".into());
 
     let git_ssh_command = resolve_git_ssh_command(&harness_env, &envs);
-    let setsid_prefix = {
-        #[cfg(unix)]
-        {
-            format!("'{setsid_path}' ", setsid_path = setsid_path.display())
-        }
-        #[cfg(windows)]
-        {
-            ""
-        }
-    };
-
-    envs.insert(
-        "GIT_SSH_COMMAND".into(),
-        format!("{setsid_prefix}{git_ssh_command}"),
-    );
+    envs.insert("GIT_SSH_COMMAND".into(), git_ssh_command);
 
     let cwd = match harness_env {
         HarnessEnv::Repo(p) | HarnessEnv::Global(p) => p,
@@ -266,17 +254,6 @@ where
 
                 let valid_executable = if peer_stat.ino == askpath_stat.ino {
                     if peer_stat.dev != askpath_stat.dev {
-                        return Err(Error::<E>::AskpassDeviceMismatch)?;
-                    }
-
-                    true
-                } else {
-                    false
-                };
-
-                #[cfg(unix)]
-                let valid_executable = valid_executable || if peer_stat.ino == setsid_stat.ino {
-                    if peer_stat.dev != setsid_stat.dev {
                         return Err(Error::<E>::AskpassDeviceMismatch)?;
                     }
 

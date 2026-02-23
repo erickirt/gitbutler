@@ -341,11 +341,7 @@ pub(crate) fn verify_app_structure(app_dir: &Path) -> Result<()> {
         );
     }
 
-    let required_binaries = [
-        "gitbutler-git-askpass",
-        "gitbutler-git-setsid",
-        "gitbutler-tauri",
-    ];
+    let required_binaries = ["gitbutler-git-askpass", "gitbutler-tauri"];
 
     for binary in &required_binaries {
         let binary_path = binaries_dir.join(binary);
