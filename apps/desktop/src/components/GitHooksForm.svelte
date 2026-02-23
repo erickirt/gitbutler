@@ -1,11 +1,11 @@
 <script lang="ts">
-	import ReduxResult from '$components/ReduxResult.svelte';
-	import SettingsSection from '$components/SettingsSection.svelte';
-	import { projectRunCommitHooks } from '$lib/config/config';
-	import { PROJECTS_SERVICE } from '$lib/project/projectsService';
-	import { inject } from '@gitbutler/core/context';
-	import { CardGroup, Toggle } from '@gitbutler/ui';
-	import type { Project } from '$lib/project/project';
+	import ReduxResult from "$components/ReduxResult.svelte";
+	import SettingsSection from "$components/SettingsSection.svelte";
+	import { projectRunCommitHooks } from "$lib/config/config";
+	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
+	import { inject } from "@gitbutler/core/context";
+	import { CardGroup, Toggle } from "@gitbutler/ui";
+	import type { Project } from "$lib/project/project";
 
 	const { projectId }: { projectId: string } = $props();
 	const runCommitHooks = $derived(projectRunCommitHooks(projectId));
