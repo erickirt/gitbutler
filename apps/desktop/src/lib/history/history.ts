@@ -120,8 +120,8 @@ export class HistoryService {
 		);
 	}
 
-	async restoreSnapshot(projectId: string, sha: string) {
-		await this.api.endpoints.restoreSnapshot.mutate({ projectId, sha });
+	get restoreSnapshot() {
+		return this.api.endpoints.restoreSnapshot.useMutation();
 	}
 
 	async createSnapshot(projectId: string, message?: string) {

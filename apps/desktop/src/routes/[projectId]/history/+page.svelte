@@ -30,6 +30,7 @@
 	const historyService = inject(HISTORY_SERVICE);
 	const snapshotManager = $derived(historyService.snapshots(projectId));
 	const snapshots = $derived(snapshotManager.snapshots);
+	const [restore, restoration] = historyService.restoreSnapshot;
 
 	const loading = $derived(snapshotManager.loading);
 	const isAllLoaded = $derived(snapshotManager.isAllLoaded);
@@ -38,7 +39,6 @@
 
 	let currentSelectionId: SelectionId | undefined = $state(undefined);
 	let createSnapshotModal: CreateSnapshotModal;
-	let restoring = $state(false);
 
 	// Derive selectedFile from the selection service
 	const selectedFile = $derived.by(() => {
@@ -120,11 +120,10 @@
 								{projectId}
 								{entry}
 								isWithinRestore={withinRestoreItems.includes(entry.id)}
-								{restoring}
+								restoring={restoration.current.isLoading}
 								onRestoreClick={async () => {
-									restoring = true;
 									try {
-										await historyService.restoreSnapshot(projectId, entry.id);
+										await restore({ projectId, sha: entry.id });
 									} finally {
 										// In some cases, restoring the snapshot doesn't update the UI correctly
 										// Until we have that figured out, we need to reload the page.
