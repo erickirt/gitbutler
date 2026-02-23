@@ -66,7 +66,11 @@ export class ProjectsService {
 	}
 
 	async deleteProject(projectId: string) {
-		return await this.api.endpoints.deleteProject.mutate({ projectId });
+		const response = await this.api.endpoints.deleteProject.mutate({ projectId });
+		if (this.getLastOpenedProject() === projectId) {
+			this.unsetLastOpenedProject();
+		}
+		return response;
 	}
 
 	/**
