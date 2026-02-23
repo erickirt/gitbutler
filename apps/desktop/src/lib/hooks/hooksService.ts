@@ -90,7 +90,7 @@ export class HooksService {
 }
 
 function formatError(error: string): string {
-	return `${error}\n\nIf you don't want git hooks to be run, you can disable them in the project settings.`;
+	return `${error}\n\nIf you don't want git hooks to run, disable "Run Git hooks" in project settings.`;
 }
 
 function injectEndpoints(backendApi: BackendApi) {

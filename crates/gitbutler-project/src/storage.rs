@@ -26,6 +26,7 @@ pub struct UpdateRequest {
     pub preferred_key: Option<AuthKey>,
     pub ok_with_force_push: Option<bool>,
     pub force_push_protection: Option<bool>,
+    pub husky_hooks_enabled: Option<bool>,
     pub gitbutler_code_push_state: Option<CodePushState>,
     pub project_data_last_fetched: Option<FetchResult>,
     pub omit_certificate_check: Option<bool>,
@@ -52,6 +53,7 @@ impl UpdateRequest {
             preferred_key: None,
             ok_with_force_push: None,
             force_push_protection: None,
+            husky_hooks_enabled: None,
             gitbutler_code_push_state: None,
             project_data_last_fetched: None,
             omit_certificate_check: None,
@@ -75,6 +77,7 @@ impl From<Project> for UpdateRequest {
             preferred_key,
             ok_with_force_push,
             force_push_protection,
+            husky_hooks_enabled,
             api,
             gitbutler_data_last_fetch,
             gitbutler_code_push_state,
@@ -97,6 +100,7 @@ impl From<Project> for UpdateRequest {
             preferred_key: Some(preferred_key),
             ok_with_force_push: Some(ok_with_force_push.into()),
             force_push_protection: Some(force_push_protection),
+            husky_hooks_enabled: Some(husky_hooks_enabled),
             gitbutler_code_push_state,
             project_data_last_fetched: project_data_last_fetch,
             omit_certificate_check,
@@ -168,6 +172,7 @@ impl Storage {
             preferred_key,
             ok_with_force_push,
             force_push_protection,
+            husky_hooks_enabled,
             gitbutler_code_push_state,
             project_data_last_fetched,
             omit_certificate_check,
@@ -242,6 +247,10 @@ impl Storage {
 
         if let Some(force_push_protection) = force_push_protection {
             project.force_push_protection = force_push_protection;
+        }
+
+        if let Some(husky_hooks_enabled) = husky_hooks_enabled {
+            project.husky_hooks_enabled = husky_hooks_enabled;
         }
 
         if let Some(omit_certificate_check) = omit_certificate_check {

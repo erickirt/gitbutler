@@ -118,6 +118,10 @@ pub struct Project {
     /// Force push protection uses safer force push flags instead of doing straight force pushes
     #[serde(default)]
     pub force_push_protection: bool,
+    /// Enables running Husky hooks from `../.husky`.
+    /// Does not affect hooks in `.git/hooks`.
+    #[serde(default)]
+    pub husky_hooks_enabled: bool,
     pub api: Option<ApiProject>,
     #[serde(default)]
     pub gitbutler_data_last_fetch: Option<FetchResult>,
@@ -150,6 +154,7 @@ impl Project {
             preferred_key: Default::default(),
             ok_with_force_push: Default::default(),
             force_push_protection: false,
+            husky_hooks_enabled: false,
             api: None,
             gitbutler_data_last_fetch: None,
             gitbutler_code_push_state: None,

@@ -1,6 +1,6 @@
-import { getBaseURL, type GitButler, startGitButler } from "../src/setup.ts";
+import { getBaseURL, getButlerPort, type GitButler, startGitButler } from "../src/setup.ts";
 import { clickByTestId, fillByTestId, getByTestId, waitForTestId } from "../src/util.ts";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 let gitbutler: GitButler;
 
@@ -13,6 +13,29 @@ test.use({
 test.afterEach(async () => {
 	await gitbutler?.destroy();
 });
+
+function getProjectIdFromWorkspaceUrl(page: Page): string {
+	const url = page.url();
+	return url.split("/")[3];
+}
+
+async function enableProjectHooks(page: Page, projectId: string) {
+	await page.evaluate((id) => {
+		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
+	}, projectId);
+
+	const response = await page.request.post(`http://localhost:${getButlerPort()}/update_project`, {
+		data: {
+			project: {
+				id: projectId,
+				husky_hooks_enabled: true,
+			},
+		},
+	});
+	const payload = await response.json();
+	expect(response.ok()).toBeTruthy();
+	expect(payload.type).toBe("success");
+}
 
 test("should show commit-msg hook rejection error", async ({ page, context }, testInfo) => {
 	const workdir = testInfo.outputPath("workdir");
@@ -27,11 +50,8 @@ test("should show commit-msg hook rejection error", async ({ page, context }, te
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3]; // URL is /<projectId>/workspace
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();
@@ -77,11 +97,8 @@ test("should show modified commit message from commit-msg hook", async ({
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3]; // URL is /<projectId>/workspace
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();
@@ -126,11 +143,8 @@ test("should allow commits when commit-msg hook passes", async ({ page, context 
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3]; // URL is /<projectId>/workspace
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();
@@ -168,11 +182,8 @@ test("should reject commit when pre-commit hook fails", async ({ page, context }
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3];
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();
@@ -218,11 +229,8 @@ test("should allow commit when pre-commit hook passes", async ({ page, context }
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3];
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();
@@ -264,11 +272,8 @@ test("should show post-commit hook success", async ({ page, context }, testInfo)
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3];
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();
@@ -312,11 +317,8 @@ test("should show post-commit hook failure but commit still created", async ({
 	await waitForTestId(page, "workspace-view");
 
 	// Get the project ID from the URL and enable commit hooks
-	const url = page.url();
-	const projectId = url.split("/")[3];
-	await page.evaluate((id) => {
-		localStorage.setItem(`projectRunCommitHooks_${id}`, "true");
-	}, projectId);
+	const projectId = getProjectIdFromWorkspaceUrl(page);
+	await enableProjectHooks(page, projectId);
 
 	// Reload to apply the settings
 	await page.reload();

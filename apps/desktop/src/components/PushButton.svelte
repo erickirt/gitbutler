@@ -59,6 +59,7 @@
 	// Get current project to check gerrit_mode
 	const projectResponse = $derived(projectsService.getProject(projectId));
 	const isGerritMode = $derived(projectResponse.response?.gerrit_mode ?? false);
+	const runHooks = $derived(projectRunCommitHooks(projectId));
 
 	// Component is read-only when stackId is undefined
 	const isReadOnly = $derived(!stackId);
@@ -70,8 +71,6 @@
 		stackService.upstreamCommits(projectId, stackId, branchName),
 	);
 	const upstreamCommits = $derived(upstreamCommitsQuery.response);
-	const runHooks = $derived(projectRunCommitHooks(projectId));
-
 	function handleClick(args: {
 		withForce: boolean;
 		skipForcePushProtection: boolean;

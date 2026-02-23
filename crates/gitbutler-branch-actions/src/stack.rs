@@ -218,6 +218,7 @@ pub fn push_stack(
                 url,
                 push_details.head,
                 &push_details.remote_refname,
+                ctx.legacy_project.husky_hooks_enabled,
             )? {
                 hooks::HookResult::Success | hooks::HookResult::NotConfigured => {}
                 hooks::HookResult::Failure(error_data) => {
