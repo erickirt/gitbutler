@@ -115,6 +115,43 @@ pub async fn enable_auto_merge(
     Ok(())
 }
 
+/// Set the draftiness of or or multiple reviews.
+pub async fn set_draftiness(
+    ctx: &mut Context,
+    selector: Option<String>,
+    draft: bool,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
+    // Fail fast if no forge user is authenticated, before pushing or prompting.
+    ensure_forge_authentication(ctx).await?;
+
+    let review_ids = resolve_review_selection(ctx, selector)?;
+
+    if review_ids.is_empty() {
+        if let Some(out) = out.for_human() {
+            writeln!(out, "No reviews selected for auto-merge")?;
+        }
+        return Ok(());
+    }
+    let review_count = review_ids.len();
+
+    for review_id in review_ids {
+        but_api::legacy::forge::set_review_draftiness(ctx.to_sync(), review_id, draft).await?;
+    }
+
+    if let Some(out) = out.for_human() {
+        let action = if draft { "draft" } else { "ready-for-review" };
+        let review_word = if review_count == 1 {
+            "review"
+        } else {
+            "reviews"
+        };
+        writeln!(out, "{review_count} {review_word} set as {action}.")?;
+    }
+
+    Ok(())
+}
+
 /// Set the review template for the given project.
 pub fn set_review_template(
     ctx: &mut Context,

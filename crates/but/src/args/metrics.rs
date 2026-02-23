@@ -44,6 +44,8 @@ pub enum CommandName {
     PrTemplate,
     DisableAutoMerge,
     EnableAutoMerge,
+    SetReviewReady,
+    SetReviewDraft,
     Completions,
     AliasCheck,
     AliasAdd,

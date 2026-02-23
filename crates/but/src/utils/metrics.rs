@@ -139,6 +139,8 @@ impl Subcommands {
                         EnableAutoMerge
                     }
                 }
+                Some(forge::pr::Subcommands::SetDraft { .. }) => SetReviewDraft,
+                Some(forge::pr::Subcommands::SetReady { .. }) => SetReviewReady,
             },
             #[cfg(feature = "legacy")]
             Subcommands::Actions(_)

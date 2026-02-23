@@ -956,6 +956,18 @@ async fn match_subcommand(
                         .context("Failed to set the auto-merge state.")
                         .emit_metrics(metrics_ctx)
                 }
+                Some(forge::pr::Subcommands::SetDraft { selector }) => {
+                    command::legacy::forge::review::set_draftiness(&mut ctx, selector, true, out)
+                        .await
+                        .context("Failed to set reviews as draft.")
+                        .emit_metrics(metrics_ctx)
+                }
+                Some(forge::pr::Subcommands::SetReady { selector }) => {
+                    command::legacy::forge::review::set_draftiness(&mut ctx, selector, false, out)
+                        .await
+                        .context("Failed to set reviews as ready-for-review.")
+                        .emit_metrics(metrics_ctx)
+                }
                 None => {
                     // Default to `pr new` when no subcommand is provided
                     command::legacy::forge::review::create_review(
