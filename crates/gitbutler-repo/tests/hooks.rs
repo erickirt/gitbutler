@@ -15,6 +15,7 @@ fn pre_push_hook_not_configured() -> anyhow::Result<()> {
         "https://github.com/test/repo.git",
         git2::Oid::zero(),
         &gitbutler_reference::RemoteRefname::new("origin", "does-not-matter"),
+        true,
     );
     assert!(result.is_ok());
     assert_eq!(result?, HookResult::NotConfigured);
@@ -41,6 +42,7 @@ fn pre_push_hook_success() -> anyhow::Result<()> {
         "https://github.com/test/repo.git",
         repo.head()?.target().expect("not detached"),
         &gitbutler_reference::RemoteRefname::new("origin", "master"),
+        true,
     )?;
     assert_eq!(result, HookResult::Success);
 
@@ -79,6 +81,7 @@ fn pre_push_hook_failure() -> anyhow::Result<()> {
         "https://github.com/test/repo.git",
         repo.head()?.target().expect("not detached"),
         &gitbutler_reference::RemoteRefname::new("origin", "master"),
+        true,
     );
     match result.expect("success") {
         HookResult::Failure(error_data) => {
@@ -89,5 +92,47 @@ fn pre_push_hook_failure() -> anyhow::Result<()> {
         }
         _ => panic!("Expected hook failure"),
     }
+    Ok(())
+}
+
+#[test]
+fn pre_push_ignores_husky_core_hooks_path_when_disabled() -> anyhow::Result<()> {
+    let test_project = TestProject::default();
+
+    let repo = &test_project.local_repo;
+    let workdir = repo.workdir().expect("non-bare");
+    let hooks_dir = workdir.join(".husky").join("_");
+    fs::create_dir_all(&hooks_dir)?;
+    let hook_path = hooks_dir.join("pre-push");
+
+    fs::write(&hook_path, "#!/bin/sh\necho ran > husky-pre-push-ran\n")?;
+
+    #[cfg(unix)]
+    fs::set_permissions(&hook_path, fs::Permissions::from_mode(0o755))?;
+
+    repo.config()?
+        .set_str("core.hooksPath", hooks_dir.to_string_lossy().as_ref())?;
+
+    let result = pre_push(
+        repo,
+        "origin",
+        "https://github.com/test/repo.git",
+        repo.head()?.target().expect("not detached"),
+        &gitbutler_reference::RemoteRefname::new("origin", "master"),
+        false,
+    )?;
+    assert_eq!(result, HookResult::NotConfigured);
+    assert!(!workdir.join("husky-pre-push-ran").exists());
+
+    let result = pre_push(
+        repo,
+        "origin",
+        "https://github.com/test/repo.git",
+        repo.head()?.target().expect("not detached"),
+        &gitbutler_reference::RemoteRefname::new("origin", "master"),
+        true,
+    )?;
+    assert_eq!(result, HookResult::Success);
+    assert!(workdir.join("husky-pre-push-ran").exists());
     Ok(())
 }

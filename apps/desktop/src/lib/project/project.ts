@@ -26,6 +26,7 @@ export type Project = {
 	preferred_key: AuthKey;
 	ok_with_force_push: boolean;
 	force_push_protection: boolean;
+	husky_hooks_enabled: boolean;
 	omit_certificate_check: boolean | undefined;
 	use_diff_context: boolean | undefined;
 	// Produced just for the frontend to determine if the project is open in any window.
