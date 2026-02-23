@@ -92,23 +92,16 @@ pub(crate) fn handle(
     let repo = ctx.repo.get()?;
     let data_dir = ctx.project_data_dir();
     let context_lines = ctx.settings.context_lines;
-    // Create a snapshot before performing absorb operations
+    // Create a snapshot before performing absorb or auto-commit operations
     // This allows the user to undo if needed
-    if new {
-        let _snapshot = ctx
-            .create_snapshot(
-                SnapshotDetails::new(OperationKind::AutoCommit),
-                guard.write_permission(),
-            )
-            .ok(); // Ignore errors for snapshot creation
+    let operation = if new {
+        OperationKind::AutoCommit
     } else {
-        let _snapshot = ctx
-            .create_snapshot(
-                SnapshotDetails::new(OperationKind::Absorb),
-                guard.write_permission(),
-            )
-            .ok(); // Ignore errors for snapshot creation
-    }
+        OperationKind::Absorb
+    };
+    let _snapshot = ctx
+        .create_snapshot(SnapshotDetails::new(operation), guard.write_permission())
+        .ok(); // Ignore errors for snapshot creation
     absorb_assignments(
         absorption_plan,
         &mut guard,
