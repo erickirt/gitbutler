@@ -234,6 +234,94 @@ impl GitLabClient {
 
         Ok(())
     }
+
+    pub async fn set_merge_request_draft_state(
+        &self,
+        params: &SetMergeRequestDraftStateParams,
+    ) -> Result<()> {
+        let project_id = params.project_id.clone();
+        let mr = self
+            .get_merge_request(project_id.clone(), params.mr_iid)
+            .await?;
+        let next_title = update_draft_state_in_title(&mr.title, params.is_draft);
+
+        if next_title == mr.title {
+            return Ok(());
+        }
+
+        #[derive(Serialize)]
+        struct UpdateMergeRequestBody<'a> {
+            title: &'a str,
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}",
+            self.base_url, project_id, params.mr_iid
+        );
+
+        let response = self
+            .client
+            .put(&url)
+            .json(&UpdateMergeRequestBody { title: &next_title })
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to set merge request draft state: {status} - {error_text}");
+        }
+
+        Ok(())
+    }
+
+    pub async fn set_merge_request_auto_merge(
+        &self,
+        params: &SetMergeRequestAutoMergeParams,
+    ) -> Result<()> {
+        let project_id = params.project_id.clone();
+        if params.enabled {
+            #[derive(Serialize)]
+            struct EnableAutoMergeBody {
+                auto_merge: bool,
+            }
+
+            let url = format!(
+                "{}/projects/{}/merge_requests/{}/merge",
+                self.base_url, project_id, params.mr_iid
+            );
+
+            let response = self
+                .client
+                .put(&url)
+                .json(&EnableAutoMergeBody { auto_merge: true })
+                .send()
+                .await?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let error_text = response.text().await.unwrap_or_default();
+                bail!("Failed to enable merge request auto-merge: {status} - {error_text}");
+            }
+
+            return Ok(());
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}/cancel_merge_when_pipeline_succeeds",
+            self.base_url, project_id, params.mr_iid
+        );
+
+        let response = self.client.post(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to disable merge request auto-merge: {status} - {error_text}");
+        }
+
+        Ok(())
+    }
 }
 
 pub struct CreateMergeRequestParams<'a> {
@@ -247,6 +335,52 @@ pub struct MergeMergeRequestParams {
     pub project_id: GitLabProjectId,
     pub mr_iid: i64,
     pub squash: Option<bool>,
+}
+
+pub struct SetMergeRequestDraftStateParams {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub is_draft: bool,
+}
+
+pub struct SetMergeRequestAutoMergeParams {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub enabled: bool,
+}
+
+fn update_draft_state_in_title(title: &str, is_draft: bool) -> String {
+    if is_draft {
+        if has_draft_prefix(title) {
+            title.to_owned()
+        } else {
+            format!("Draft: {title}")
+        }
+    } else {
+        remove_draft_prefix(title).to_owned()
+    }
+}
+
+fn has_draft_prefix(title: &str) -> bool {
+    let Some((prefix, _)) = title.split_once(':') else {
+        return false;
+    };
+
+    let prefix = prefix.trim();
+    prefix.eq_ignore_ascii_case("draft") || prefix.eq_ignore_ascii_case("wip")
+}
+
+fn remove_draft_prefix(title: &str) -> &str {
+    let Some((prefix, rest)) = title.split_once(':') else {
+        return title;
+    };
+
+    let prefix = prefix.trim();
+    if prefix.eq_ignore_ascii_case("draft") || prefix.eq_ignore_ascii_case("wip") {
+        rest.trim_start()
+    } else {
+        title
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -399,4 +533,53 @@ pub(crate) fn resolve_account(
     };
 
     Ok(account.to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::update_draft_state_in_title;
+
+    #[test]
+    fn makes_title_draft() {
+        assert_eq!(
+            update_draft_state_in_title("Add API validation", true),
+            "Draft: Add API validation"
+        );
+    }
+
+    #[test]
+    fn draft_state_noops_when_already_draft() {
+        assert_eq!(
+            update_draft_state_in_title("Draft: Add API validation", true),
+            "Draft: Add API validation"
+        );
+        assert_eq!(
+            update_draft_state_in_title("draft: Add API validation", true),
+            "draft: Add API validation"
+        );
+        assert_eq!(
+            update_draft_state_in_title("wip: Add API validation", true),
+            "wip: Add API validation"
+        );
+        assert_eq!(
+            update_draft_state_in_title("Wip: Add API validation", true),
+            "Wip: Add API validation"
+        );
+    }
+
+    #[test]
+    fn removes_draft_prefix_for_ready_state() {
+        assert_eq!(
+            update_draft_state_in_title("Draft: Add API validation", false),
+            "Add API validation"
+        );
+    }
+
+    #[test]
+    fn removes_wip_prefix_for_ready_state() {
+        assert_eq!(
+            update_draft_state_in_title("WIP: Add API validation", false),
+            "Add API validation"
+        );
+    }
 }

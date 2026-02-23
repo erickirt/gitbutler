@@ -67,3 +67,25 @@ pub async fn merge(
         .await
         .context("Faile to merge MR")
 }
+
+pub async fn set_draft_state(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    params: crate::client::SetMergeRequestDraftStateParams,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    GitLabClient::from_storage(storage, preferred_account)?
+        .set_merge_request_draft_state(&params)
+        .await
+        .context("Failed to set MR draft state")
+}
+
+pub async fn set_auto_merge(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    params: crate::client::SetMergeRequestAutoMergeParams,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    GitLabClient::from_storage(storage, preferred_account)?
+        .set_merge_request_auto_merge(&params)
+        .await
+        .context("Failed to set MR auto-merge state")
+}
