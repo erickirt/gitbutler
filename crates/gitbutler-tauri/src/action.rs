@@ -68,7 +68,6 @@ pub fn auto_commit(
     let project = gitbutler_project::get(project_id)?;
     let mut ctx = Context::new_from_legacy_project(project.clone())?;
     let absorption_plan = but_api::legacy::absorb::absorption_plan(&mut ctx, target)?;
-    let mut guard = ctx.exclusive_worktree_access();
 
     let llm = if use_ai {
         let git_config =
@@ -78,6 +77,7 @@ pub fn auto_commit(
         None
     };
 
+    let mut guard = ctx.exclusive_worktree_access();
     // Create snapshot for auto commit
     let _snapshot = ctx
         .create_snapshot(
@@ -91,7 +91,6 @@ pub fn auto_commit(
             tracing::error!("Failed to emit event '{}': {}", name, e);
         });
     };
-    let mut guard = ctx.exclusive_worktree_access();
     let repo = ctx.repo.get()?;
     let project_data_dir = ctx.project_data_dir();
     let settings = AppSettings::load_from_default_path_creating_without_customization()?;
