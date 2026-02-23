@@ -161,9 +161,9 @@ const DIESEL_SCHEMA_MIGRATION_TABLE: &str =
 )";
 
 /// Improve parallelism and make it non-fatal.
-/// Blanket setting from https://github.com/the-lean-crate/criner/discussions/5, maybe needs tuning.
+/// Blanket setting from <https://github.com/the-lean-crate/criner/discussions/5>, maybe needs tuning.
 /// Also, it's a known issue, maybe order matters?
-/// https://github.com/diesel-rs/diesel/issues/2365#issuecomment-2899347817
+/// <https://github.com/diesel-rs/diesel/issues/2365#issuecomment-2899347817>
 /// TODO: the busy_timeout doesn't seem to be effective.
 pub(crate) fn improve_concurrency(conn: &rusqlite::Connection) -> anyhow::Result<()> {
     let query = r#"
@@ -171,6 +171,7 @@ pub(crate) fn improve_concurrency(conn: &rusqlite::Connection) -> anyhow::Result
         PRAGMA synchronous = NORMAL;             -- fsync only in critical moments,
         PRAGMA wal_autocheckpoint = 1000;        -- write WAL changes back every 1000 pages, for an average 1MB WAL file.,
         PRAGMA wal_checkpoint(TRUNCATE);         -- free some space by truncating possibly massive WAL files from the last run.,
+        PRAGMA foreign_keys = ON;                -- enforce FK integrity for normalized data.
         "#;
     conn.execute_batch(query)?;
     conn.busy_timeout(BUSY_TIMEOUT)?;
