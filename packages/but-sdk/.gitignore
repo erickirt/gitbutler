@@ -1,5 +1,6 @@
 # Ignore build artifacts
 *.node
+*.tsbuildinfo
 
 # Ignore platform-specific directories
 npm/
