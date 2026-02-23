@@ -6,6 +6,12 @@ authors.workspace = true
 publish = false
 rust-version.workspace = true
 
+[package.metadata.cargo-machete]
+ignored = [
+    # Referenced from serde field attributes, which machete can report as unused.
+    "serde_regex",
+]
+
 [lib]
 doctest = false
 

@@ -207,6 +207,23 @@ jobs:
           rustup component add clippy
           cargo clippy --workspace --all-targets -- -D warnings
 
+  # Find unused cargo dependencies
+  cargo-machete:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install cargo-machete
+        run: cargo install --locked cargo-machete --version 0.9.1
+      - name: Run cargo-machete on workspace
+        run: cargo machete
+
   cargo-deny:
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
@@ -517,6 +534,7 @@ jobs:
       - rust-test
       - rust-test-tauri
       - rust-lint
+      - cargo-machete
       - cargo-doc
       - build-installer
       - but-sdk-build-check

@@ -10,6 +10,14 @@ readme = "../../README.md"
 publish = false
 rust-version.workspace = true
 
+[package.metadata.cargo-machete]
+ignored = [
+    # Consumed via napi attribute macros and generated bindings that machete misses.
+    "napi",
+    # Consumed via napi attribute macros and generated bindings that machete misses.
+    "napi-derive",
+]
+
 [lib]
 crate-type = ["cdylib"]
 
