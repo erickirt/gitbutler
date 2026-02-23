@@ -1,14 +1,14 @@
 <script lang="ts">
-	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
-	import DraftBranchHeader from '$components/DraftBranchHeader.svelte';
-	import NewCommitView from '$components/NewCommitView.svelte';
-	import ReduxResult from '$components/ReduxResult.svelte';
-	import Resizer from '$components/Resizer.svelte';
-	import { STACK_SERVICE } from '$lib/stacks/stackService.svelte';
-	import { UI_STATE } from '$lib/state/uiState.svelte';
-	import { inject } from '@gitbutler/core/context';
-	import { TestId } from '@gitbutler/ui';
-	import { onMount } from 'svelte';
+	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
+	import DraftBranchHeader from "$components/DraftBranchHeader.svelte";
+	import NewCommitView from "$components/NewCommitView.svelte";
+	import ReduxResult from "$components/ReduxResult.svelte";
+	import Resizer from "$components/Resizer.svelte";
+	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
+	import { UI_STATE } from "$lib/state/uiState.svelte";
+	import { inject } from "@gitbutler/core/context";
+	import { TestId } from "@gitbutler/ui";
+	import { onMount } from "svelte";
 
 	type Props = {
 		projectId: string;
@@ -26,7 +26,7 @@
 
 	onMount(() => {
 		if (draftPanelEl) {
-			draftPanelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			draftPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
 		}
 	});
 </script>
@@ -37,7 +37,7 @@
 			<div
 				class="draft-stack__scroll-wrap"
 				bind:this={draftPanelEl}
-				style:width={uiState.global.stackWidth.current + 'rem'}
+				style:width={uiState.global.stackWidth.current + "rem"}
 			>
 				<div class="new-commit-view">
 					<NewCommitView {projectId} />

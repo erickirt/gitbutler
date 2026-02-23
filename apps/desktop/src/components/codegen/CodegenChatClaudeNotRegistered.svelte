@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { sleep } from '$lib/utils/sleep';
-	import { Icon, AsyncButton } from '@gitbutler/ui';
+	import { sleep } from "$lib/utils/sleep";
+	import { Icon, AsyncButton } from "@gitbutler/ui";
 
 	interface Props {
 		onRetryConfig?: () => Promise<void>;

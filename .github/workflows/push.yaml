@@ -1,4 +1,4 @@
-name: 'Test'
+name: "Test"
 on:
   push:
     branches:
@@ -201,7 +201,7 @@ jobs:
           cargo check -p but --all-targets
         name: Special `cargo check` runs
         env:
-          RUSTFLAGS: '--deny warnings'
+          RUSTFLAGS: "--deny warnings"
       - name: cargo clippy
         run: |
           rustup component add clippy
@@ -263,7 +263,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
-      GITBUTLER_TESTS_NO_CLEANUP: '1'
+      GITBUTLER_TESTS_NO_CLEANUP: "1"
     defaults:
       run:
         shell: bash
@@ -334,7 +334,7 @@ jobs:
         with:
           shared-key: cargo-test
           save-if: ${{ github.ref == 'refs/heads/master' }}
-      - name: 'cargo check'
+      - name: "cargo check"
         run: cargo check --workspace --all-targets --features windows
 
   build-installer:
@@ -348,16 +348,16 @@ jobs:
         include:
           - platform: macos-15 # [macOs, ARM64] - default target
             artifact_id: macos-15-aarch64
-            target: ''
+            target: ""
           - platform: macos-15 # [macOs, x64] - cross-compile
             artifact_id: macos-15-x86_64
             target: x86_64-apple-darwin
           - platform: ubuntu-22.04 # [linux, x64]
             artifact_id: linux-x86_64
-            target: ''
+            target: ""
           - platform: ubuntu-22.04-arm # [linux, ARM64]
             artifact_id: linux-aarch64
-            target: ''
+            target: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -387,7 +387,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: 'but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}'
+          name: "but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}"
           path: target/${{matrix.target}}/release/but-installer
           if-no-files-found: error
           retention-days: 7
@@ -464,7 +464,7 @@ jobs:
       - name: Download ${{ matrix.artifact_id }} installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}'
+          name: "but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}"
           path: .
       - run: chmod +x ./but-installer
       - name: Install release
@@ -489,22 +489,22 @@ jobs:
       - name: Download macOS x86_64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-macos-15-x86_64-${{ github.run_number }}'
+          name: "but-installer-macos-15-x86_64-${{ github.run_number }}"
           path: s3-upload/macos/x86_64
       - name: Download macOS aarch64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-macos-15-aarch64-${{ github.run_number }}'
+          name: "but-installer-macos-15-aarch64-${{ github.run_number }}"
           path: s3-upload/macos/aarch64
       - name: Download Linux x86_64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-linux-x86_64-${{ github.run_number }}'
+          name: "but-installer-linux-x86_64-${{ github.run_number }}"
           path: s3-upload/linux/x86_64
       - name: Download Linux aarch64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-linux-aarch64-${{ github.run_number }}'
+          name: "but-installer-linux-aarch64-${{ github.run_number }}"
           path: s3-upload/linux/aarch64
       - name: Make binaries executable
         run: |
@@ -514,17 +514,17 @@ jobs:
         with:
           aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_bucket: 'releases.gitbutler.com'
-          source_dir: 's3-upload/'
-          destination_dir: 'installers/${{ github.sha }}'
+          aws_bucket: "releases.gitbutler.com"
+          source_dir: "s3-upload/"
+          destination_dir: "installers/${{ github.sha }}"
       - name: Upload to S3 (latest)
         uses: shallwefootball/s3-upload-action@4350529f410221787ccf424e50133cbc1b52704e # master
         with:
           aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_bucket: 'releases.gitbutler.com'
-          source_dir: 's3-upload/'
-          destination_dir: 'installers/latest'
+          aws_bucket: "releases.gitbutler.com"
+          source_dir: "s3-upload/"
+          destination_dir: "installers/latest"
 
   check-rust:
     if: always()
@@ -559,7 +559,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          sparse-checkout: '.github/workflows'
+          sparse-checkout: ".github/workflows"
       - name: Generate workflows list to scan
         run: |
           shopt -s extglob

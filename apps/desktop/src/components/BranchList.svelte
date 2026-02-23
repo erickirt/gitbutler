@@ -1,41 +1,41 @@
 <script lang="ts">
 	import AddDependentBranchModal, {
-		type AddDependentBranchModalProps
-	} from '$components/AddDependentBranchModal.svelte';
-	import BranchCard from '$components/BranchCard.svelte';
-	import BranchCommitList from '$components/BranchCommitList.svelte';
-	import BranchHeaderContextMenu from '$components/BranchHeaderContextMenu.svelte';
-	import BranchInsertion from '$components/BranchInsertion.svelte';
-	import CodegenRow from '$components/CodegenRow.svelte';
-	import ConflictResolutionConfirmModal from '$components/ConflictResolutionConfirmModal.svelte';
-	import NestedChangedFiles from '$components/NestedChangedFiles.svelte';
-	import PushButton from '$components/PushButton.svelte';
-	import ReduxResult from '$components/ReduxResult.svelte';
-	import { getColorFromCommitState, getIconFromCommitState } from '$components/lib';
-	import { BASE_BRANCH_SERVICE } from '$lib/baseBranch/baseBranchService.svelte';
-	import { StartCommitDzHandler } from '$lib/branches/dropHandler';
-	import { CLAUDE_CODE_SERVICE } from '$lib/codegen/claude';
-	import { focusClaudeInput } from '$lib/codegen/focusClaudeInput';
-	import { currentStatus } from '$lib/codegen/messages';
-	import { projectDisableCodegen } from '$lib/config/config';
-	import { REORDER_DROPZONE_FACTORY } from '$lib/dragging/stackingReorderDropzoneManager';
-	import { editPatch } from '$lib/editMode/editPatchUtils';
-	import { DEFAULT_FORGE_FACTORY } from '$lib/forge/forgeFactory.svelte';
-	import { MODE_SERVICE } from '$lib/mode/modeService';
-	import { createBranchSelection } from '$lib/selection/key';
-	import { UNCOMMITTED_SERVICE } from '$lib/selection/uncommittedService.svelte';
-	import { type BranchDetails } from '$lib/stacks/stack';
-	import { STACK_SERVICE } from '$lib/stacks/stackService.svelte';
-	import { combineResults } from '$lib/state/helpers';
-	import { UI_STATE } from '$lib/state/uiState.svelte';
-	import { URL_SERVICE } from '$lib/utils/url';
-	import { ensureValue } from '$lib/utils/validation';
-	import { inject } from '@gitbutler/core/context';
-	import { Button, Modal, TestId } from '@gitbutler/ui';
-	import { getForgeLogo } from '@gitbutler/ui/utils/getForgeLogo';
-	import { QueryStatus } from '@reduxjs/toolkit/query';
-	import { tick } from 'svelte';
-	import type { CommitStatusType } from '$lib/commits/commit';
+		type AddDependentBranchModalProps,
+	} from "$components/AddDependentBranchModal.svelte";
+	import BranchCard from "$components/BranchCard.svelte";
+	import BranchCommitList from "$components/BranchCommitList.svelte";
+	import BranchHeaderContextMenu from "$components/BranchHeaderContextMenu.svelte";
+	import BranchInsertion from "$components/BranchInsertion.svelte";
+	import CodegenRow from "$components/CodegenRow.svelte";
+	import ConflictResolutionConfirmModal from "$components/ConflictResolutionConfirmModal.svelte";
+	import NestedChangedFiles from "$components/NestedChangedFiles.svelte";
+	import PushButton from "$components/PushButton.svelte";
+	import ReduxResult from "$components/ReduxResult.svelte";
+	import { getColorFromCommitState, getIconFromCommitState } from "$components/lib";
+	import { BASE_BRANCH_SERVICE } from "$lib/baseBranch/baseBranchService.svelte";
+	import { StartCommitDzHandler } from "$lib/branches/dropHandler";
+	import { CLAUDE_CODE_SERVICE } from "$lib/codegen/claude";
+	import { focusClaudeInput } from "$lib/codegen/focusClaudeInput";
+	import { currentStatus } from "$lib/codegen/messages";
+	import { projectDisableCodegen } from "$lib/config/config";
+	import { REORDER_DROPZONE_FACTORY } from "$lib/dragging/stackingReorderDropzoneManager";
+	import { editPatch } from "$lib/editMode/editPatchUtils";
+	import { DEFAULT_FORGE_FACTORY } from "$lib/forge/forgeFactory.svelte";
+	import { MODE_SERVICE } from "$lib/mode/modeService";
+	import { createBranchSelection } from "$lib/selection/key";
+	import { UNCOMMITTED_SERVICE } from "$lib/selection/uncommittedService.svelte";
+	import { type BranchDetails } from "$lib/stacks/stack";
+	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
+	import { combineResults } from "$lib/state/helpers";
+	import { UI_STATE } from "$lib/state/uiState.svelte";
+	import { URL_SERVICE } from "$lib/utils/url";
+	import { ensureValue } from "$lib/utils/validation";
+	import { inject } from "@gitbutler/core/context";
+	import { Button, Modal, TestId } from "@gitbutler/ui";
+	import { getForgeLogo } from "@gitbutler/ui/utils/getForgeLogo";
+	import { QueryStatus } from "@reduxjs/toolkit/query";
+	import { tick } from "svelte";
+	import type { CommitStatusType } from "$lib/commits/commit";
 
 	type Props = {
 		projectId: string;
@@ -56,7 +56,7 @@
 		active,
 		visibleRange,
 		onclick,
-		onFileClick
+		onFileClick,
 	}: Props = $props();
 	const stackService = inject(STACK_SERVICE);
 	const uiState = inject(UI_STATE);
@@ -76,7 +76,7 @@
 	const projectState = $derived(uiState.project(projectId));
 	const exclusiveAction = $derived(projectState.exclusiveAction.current);
 	const isCommitting = $derived(
-		exclusiveAction?.type === 'commit' && exclusiveAction?.stackId === stackId
+		exclusiveAction?.type === "commit" && exclusiveAction?.stackId === stackId,
 	);
 	const laneState = $derived(uiState.lane(laneId));
 	const selection = $derived(laneState.selection);
@@ -91,17 +91,17 @@
 			projectId,
 			stackId: ensureValue(stackId),
 			branchName,
-			commitId: commitId
+			commitId: commitId,
 		});
 	}
 
 	function startEditingCommitMessage(branchName: string, commitId: string) {
 		laneState.selection.set({ branchName, commitId, previewOpen: true });
 		projectState.exclusiveAction.set({
-			type: 'edit-commit-message',
+			type: "edit-commit-message",
 			stackId,
 			branchName,
-			commitId
+			commitId,
 		});
 	}
 
@@ -112,7 +112,7 @@
 		isAncestorMostConflicted: boolean;
 	}) {
 		if (isReadOnly) return;
-		if (args.type === 'LocalAndRemote' && args.hasConflicts && !args.isAncestorMostConflicted) {
+		if (args.type === "LocalAndRemote" && args.hasConflicts && !args.isAncestorMostConflicted) {
 			conflictResolutionConfirmationModal?.show();
 			return;
 		}
@@ -120,12 +120,12 @@
 			modeService,
 			commitId: args.commitId,
 			stackId: ensureValue(stackId),
-			projectId
+			projectId,
 		});
 	}
 
 	const selectedCommit = $derived(
-		selectedCommitId ? stackService.commitDetails(projectId, selectedCommitId) : undefined
+		selectedCommitId ? stackService.commitDetails(projectId, selectedCommitId) : undefined,
 	);
 
 	$effect(() => {
@@ -142,8 +142,8 @@
 		stackingReorderDropzoneManagerFactory.build(
 			projectId,
 			laneId,
-			branches.map((s) => ({ name: s.name, commitIds: s.commits.map((p) => p.id) }))
-		)
+			branches.map((s) => ({ name: s.name, commitIds: s.commits.map((p) => p.id) })),
+		),
 	);
 
 	const canPublishPR = $derived(forge.current.authenticated);
@@ -169,12 +169,12 @@
 				localAndRemoteCommits.result,
 				upstreamOnlyCommits.result,
 				branchDetailsQuery.result,
-				commitQuery.result
+				commitQuery.result,
 			)}
 		>
 			{#snippet children(
 				[localAndRemoteCommits, upstreamOnlyCommits, branchDetails, commit],
-				{ projectId, stackId }
+				{ projectId, stackId },
 			)}
 				{@const firstBranch = i === 0}
 				{@const lastBranch = i === branches.length - 1}
@@ -182,9 +182,9 @@
 				{@const lineColor = commit
 					? getColorFromCommitState(
 							commit.state.type,
-							commit.state.type === 'LocalAndRemote' && commit.id !== commit.state.subject
+							commit.state.type === "LocalAndRemote" && commit.id !== commit.state.subject,
 						)
-					: 'var(--clr-commit-local)'}
+					: "var(--clr-commit-local)"}
 				{@const isNewBranch =
 					upstreamOnlyCommits.length === 0 && localAndRemoteCommits.length === 0}
 				{@const selected =
@@ -211,7 +211,7 @@
 					uncommittedService,
 					projectId,
 					stackId,
-					branchName
+					branchName,
 				)}
 				{#if stackId}
 					<BranchInsertion
@@ -275,11 +275,11 @@
 								icon="new-dep-branch"
 								size="tag"
 								kind="outline"
-								tooltip={isReadOnly ? 'Read-only mode' : 'Create new branch'}
+								tooltip={isReadOnly ? "Read-only mode" : "Create new branch"}
 								onclick={async () => {
 									addDependentBranchModalContext = {
 										projectId,
-										stackId: ensureValue(stackId)
+										stackId: ensureValue(stackId),
 									};
 
 									await tick();
@@ -298,16 +298,16 @@
 									onclick={(e) => {
 										e.stopPropagation();
 										projectState.exclusiveAction.set({
-											type: 'create-pr',
+											type: "create-pr",
 											stackId,
-											branchName
+											branchName,
 										});
 									}}
 									testId={TestId.CreateReviewButton}
 									disabled={!!projectState.exclusiveAction.current}
 									icon={getForgeLogo(forge.current.name, true)}
 								>
-									{`Create ${forge.current.name === 'gitlab' ? 'MR' : 'PR'}`}
+									{`Create ${forge.current.name === "gitlab" ? "MR" : "PR"}`}
 								</Button>
 							{:else}
 								{@const prUrl = prQuery?.response?.htmlUrl}
@@ -321,9 +321,9 @@
 											urlService.openExternalUrl(prUrl);
 										}
 									}}
-									icon={forge.current.name === 'gitlab' ? 'view-mr-browser' : 'view-pr-browser'}
+									icon={forge.current.name === "gitlab" ? "view-mr-browser" : "view-pr-browser"}
 								>
-									{`View ${forge.current.name === 'gitlab' ? 'MR' : 'PR'}`}
+									{`View ${forge.current.name === "gitlab" ? "MR" : "PR"}`}
 								</Button>
 							{/if}
 						{/if}
@@ -355,7 +355,7 @@
 							branch,
 							prNumber,
 							first,
-							stackLength: branches.length
+							stackLength: branches.length,
 						}}
 						<BranchHeaderContextMenu
 							{projectId}
@@ -372,7 +372,7 @@
 								{@const stackActive = claudeCodeService.isStackActive(projectId, stackId)}
 								{@const status = currentStatus(
 									codegenQuery.response || [],
-									stackActive.response || false
+									stackActive.response || false,
 								)}
 								<CodegenRow
 									{projectId}
@@ -397,7 +397,7 @@
 							{@const changesQuery = stackService.branchChanges({
 								projectId,
 								stackId,
-								branch: branchName
+								branch: branchName,
 							})}
 							<ReduxResult {projectId} {stackId} result={changesQuery.result}>
 								{#snippet children(result, { projectId, stackId })}
@@ -411,7 +411,7 @@
 										selectionId={createBranchSelection({
 											stackId: stackId,
 											branchName,
-											remote: undefined
+											remote: undefined,
 										})}
 										persistId={`branch-${branchName}`}
 										changes={result.changes}

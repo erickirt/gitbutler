@@ -1,8 +1,8 @@
-import { liteIpcChannels } from '#electron/ipc';
-import { listProjects } from '#electron/model/projects';
-import { app, BrowserWindow, ipcMain } from 'electron';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { liteIpcChannels } from "#electron/ipc";
+import { listProjects } from "#electron/model/projects";
+import { app, BrowserWindow, ipcMain } from "electron";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDirPath = path.dirname(currentFilePath);
@@ -24,33 +24,33 @@ async function createMainWindow(): Promise<void> {
 		webPreferences: {
 			contextIsolation: true,
 			nodeIntegration: false,
-			preload: path.join(currentDirPath, 'preload.cjs')
-		}
+			preload: path.join(currentDirPath, "preload.cjs"),
+		},
 	});
 
 	const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 	if (devServerUrl) {
 		await mainWindow.loadURL(devServerUrl);
-		mainWindow.webContents.openDevTools({ mode: 'detach' });
+		mainWindow.webContents.openDevTools({ mode: "detach" });
 		return;
 	}
 
-	await mainWindow.loadFile(path.join(currentDirPath, '../ui/index.html'));
+	await mainWindow.loadFile(path.join(currentDirPath, "../ui/index.html"));
 }
 
 app.whenReady().then(async () => {
 	registerIpcHandlers();
 	await createMainWindow();
 
-	app.on('activate', () => {
+	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) {
 			void createMainWindow();
 		}
 	});
 });
 
-app.on('window-all-closed', () => {
-	if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+	if (process.platform !== "darwin") {
 		app.quit();
 	}
 });

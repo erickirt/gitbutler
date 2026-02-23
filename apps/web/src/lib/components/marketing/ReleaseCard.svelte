@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ReleaseDownloadLinks from '$lib/components/marketing/ReleaseDownloadLinks.svelte';
-	import Markdown from 'svelte-exmarkdown';
-	import type { Release } from '$lib/types/releases';
+	import ReleaseDownloadLinks from "$lib/components/marketing/ReleaseDownloadLinks.svelte";
+	import Markdown from "svelte-exmarkdown";
+	import type { Release } from "$lib/types/releases";
 
 	interface Props {
 		release: Release;
@@ -19,10 +19,10 @@
 	<div class="release-header">
 		<h3 class="release-version">{release.version}</h3>
 		<span class="release-date">
-			{new Date(release.released_at).toLocaleDateString('en-GB', {
-				day: 'numeric',
-				month: 'short',
-				year: 'numeric'
+			{new Date(release.released_at).toLocaleDateString("en-GB", {
+				day: "numeric",
+				month: "short",
+				year: "numeric",
 			})}
 		</span>
 	</div>
@@ -76,7 +76,7 @@
 				transparent 6px
 			);
 
-			content: '';
+			content: "";
 			pointer-events: none;
 		}
 
