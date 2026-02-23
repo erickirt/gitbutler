@@ -61,7 +61,7 @@
 			case "approve":
 				return "success";
 			case "requestChanges":
-				return "refresh-in-circle";
+				return "refresh-small";
 		}
 	});
 
