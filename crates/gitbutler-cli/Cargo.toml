@@ -7,7 +7,10 @@ publish = false
 rust-version.workspace = true
 
 [package.metadata.cargo-machete]
-ignored = ["gitbutler-commit"]
+ignored = [
+    # Only used behind the optional `testing` feature for deterministic test commits.
+    "gitbutler-commit",
+]
 
 [[bin]]
 name = "gitbutler-cli"

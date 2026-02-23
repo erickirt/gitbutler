@@ -11,7 +11,16 @@ publish = false
 rust-version.workspace = true
 
 [package.metadata.cargo-machete]
-ignored = ["futures", "napi", "napi-derive", "tauri"]
+ignored = [
+    # Used by macro-generated async API glue that machete does not detect reliably.
+    "futures",
+    # Used only when the `napi` feature is enabled for Node bindings.
+    "napi",
+    # Used only when the `napi` feature is enabled for Node bindings.
+    "napi-derive",
+    # Used only when the `tauri` feature is enabled for Tauri command bindings.
+    "tauri",
+]
 
 [lib]
 doctest = false

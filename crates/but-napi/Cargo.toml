@@ -11,7 +11,12 @@ publish = false
 rust-version.workspace = true
 
 [package.metadata.cargo-machete]
-ignored = ["napi", "napi-derive"]
+ignored = [
+    # Consumed via napi attribute macros and generated bindings that machete misses.
+    "napi",
+    # Consumed via napi attribute macros and generated bindings that machete misses.
+    "napi-derive",
+]
 
 [lib]
 crate-type = ["cdylib"]
