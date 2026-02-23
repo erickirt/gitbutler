@@ -119,6 +119,29 @@ impl StackEntry {
     pub fn name(&self) -> Option<&BStr> {
         self.heads.first().map(|head| head.name.as_ref())
     }
+
+    /// Get the associated reviews in the stack. Top to bottom.
+    ///
+    /// If there are no reviews associated with any of the branches, they'll be skipped.
+    /// An empty vector would mean no reviews associated with any of the stacked branches or an empty stack.
+    /// A vector of a different length than the amount of branches in the stack would indicate that only
+    /// some branches have associated reviews.
+    pub fn review_ids(&self) -> Vec<usize> {
+        self.heads
+            .iter()
+            .filter_map(|head| head.review_id)
+            .collect()
+    }
+
+    /// Get the associated review id for a given branch head.
+    ///
+    /// Return `None` if, well, there's none associated.
+    pub fn review_for_head(&self, name: &str) -> Option<usize> {
+        self.heads
+            .iter()
+            .find(|h| h.name == name)
+            .and_then(|h| h.review_id)
+    }
 }
 
 impl StackEntryNoOpt {
