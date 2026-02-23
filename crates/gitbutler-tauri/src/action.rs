@@ -4,6 +4,10 @@ use but_ctx::Context;
 use but_hunk_assignment::AbsorptionTarget;
 use but_llm::LLMProvider;
 use but_settings::AppSettings;
+use gitbutler_oplog::{
+    OplogExt,
+    entry::{OperationKind, SnapshotDetails},
+};
 use gitbutler_project::ProjectId;
 use tauri::Emitter;
 use tracing::instrument;
@@ -64,6 +68,7 @@ pub fn auto_commit(
     let project = gitbutler_project::get(project_id)?;
     let mut ctx = Context::new_from_legacy_project(project.clone())?;
     let absorption_plan = but_api::legacy::absorb::absorption_plan(&mut ctx, target)?;
+    let mut guard = ctx.exclusive_worktree_access();
 
     let llm = if use_ai {
         let git_config =
@@ -72,6 +77,14 @@ pub fn auto_commit(
     } else {
         None
     };
+
+    // Create snapshot for auto commit
+    let _snapshot = ctx
+        .create_snapshot(
+            SnapshotDetails::new(OperationKind::AutoCommit),
+            guard.write_permission(),
+        )
+        .ok(); // Ignore errors for snapshot creation
 
     let emitter = move |name: &str, payload: serde_json::Value| {
         app_handle.emit(name, payload).unwrap_or_else(|e| {

@@ -94,12 +94,21 @@ pub(crate) fn handle(
     let context_lines = ctx.settings.context_lines;
     // Create a snapshot before performing absorb operations
     // This allows the user to undo if needed
-    let _snapshot = ctx
-        .create_snapshot(
-            SnapshotDetails::new(OperationKind::Absorb),
-            guard.write_permission(),
-        )
-        .ok(); // Ignore errors for snapshot creation
+    if new {
+        let _snapshot = ctx
+            .create_snapshot(
+                SnapshotDetails::new(OperationKind::AutoCommit),
+                guard.write_permission(),
+            )
+            .ok(); // Ignore errors for snapshot creation
+    } else {
+        let _snapshot = ctx
+            .create_snapshot(
+                SnapshotDetails::new(OperationKind::Absorb),
+                guard.write_permission(),
+            )
+            .ok(); // Ignore errors for snapshot creation
+    }
     absorb_assignments(
         absorption_plan,
         &mut guard,

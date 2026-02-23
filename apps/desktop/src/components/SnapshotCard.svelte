@@ -123,6 +123,10 @@
 				return { text: 'Insert blank commit', icon: 'blank-commit' };
 			case 'MoveCommitFile':
 				return { text: 'Move commit file', icon: 'move-commit-file-small' };
+			case 'Absorb':
+				return { text: 'Absorb changes into commit', icon: 'absorb' };
+			case 'AutoCommit':
+				return { text: 'Auto commit changes', icon: 'auto-commit' };
 
 			// FILE OPERATIONS
 			case 'MoveHunk':
