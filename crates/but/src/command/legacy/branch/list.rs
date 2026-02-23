@@ -18,6 +18,7 @@ pub fn list(
     filter: Option<String>,
     out: &mut OutputChannel,
     check_merge: bool,
+    show_empty: bool,
 ) -> Result<(), anyhow::Error> {
     let listing_filter = if local {
         Some(BranchListingFilter {
@@ -41,6 +42,37 @@ pub fn list(
         ctx,
         Some(but_workspace::legacy::StacksFilter::InWorkspace),
     )?;
+
+    // Filter out empty branches unless --empty is requested
+    let target_oid_for_filter: Option<git2::Oid> = if !show_empty {
+        get_target_oid(ctx).ok()
+    } else {
+        None
+    };
+
+    if let Some(target_oid) = target_oid_for_filter {
+        // For applied stacks: remove heads that have no commits on them.
+        // heads[0] is topmost; head[i] is empty if its tip == heads[i+1].tip (non-last)
+        // or tip == target_oid (last/bottommost head).
+        for stack in &mut applied_stacks {
+            let tips: Vec<git2::Oid> = stack.heads.iter().map(|h| h.tip.to_git2()).collect();
+            let non_empty: Vec<bool> = tips
+                .iter()
+                .enumerate()
+                .map(|(i, &tip)| {
+                    let next_tip = tips.get(i + 1).copied().unwrap_or(target_oid);
+                    tip != next_tip
+                })
+                .collect();
+            let mut i = 0;
+            stack.heads.retain(|_| {
+                let keep = non_empty[i];
+                i += 1;
+                keep
+            });
+        }
+        applied_stacks.retain(|stack| !stack.heads.is_empty());
+    }
 
     // Apply name filter to applied stacks if provided
     if let Some(ref filter_str) = filter {
@@ -88,6 +120,11 @@ pub fn list(
                 .to_lowercase()
                 .contains(&filter_lower)
         });
+    }
+
+    // Filter out branches with no commits on them unless --empty is requested
+    if let Some(target_oid) = target_oid_for_filter {
+        branches.retain(|branch| branch.head != target_oid);
     }
 
     // Filter out dependabot branches unless --all is specified
@@ -698,4 +735,19 @@ fn print_branches_table(
 
     table.render(out)?;
     Ok(())
+}
+
+fn get_target_oid(ctx: &Context) -> anyhow::Result<git2::Oid> {
+    let handle = gitbutler_stack::VirtualBranchesHandle::new(ctx.project_data_dir());
+    let target = handle.get_default_target()?;
+    let git2_repo = ctx.git2_repo.get()?;
+    let target_ref = format!(
+        "refs/remotes/{}/{}",
+        target.branch.remote(),
+        target.branch.branch()
+    );
+    match git2_repo.find_reference(&target_ref) {
+        Ok(r) => Ok(r.peel(git2::ObjectType::Commit)?.id()),
+        Err(_) => Ok(target.sha),
+    }
 }

@@ -87,6 +87,9 @@ pub enum Subcommands {
         /// Don't check if each branch merges cleanly into upstream
         #[clap(long)]
         no_check: bool,
+        /// Include branches with no commits on them (hidden by default)
+        #[clap(long)]
+        empty: bool,
     },
 
     /// Show commits ahead of base for a specific branch
