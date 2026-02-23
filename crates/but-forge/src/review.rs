@@ -838,6 +838,96 @@ pub async fn merge_review(
     }
 }
 
+/// Set a review to automatically merge when all prerequisites are met.
+pub async fn set_review_auto_merge_state(
+    preferred_forge_user: &Option<crate::ForgeUser>,
+    forge_repo_info: &crate::forge::ForgeRepoInfo,
+    review_number: usize,
+    enable: bool,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
+
+    match forge {
+        ForgeName::GitHub => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github());
+            let pr_number = review_number
+                .try_into()
+                .context("PR: Failed to cast usize to i64, somehow")?;
+            let params = but_github::SetPullRequestAutoMergeParams {
+                owner,
+                repo,
+                pr_number,
+                state: enable.into(),
+            };
+            but_github::pr::set_auto_merge(preferred_account, params, storage).await
+        }
+        ForgeName::GitLab => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let project_id = GitLabProjectId::new(owner, repo);
+            let mr_iid = review_number
+                .try_into()
+                .context("MR: Failed to cast usize to i64, somehow")?;
+            let params = but_gitlab::SetMergeRequestAutoMergeParams {
+                project_id,
+                mr_iid,
+                enabled: enable,
+            };
+            but_gitlab::mr::set_auto_merge(preferred_account, params, storage).await
+        }
+        _ => Err(Error::msg(format!(
+            "Setting the auto-merge state of reviews for forge {forge:?} is not implemented yet.",
+        ))),
+    }
+}
+
+/// Set the draftiness of a review: Should it be a draft or is it ready to review?
+pub async fn set_review_draftiness(
+    preferred_forge_user: &Option<crate::ForgeUser>,
+    forge_repo_info: &crate::forge::ForgeRepoInfo,
+    review_number: usize,
+    draft: bool,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
+
+    match forge {
+        ForgeName::GitHub => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github());
+            let pr_number = review_number
+                .try_into()
+                .context("PR: Failed to cast usize to i64, somehow")?;
+            let params = but_github::SetPullRequestDraftStateParams {
+                owner,
+                repo,
+                pr_number,
+                draft,
+            };
+            but_github::pr::set_draft_state(preferred_account, params, storage).await
+        }
+        ForgeName::GitLab => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let project_id = GitLabProjectId::new(owner, repo);
+            let mr_iid = review_number
+                .try_into()
+                .context("MR: Failed to cast usize to i64, somehow")?;
+            let params = but_gitlab::SetMergeRequestDraftStateParams {
+                project_id,
+                mr_iid,
+                is_draft: draft,
+            };
+            but_gitlab::mr::set_draft_state(preferred_account, params, storage).await
+        }
+        _ => Err(Error::msg(format!(
+            "Setting the draftiness of reviews for forge {forge:?} is not implemented yet.",
+        ))),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateForgeReviewParams {

@@ -252,6 +252,64 @@ pub async fn merge_review(ctx: ThreadSafeContext, review_id: usize) -> Result<()
     .await
 }
 
+/// Enable or disable a review's auto-merge.
+#[but_api]
+#[instrument(err(Debug))]
+pub async fn set_review_auto_merge(
+    ctx: ThreadSafeContext,
+    review_id: usize,
+    enable: bool,
+) -> Result<()> {
+    let (storage, base_branch, preferred_forge_user) = {
+        let ctx = ctx.into_thread_local();
+        let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        (
+            but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
+            base_branch,
+            ctx.legacy_project.preferred_forge_user.clone(),
+        )
+    };
+    but_forge::set_review_auto_merge_state(
+        &preferred_forge_user,
+        &base_branch
+            .forge_repo_info
+            .context("No forge could be determined for this repository branch")?,
+        review_id,
+        enable,
+        &storage,
+    )
+    .await
+}
+
+/// Set a review to draft or ready-for-review
+#[but_api]
+#[instrument(err(Debug))]
+pub async fn set_review_draftiness(
+    ctx: ThreadSafeContext,
+    review_id: usize,
+    draft: bool,
+) -> Result<()> {
+    let (storage, base_branch, preferred_forge_user) = {
+        let ctx = ctx.into_thread_local();
+        let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        (
+            but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
+            base_branch,
+            ctx.legacy_project.preferred_forge_user.clone(),
+        )
+    };
+    but_forge::set_review_draftiness(
+        &preferred_forge_user,
+        &base_branch
+            .forge_repo_info
+            .context("No forge could be determined for this repository branch")?,
+        review_id,
+        draft,
+        &storage,
+    )
+    .await
+}
+
 /// Update the stacked review descriptions to have the correct footers.
 #[but_api]
 #[instrument(err(Debug))]
