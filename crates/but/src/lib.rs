@@ -950,6 +950,12 @@ async fn match_subcommand(
                     .context("Failed to set forge review template.")
                     .emit_metrics(metrics_ctx)
                 }
+                Some(forge::pr::Subcommands::AutoMerge { selector, off }) => {
+                    command::legacy::forge::review::enable_auto_merge(&mut ctx, selector, off, out)
+                        .await
+                        .context("Failed to set the auto-merge state.")
+                        .emit_metrics(metrics_ctx)
+                }
                 None => {
                     // Default to `pr new` when no subcommand is provided
                     command::legacy::forge::review::create_review(

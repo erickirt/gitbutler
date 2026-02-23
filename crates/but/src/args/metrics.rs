@@ -42,6 +42,8 @@ pub enum CommandName {
     ForgeForget,
     PrNew,
     PrTemplate,
+    DisableAutoMerge,
+    EnableAutoMerge,
     Completions,
     AliasCheck,
     AliasAdd,

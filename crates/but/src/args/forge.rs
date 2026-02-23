@@ -39,6 +39,22 @@ pub mod pr {
             #[clap(long, short = 'd', default_value_t = false)]
             draft: bool,
         },
+        /// Enable or disable the automatic merging of a review or reviews.
+        /// If no reviews are specified, you will be prompted to select one or multiple of the
+        /// review associated with branches in your workspace.
+        AutoMerge {
+            /// The target of this operation.
+            /// This can be one or multiple (comma-separated):
+            /// - Branch names,
+            /// - Branch IDs,
+            /// - Stack IDs (in which case, all the reviews associated with the stacked branches are selected),
+            /// - Associated review IDs (i.e. PR numeric IDs or MR numeric IDs, without the symbol).
+            #[clap(value_name = "SELECTOR")]
+            selector: Option<String>,
+            /// Whether to disable the automatic merging of the review(s)
+            #[clap(long, short = 'd', default_value_t = false)]
+            off: bool,
+        },
         /// Configure the template to use for review descriptions.
         /// This will list all available templates found in the repository and allow you to select one.
         Template {
