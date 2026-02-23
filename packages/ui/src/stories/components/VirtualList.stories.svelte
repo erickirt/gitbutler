@@ -15,6 +15,7 @@
 			items,
 			visibility: "hover",
 			defaultHeight,
+			getId: (item?: string) => item,
 		},
 	});
 

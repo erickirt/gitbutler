@@ -49,9 +49,10 @@
 		 */
 		template: Snippet<[T, number]>;
 		/**
-		 * Async callback triggered when scroll approaches the bottom.
-		 * Fires when within 200px of bottom or when content is shorter than viewport.
-		 * Useful for implementing infinite scrolling/pagination.
+		 * Async callback triggered when scroll approaches the loading edge.
+		 * When `stickToBottom` is true, fires near the TOP (for loading older content).
+		 * Otherwise fires near the BOTTOM (for loading newer content).
+		 * Also fires when content is shorter than viewport.
 		 */
 		onloadmore?: () => Promise<void>;
 		/**
@@ -103,6 +104,8 @@
 		 * @param change
 		 */
 		onVisibleChange?: (change: { start: number; end: number }) => void;
+
+		getId: (item: T) => string | undefined;
 	};
 
 	const SCROLL_DOWN_THRESHOLD = 600;
@@ -125,12 +128,14 @@
 		renderDistance = 0,
 		showBottomButton = false,
 		onVisibleChange,
+		getId,
 	}: Props = $props();
 
 	let viewport = $state<HTMLDivElement>();
 	let container = $state<HTMLDivElement>();
 	let visibleRowElements = $state<HTMLCollectionOf<Element>>();
 
+	let previousItems: T[] = [];
 	let heightMap: number[] = $state([]);
 	let lockedHeights = $state<number[]>([]);
 	let heightUnlockTimeouts: number[] = [];
@@ -144,7 +149,6 @@
 
 	let offset = $state({ top: 0, bottom: 0 });
 	let previousDistance = $state(0);
-	let previousCount = $state(items.length);
 	let hasNewItemsAtBottom = $state(false);
 	let isRecalculating = false;
 
@@ -195,8 +199,15 @@
 					// resize. Scroll direction is undefined during jumps.
 					viewport.scrollTop = calculateHeightSum(0, lastJumpToIndex || startIndex || 0);
 					skipNextScrollEvent = true;
-				} else if (stickToBottom && previousDistance < STICKY_DISTANCE) {
-					// Maintain bottom position when near bottom and `stickToBottom` is true
+				} else if (
+					stickToBottom &&
+					previousDistance < STICKY_DISTANCE &&
+					getDistanceFromBottom() > 2
+				) {
+					// Maintain bottom position when near bottom and `stickToBottom` is true.
+					// The >2px guard prevents a subpixel oscillation cascade where
+					// scrollToBottom bounces scrollTop by 1px, triggering more observer
+					// events that expand the range upward and drift the scroll position.
 					skipNextScrollEvent = true;
 					scrollToBottom();
 				} else if (
@@ -250,10 +261,16 @@
 	}
 
 	function shouldTriggerLoadMore(): boolean {
-		if (!viewport) return false;
+		if (!viewport || !onloadmore) return false;
 		if (viewport.scrollHeight <= viewport.clientHeight) return true;
-		const distance = getDistanceFromBottom();
-		return distance >= 0 && distance < LOAD_MORE_THRESHOLD;
+		if (stickToBottom) {
+			// In stick-to-bottom mode, load more when near the TOP (older content)
+			return viewport.scrollTop < LOAD_MORE_THRESHOLD;
+		} else {
+			// In normal mode, load more when near the BOTTOM (newer content)
+			const distance = getDistanceFromBottom();
+			return distance >= 0 && distance < LOAD_MORE_THRESHOLD;
+		}
 	}
 
 	/**
@@ -307,7 +324,7 @@
 			if (renderStart === -1 && accumulatedHeight >= viewport.scrollTop - renderDistance) {
 				renderStart = i;
 			}
-			if (accumulatedHeight > viewport.scrollTop) {
+			if (accumulatedHeight >= viewport.scrollTop + 1) {
 				return [renderStart, i];
 			}
 		}
@@ -337,7 +354,6 @@
 
 	async function initializeAt(startingAt: number): Promise<void> {
 		if (!viewport) return;
-
 		// Initialize from start position downwards
 		renderRange.start = startingAt;
 		for (let i = startingAt; i < items.length; i++) {
@@ -351,7 +367,7 @@
 				// Most likely cause for this is that something else made `visibleRange.end = 0`
 				// during the tick(). This needs debugging, but is not severe enough to warrant
 				// immediate attention.
-				console.warn("Invariant violation - root cause not yet determined.");
+				console.warn("[VList:init] Invariant violation — element missing after tick, aborting");
 				return;
 			}
 			heightMap[i] = element.clientHeight;
@@ -372,7 +388,7 @@
 			await tick(); // Wait for element to be added
 			const element = visibleRowElements?.[0];
 			if (!element) {
-				console.warn("Invariant violation - root cause not yet determined.");
+				console.warn("[VList:init] Invariant violation — element missing after tick, aborting");
 				return;
 			}
 			const heightDiff = element.clientHeight - (lockedHeights[i] || defaultHeight);
@@ -380,7 +396,10 @@
 				viewport.scrollTop += heightDiff;
 			}
 			heightMap[i] = element.clientHeight;
-			if (calculateHeightSum(renderRange.start, startingAt) > renderDistance) {
+			if (
+				calculateHeightSum(renderRange.start, renderRange.end) >
+				viewport.clientHeight + 2 * renderDistance
+			) {
 				break;
 			}
 		}
@@ -395,7 +414,9 @@
 		// Based on anecdotal evidence the type for `viewport` seems incorrect. It's likely
 		// that during some kind of unmount event it can become `undefined` due to a subtle
 		// reactivity condition.
-		if (viewport) viewport.scrollTop = calculateHeightSum(0, startingAt);
+		if (viewport) {
+			viewport.scrollTop = calculateHeightSum(0, startingAt);
+		}
 	}
 
 	async function recalculateRanges(): Promise<void> {
@@ -411,6 +432,11 @@
 		const [end, visibleEnd] = calculateEndIndex();
 
 		if (start !== renderRange.start || end !== renderRange.end) {
+			if (end <= start && items.length > 0) {
+				// Degenerate range — preserve current state to avoid losing initialization.
+				isRecalculating = false;
+				return;
+			}
 			renderRange = { start, end };
 			updateOffsets();
 
@@ -442,10 +468,8 @@
 
 	export function scrollToBottom(): void {
 		if (!viewport) return;
-		viewport.scrollTo({
-			top: viewport.scrollHeight - viewport.clientHeight,
-			behavior: "instant",
-		});
+		const target = viewport.scrollHeight - viewport.clientHeight;
+		viewport.scrollTo({ top: target, behavior: "instant" });
 	}
 
 	export async function jumpToIndex(index: number) {
@@ -494,32 +518,81 @@
 	});
 
 	$effect(() => {
-		if (items && viewport) {
-			untrack(async () => {
-				heightMap.length = items.length;
-				if (!isInitialized() && items.length > 0) {
-					const index = stickToBottom ? items.length - 1 : startIndex || 0;
-					await initializeAt(index);
-					if (!isInitialized()) {
-						return;
+		if (!viewport) return;
+		if (!items || items.length === 0) return;
+		const countDelta = items.length - previousItems.length;
+		const headChanged = !previousItems[0] || getId(items[0]) !== getId(previousItems[0]);
+		const tailChanged =
+			!previousItems.at(-1) || getId(items.at(-1)!) !== getId(previousItems.at(-1)!);
+
+		untrack(async () => {
+			if (headChanged && tailChanged && previousItems.length > 0) {
+				// Items completely replaced (e.g., switching views) — clear stale
+				// heights and renderRange so the !isInitialized() check below
+				// triggers a fresh initializeAt with correct measurements.
+				heightMap = new Array(items.length);
+				renderRange = { start: 0, end: 0 };
+			} else if (headChanged && !tailChanged && countDelta > 0) {
+				// When items are prepended, shift heightMap so cached heights
+				// correspond to the correct items at their new indices.
+				const shifted: number[] = new Array(items.length);
+				for (let i = 0; i < previousItems.length; i++) {
+					if (heightMap[i] !== undefined) {
+						shifted[i + countDelta] = heightMap[i]!;
 					}
 				}
-
+				heightMap = shifted;
+			} else {
+				heightMap.length = items.length;
+			}
+			if (!isInitialized() && items.length > 0) {
+				const initAt = stickToBottom ? items.length - 1 : startIndex || 0;
+				await initializeAt(initAt);
 				if (stickToBottom) {
-					if (previousDistance < STICKY_DISTANCE) {
+					scrollToBottom();
+				}
+				return;
+			}
+
+			if (countDelta > 0) {
+				if (stickToBottom && headChanged && !tailChanged && viewport) {
+					// HEAD prepend: shift renderRange to keep the same items visible,
+					// then compensate scroll position for the new content above.
+					renderRange = {
+						start: renderRange.start + countDelta,
+						end: Math.min(renderRange.end + countDelta, items.length),
+					};
+					updateOffsets();
+					await tick();
+					// Compensation exactly matches the offset.top increase from
+					// the new (unmeasured) items, keeping visual position stable.
+					const compensation = countDelta * defaultHeight;
+					viewport.scrollBy({ top: compensation });
+					await recalculateRanges();
+				} else {
+					await tick();
+					if (stickToBottom && tailChanged && !headChanged) {
 						await recalculateRanges();
-						if (getDistanceFromBottom() !== 0) {
+						const dist = getDistanceFromBottom();
+						if (dist < STICKY_DISTANCE) {
 							scrollToBottom();
+						} else {
+							hasNewItemsAtBottom = true;
 						}
-					} else {
-						const count = items.length;
-						hasNewItemsAtBottom = count > previousCount && count > visibleRange.end;
 					}
 				}
 				updateOffsets();
-			});
-		}
-		previousCount = items.length;
+			} else {
+				await tick();
+				if (stickToBottom && previousDistance < STICKY_DISTANCE) {
+					await recalculateRanges();
+					if (getDistanceFromBottom() !== 0) {
+						scrollToBottom();
+					}
+				}
+			}
+		});
+		previousItems = [...items];
 	});
 
 	$effect(() => {
@@ -581,7 +654,7 @@
 		<div
 			class="children"
 			use:resizeObserver={() => {
-				if (stickToBottom && previousDistance < STICKY_DISTANCE) {
+				if (stickToBottom && previousDistance < STICKY_DISTANCE && getDistanceFromBottom() > 2) {
 					scrollToBottom();
 				}
 			}}

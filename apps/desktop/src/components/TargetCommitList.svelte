@@ -96,6 +96,7 @@
 						visibility={$userSettings.scrollbarVisibilityState}
 						onloadmore={async () => await loadMore()}
 						renderDistance={100}
+						getId={(commit) => commit.id}
 					>
 						{#snippet template(commit, index)}
 							<CommitRow

@@ -9,6 +9,28 @@
 		asyncContent?: { delay: number; height: number };
 		startIndex?: number;
 		onloadmore?: () => Promise<void>;
+		showBottomButton?: boolean;
+		onVisibleChange?: (change: { start: number; end: number }) => void;
+		renderDistance?: number;
+		/**
+		 * When set, onloadmore will automatically prepend this many items.
+		 * Simulates the IRC history-loading pattern where scrolling near the top
+		 * loads older messages that get prepended to the list.
+		 */
+		loadMorePrependCount?: number;
+		/**
+		 * When true, items get variable heights based on index:
+		 * - Every 5th item: 200px (like a message with code block)
+		 * - Every 3rd item: 60px (medium message)
+		 * - Others: 30px (short message)
+		 * This overrides the default .test-item min-height: 100px.
+		 */
+		variableHeights?: boolean;
+		/**
+		 * When set, overrides the default 100px min-height on .test-item.
+		 * Use to simulate small items like IRC rows (e.g., itemHeight: 16).
+		 */
+		itemHeight?: number;
 	};
 
 	const {
@@ -18,17 +40,43 @@
 		stickToBottom = false,
 		startIndex,
 		onloadmore,
+		showBottomButton = false,
+		onVisibleChange,
+		renderDistance = 0,
+		loadMorePrependCount,
+		variableHeights = false,
+		itemHeight,
 	}: Props = $props();
+
+	function getItemHeight(index: number): number {
+		if (index % 5 === 0) return 200; // code block / long message
+		if (index % 3 === 0) return 60; // medium message
+		return 30; // short message
+	}
 
 	let items = $state(Array.from({ length: itemCount }, (_, i) => `Item ${i + 1}`));
 	let container = $state<HTMLDivElement>();
 	let loadMoreCallCount = $state(0);
 	let virtualList = $state<any>();
 	let showFooter = $state(false);
+	let visibleStart = $state(-1);
+	let visibleEnd = $state(-1);
 
-	// Wrap the onloadmore prop to track call count
+	function handleVisibleChange(change: { start: number; end: number }) {
+		visibleStart = change.start;
+		visibleEnd = change.end;
+		onVisibleChange?.(change);
+	}
+
+	// Wrap the onloadmore prop to track call count and optionally auto-prepend
 	async function handleLoadMore() {
 		loadMoreCallCount++;
+		if (loadMorePrependCount) {
+			const count = loadMorePrependCount;
+			const base = items.length;
+			const newItems = Array.from({ length: count }, (_, i) => `History ${base + i + 1}`);
+			items.unshift(...newItems);
+		}
 		if (onloadmore) {
 			await onloadmore();
 		}
@@ -50,6 +98,49 @@
 
 	function addItem() {
 		items.push(`Item ${items.length + 1}`);
+	}
+
+	function prependItem() {
+		items.unshift(`Prepended ${Date.now()}`);
+	}
+
+	function replaceAllItems() {
+		items = Array.from({ length: 15 }, (_, i) => `Replaced ${i + 1}`);
+	}
+
+	/**
+	 * Simulates switching to a completely different view.
+	 * Both head and tail IDs change, and the item count differs.
+	 */
+	let chatId = $state(0);
+	function switchItems() {
+		chatId++;
+		const count = chatId % 2 === 1 ? 74 : 101;
+		items = Array.from({ length: count }, (_, i) => `Chat${chatId}-Msg${i}`);
+	}
+
+	/**
+	 * Prepend a batch of items (simulates history loading).
+	 * Adds 50 items at the front with unique IDs.
+	 */
+	let batchId = $state(0);
+	function prependBatch() {
+		batchId++;
+		const newItems = Array.from({ length: 50 }, (_, i) => `Batch${batchId}-${i}`);
+		items = [...newItems, ...items];
+	}
+
+	function removeLastItem() {
+		if (items.length > 0) {
+			items.pop();
+		}
+	}
+
+	function addBatchItems() {
+		const start = items.length;
+		for (let i = 0; i < 10; i++) {
+			items.push(`Batch ${start + i + 1}`);
+		}
 	}
 
 	function expandLast() {
@@ -94,11 +185,22 @@
 		{stickToBottom}
 		{defaultHeight}
 		{startIndex}
-		onloadmore={onloadmore ? handleLoadMore : undefined}
+		{showBottomButton}
+		{renderDistance}
+		onloadmore={onloadmore || loadMorePrependCount ? handleLoadMore : undefined}
+		onVisibleChange={handleVisibleChange}
 		visibility="hover"
+		getId={(item) => item}
 	>
-		{#snippet template(item)}
-			<div class="test-item">
+		{#snippet template(item, index)}
+			<div
+				class="test-item"
+				style:min-height={itemHeight
+					? `${itemHeight}px`
+					: variableHeights
+						? `${getItemHeight(index)}px`
+						: undefined}
+			>
 				<p>{item}</p>
 				{#if asyncContent}
 					{@const { delay, height } = asyncContent}
@@ -112,9 +214,29 @@
 			<div class="footer" data-testid="footer">Footer Content</div>
 		{/if}
 	</VirtualList>
+	<span data-testid="visible-start" style="display:none">{visibleStart}</span>
+	<span data-testid="visible-end" style="display:none">{visibleEnd}</span>
 	<div class="controls">
 		<button type="button" onclick={addItem}>Add Item</button>
+		<button type="button" onclick={prependItem} data-testid="prepend-item-button">
+			Prepend Item
+		</button>
+		<button type="button" onclick={replaceAllItems} data-testid="replace-items-button">
+			Replace Items
+		</button>
+		<button type="button" onclick={removeLastItem} data-testid="remove-last-button">
+			Remove Last
+		</button>
+		<button type="button" onclick={addBatchItems} data-testid="add-batch-button">
+			Add Batch
+		</button>
 		<button type="button" onclick={expandLast}>Expand Last</button>
+		<button type="button" onclick={switchItems} data-testid="switch-chat-button">
+			Switch Chat
+		</button>
+		<button type="button" onclick={prependBatch} data-testid="prepend-batch-button">
+			Prepend Batch
+		</button>
 		<button type="button" onclick={toggleFooter} data-testid="toggle-footer-button">
 			Toggle Footer
 		</button>
