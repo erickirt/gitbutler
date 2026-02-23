@@ -26,6 +26,7 @@
 	};
 
 	interface Props {
+		projectId: string;
 		testId?: string;
 		branchName: string;
 		poll?: boolean;
@@ -47,6 +48,7 @@
 	}
 
 	const {
+		projectId,
 		testId,
 		poll,
 		prNumber,
@@ -80,7 +82,7 @@
 		if (!prService || draftToggling) return;
 		draftToggling = true;
 		try {
-			await prService.setDraft(prNumber, draft);
+			await prService.setDraft(projectId, prNumber, draft);
 			await prService.fetch(prNumber, { forceRefetch: true });
 		} catch (err: unknown) {
 			showError("Failed to update draft status", err);

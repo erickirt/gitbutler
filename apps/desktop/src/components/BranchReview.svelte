@@ -98,7 +98,7 @@
 				{#if prNumber && stackId}
 					<StackedPullRequestCard {projectId} {stackId} {branchName} {prNumber} poll />
 				{:else if prNumber}
-					<PullRequestCard {branchName} {prNumber} poll />
+					<PullRequestCard {projectId} {branchName} {prNumber} poll />
 				{/if}
 			</div>
 		{/if}

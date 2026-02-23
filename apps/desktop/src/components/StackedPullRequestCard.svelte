@@ -89,6 +89,7 @@
 </script>
 
 <PullRequestCard
+	{projectId}
 	testId={TestId.StackedPullRequestCard}
 	{branchName}
 	{prNumber}

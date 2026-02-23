@@ -176,10 +176,11 @@ export class DefaultForgeFactory implements Reactive<Forge> {
 			});
 		}
 		if (forgeType === "gitlab") {
-			const { gitLabClient, gitLabApi, posthog, dispatch } = this.params;
+			const { gitLabClient, gitLabApi, posthog, dispatch, backendApi } = this.params;
 			return new GitLab({
 				...baseParams,
 				api: gitLabApi,
+				backendApi,
 				client: gitLabClient,
 				posthog: posthog,
 				authenticated: !!gitlabAuthenticated,

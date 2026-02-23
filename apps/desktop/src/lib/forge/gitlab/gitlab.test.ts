@@ -1,7 +1,7 @@
 import { GitLab } from "$lib/forge/gitlab/gitlab";
 import { expect, test, describe, vi } from "vitest";
 import type { GitLabClient } from "$lib/forge/gitlab/gitlabClient.svelte";
-import type { GitLabApi } from "$lib/state/clientState.svelte";
+import type { BackendApi, GitLabApi } from "$lib/state/clientState.svelte";
 
 describe("GitLab", () => {
 	// Mock GitLab API and client
@@ -17,6 +17,10 @@ describe("GitLab", () => {
 	};
 	const gitLabClient = { onReset: () => {} } as any as GitLabClient;
 
+	const MockBackendApi = vi.fn();
+	MockBackendApi.prototype.injectEndpoints = vi.fn();
+	const backendApi: BackendApi = new MockBackendApi();
+
 	const baseBranch = "main";
 	const baseRepo = {
 		domain: "gitlab.example.com",
@@ -27,6 +31,7 @@ describe("GitLab", () => {
 	test("uses https protocol by default when no protocol specified", () => {
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo: baseRepo,
 			baseBranch,
@@ -48,6 +53,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -69,6 +75,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -90,6 +97,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -111,6 +119,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -133,6 +142,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -154,6 +164,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -176,6 +187,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,
@@ -199,6 +211,7 @@ describe("GitLab", () => {
 
 		const gitlab = new GitLab({
 			api: gitLabApi,
+			backendApi,
 			client: gitLabClient,
 			repo,
 			baseBranch,

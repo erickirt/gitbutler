@@ -67,8 +67,8 @@ export class GitHub implements Forge {
 
 	get prService() {
 		if (!this.authenticated) return;
-		const { api: gitHubApi, posthog } = this.params;
-		return new GitHubPrService(gitHubApi, posthog);
+		const { api: gitHubApi, posthog, backendApi } = this.params;
+		return new GitHubPrService(gitHubApi, backendApi, posthog);
 	}
 
 	get repoService() {

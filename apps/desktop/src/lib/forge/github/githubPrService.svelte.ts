@@ -19,19 +19,22 @@ import { writable } from "svelte/store";
 import type { PostHogWrapper } from "$lib/analytics/posthog";
 import type { ForgePrService } from "$lib/forge/interface/forgePrService";
 import type { QueryOptions } from "$lib/state/butlerModule";
-import type { GitHubApi } from "$lib/state/clientState.svelte";
+import type { BackendApi, GitHubApi } from "$lib/state/clientState.svelte";
 import type { StartQueryActionCreatorOptions } from "@reduxjs/toolkit/query";
 
 export class GitHubPrService implements ForgePrService {
 	readonly unit = { name: "Pull request", abbr: "PR", symbol: "#" };
 	loading = writable(false);
 	private api: ReturnType<typeof injectEndpoints>;
+	private backendApi: ReturnType<typeof injectBackendEndpoints>;
 
 	constructor(
 		githubApi: GitHubApi,
+		backendApi: BackendApi,
 		private posthog?: PostHogWrapper,
 	) {
 		this.api = injectEndpoints(githubApi);
+		this.backendApi = injectBackendEndpoints(backendApi);
 	}
 
 	async createPr({
@@ -103,8 +106,8 @@ export class GitHubPrService implements ForgePrService {
 		await this.api.endpoints.updatePr.mutate({ number, update });
 	}
 
-	async setDraft(number: number, draft: boolean) {
-		await this.api.endpoints.setDraft.mutate({ number, draft });
+	async setDraft(projectId: string, reviewId: number, draft: boolean) {
+		await this.backendApi.endpoints.setDraft.mutate({ projectId, reviewId, draft });
 	}
 }
 
@@ -134,6 +137,27 @@ async function fetchRepoPermissions(
 		console.error(`Exception fetching repository permissions for ${owner}/${repo}:`, err);
 		return undefined;
 	}
+}
+
+function injectBackendEndpoints(api: BackendApi) {
+	return api.injectEndpoints({
+		endpoints: (build) => ({
+			setAutoMerge: build.mutation<void, { projectId: string; reviewId: number; enable: boolean }>({
+				extraOptions: { command: "set_review_auto_merge" },
+				query: (args) => args,
+				invalidatesTags: (_res, _err, { reviewId }) => [
+					invalidatesItem(ReduxTag.PullRequests, reviewId),
+				],
+			}),
+			setDraft: build.mutation<void, { projectId: string; reviewId: number; draft: boolean }>({
+				extraOptions: { command: "set_review_draftiness" },
+				query: (args) => args,
+				invalidatesTags: (_res, _err, { reviewId }) => [
+					invalidatesItem(ReduxTag.PullRequests, reviewId),
+				],
+			}),
+		}),
+	});
 }
 
 function injectEndpoints(api: GitHubApi) {
@@ -238,46 +262,6 @@ function injectEndpoints(api: GitHubApi) {
 						},
 						extra: api.extra,
 					});
-					if (result.error) {
-						return { error: result.error };
-					}
-					return { data: undefined };
-				},
-				invalidatesTags: [invalidatesList(ReduxTag.PullRequests)],
-			}),
-			setDraft: build.mutation<void, { number: number; draft: boolean }>({
-				queryFn: async ({ number, draft }, api) => {
-					// First, get the PR's node_id needed for GraphQL mutations
-					const prResult = await ghQuery({
-						domain: "pulls",
-						action: "get",
-						parameters: { pull_number: number },
-						extra: api.extra,
-					});
-					if (prResult.error) {
-						return { error: prResult.error };
-					}
-					const nodeId = prResult.data.node_id;
-
-					// GitHub requires GraphQL to toggle draft status.
-					// Use ghQuery's function form to access the authenticated octokit client.
-					const mutation = draft
-						? `mutation($pullRequestId: ID!) {
-								convertPullRequestToDraft(input: { pullRequestId: $pullRequestId }) {
-									pullRequest { id }
-								}
-							}`
-						: `mutation($pullRequestId: ID!) {
-								markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
-									pullRequest { id }
-								}
-							}`;
-
-					const result = await ghQuery(async (octokit) => {
-						await octokit.graphql(mutation, { pullRequestId: nodeId });
-						return { data: undefined as never };
-					}, api.extra);
-
 					if (result.error) {
 						return { error: result.error };
 					}

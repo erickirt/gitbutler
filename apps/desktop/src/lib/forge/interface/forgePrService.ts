@@ -38,5 +38,5 @@ export interface ForgePrService {
 		prNumber: number,
 		details: { description?: string; state?: "open" | "closed"; targetBase?: string },
 	): Promise<void>;
-	setDraft(prNumber: number, draft: boolean): Promise<void>;
+	setDraft(projectId: string, prNumber: number, draft: boolean): Promise<void>;
 }
