@@ -4172,6 +4172,7 @@ dependencies = [
  "console-subscriber",
  "document-features",
  "git2",
+ "gitbutler-git",
  "gitbutler-oplog",
  "gitbutler-project",
  "gitbutler-repo-actions",
