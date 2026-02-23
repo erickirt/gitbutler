@@ -19,6 +19,8 @@ export type Operation =
 	| 'DiscardHunk'
 	| 'DiscardFile'
 	| 'AmendCommit'
+	| 'Absorb'
+	| 'AutoCommit'
 	| 'UndoCommit'
 	| 'UnapplyBranch'
 	| 'CherryPick'

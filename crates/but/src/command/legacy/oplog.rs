@@ -75,6 +75,7 @@ pub(crate) fn show_oplog(
                     OperationKind::CreateBranch => "BRANCH",
                     OperationKind::AmendCommit => "AMEND",
                     OperationKind::Absorb => "ABSORB",
+                    OperationKind::AutoCommit => "AUTO_COMMIT",
                     OperationKind::UndoCommit => "UNDO",
                     OperationKind::SquashCommit => "SQUASH",
                     OperationKind::UpdateCommitMessage => "REWORD",
