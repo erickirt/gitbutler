@@ -30,6 +30,7 @@ pub fn handle(
                 no_ahead: false,
                 review: false,
                 no_check: false,
+                empty: false,
             }),
             ctx,
             out,
@@ -42,10 +43,13 @@ pub fn handle(
             no_ahead,
             review,
             no_check,
+            empty,
         }) => {
             let ahead = !no_ahead; // Invert the flag
             let check = !no_check; // Invert the flag
-            list::list(ctx, local, remote, all, ahead, review, filter, out, check)?;
+            list::list(
+                ctx, local, remote, all, ahead, review, filter, out, check, empty,
+            )?;
             Ok(())
         }
         Some(Subcommands::Show {
