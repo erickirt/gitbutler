@@ -18,8 +18,6 @@ pub(crate) mod function {
         pub commit_selector: Option<Selector>,
         /// Rejected diff specs from commit creation, matching legacy behavior.
         pub rejected_specs: Vec<(but_core::tree::create_tree::RejectionReason, DiffSpec)>,
-        /// The intermediate tree before cherry-picking back onto the target tree.
-        pub changed_tree_pre_cherry_pick: Option<gix::ObjectId>,
     }
 
     /// Create a commit from `changes` and insert it relative to `relative_to` on `side`.
@@ -54,7 +52,6 @@ pub(crate) mod function {
                 rebase: None,
                 commit_selector: None,
                 rejected_specs: create_out.rejected_specs,
-                changed_tree_pre_cherry_pick: create_out.changed_tree_pre_cherry_pick,
             });
         };
 
@@ -66,7 +63,6 @@ pub(crate) mod function {
             rebase: Some(rebase),
             commit_selector: Some(commit_selector),
             rejected_specs: create_out.rejected_specs,
-            changed_tree_pre_cherry_pick: create_out.changed_tree_pre_cherry_pick,
         })
     }
 
