@@ -81,7 +81,8 @@ pub mod ui {
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase", tag = "type", content = "subject")]
-    /// Specifies where to insert a blank commit
+    /// Specifies a location, usually used to either have something inserted
+    /// relative to it, or for the selected object to actually be replaced.
     pub enum RelativeTo {
         /// Relative to a commit
         #[serde(with = "but_serde::object_id")]
