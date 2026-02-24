@@ -1,4 +1,4 @@
-import { BaseBranch, type RemoteBranchInfo } from "$lib/baseBranch/baseBranch";
+import { BaseBranch, type ForgeProvider, type RemoteBranchInfo } from "$lib/baseBranch/baseBranch";
 import { Code } from "$lib/error/knownErrors";
 import { showError } from "$lib/notifications/toasts";
 import { isReduxError } from "$lib/state/reduxError";
@@ -25,8 +25,12 @@ export const BASE_BRANCH_SERVICE = new InjectionToken<BaseBranchService>("BaseBr
 export default class BaseBranchService {
 	private api: ReturnType<typeof injectEndpoints>;
 
-	constructor(private readonly backendApi: BackendApi) {
+	constructor(readonly backendApi: BackendApi) {
 		this.api = injectEndpoints(backendApi);
+	}
+
+	forgeProvider(projectId: string) {
+		return this.api.endpoints.forgeProvider.useQuery({ projectId });
 	}
 
 	baseBranch(projectId: string) {
@@ -141,6 +145,11 @@ export default class BaseBranchService {
 function injectEndpoints(api: BackendApi) {
 	return api.injectEndpoints({
 		endpoints: (build) => ({
+			forgeProvider: build.query<ForgeProvider | null, { projectId: string }>({
+				extraOptions: { command: "forge_provider" },
+				query: (args) => args,
+				providesTags: [providesType(ReduxTag.ForgeProvider)],
+			}),
 			baseBranch: build.query<unknown, { projectId: string }>({
 				extraOptions: { command: "get_base_branch_data" },
 				query: (args) => args,
@@ -167,6 +176,7 @@ function injectEndpoints(api: BackendApi) {
 				extraOptions: { command: "set_base_branch" },
 				query: (args) => args,
 				invalidatesTags: [
+					invalidatesType(ReduxTag.ForgeProvider),
 					invalidatesType(ReduxTag.BaseBranchData),
 					invalidatesList(ReduxTag.Stacks), // Probably this is still needed??
 					invalidatesList(ReduxTag.StackDetails), // Probably this is still needed??
@@ -176,6 +186,7 @@ function injectEndpoints(api: BackendApi) {
 				extraOptions: { command: "switch_back_to_workspace" },
 				query: (args) => args,
 				invalidatesTags: [
+					invalidatesType(ReduxTag.ForgeProvider),
 					invalidatesType(ReduxTag.BaseBranchData),
 					invalidatesList(ReduxTag.Stacks), // Probably this is still needed??
 					invalidatesList(ReduxTag.StackDetails), // Probably this is still needed??

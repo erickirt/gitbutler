@@ -359,16 +359,17 @@ pub async fn create_review(
 
 /// Make sure that the account that is about to be used in this repository's forge is correctly authenticated.
 async fn ensure_forge_authentication(ctx: &mut Context) -> Result<(), anyhow::Error> {
-    let (storage, base_branch, preferred_forge_user) = {
+    let (storage, forge_repo_info, preferred_forge_user) = {
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
             ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
 
-    let forge_repo_info = base_branch.forge_repo_info.ok_or_else(|| {
+    let forge_repo_info = forge_repo_info.ok_or_else(|| {
         anyhow::anyhow!(
             "Unable to determine the forge for this project. Is target branch associated with a supported forge?"
         )

@@ -518,8 +518,8 @@ async fn resolve_review_map(
     ctx: ThreadSafeContext,
     base_branch: &BaseBranch,
 ) -> Result<HashMap<String, but_forge::ForgeReview>> {
-    let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
-    let Some(forge_repo_info) = base_branch.forge_repo_info.as_ref() else {
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    let Some(forge_repo_info) = forge_repo_info.as_ref() else {
         // No forge? No problem!
         // If there's no forge associated with the base branch, there can't be any reviews.
         // Return an empty map.
@@ -542,6 +542,7 @@ async fn resolve_review_map(
         acc
     });
     let mut resolved_reviews = HashMap::new();
+    let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
     for (key, pr_number) in reviews.drain() {
         if let Ok(resolved) =
             but_forge::get_forge_review(&preferred_forge_user, forge_repo_info, pr_number, &storage)

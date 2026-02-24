@@ -4,7 +4,6 @@ use anyhow::{Context as _, Result, anyhow};
 use but_core::worktree::checkout::UncommitedWorktreeChanges;
 use but_ctx::Context;
 use but_error::Marker;
-use but_forge::ForgeRepoInfo;
 use but_oxidize::{ObjectIdExt, OidExt};
 use gitbutler_branch::GITBUTLER_WORKSPACE_REFERENCE;
 use gitbutler_project::FetchResult;
@@ -46,7 +45,6 @@ pub struct BaseBranch {
     pub diverged_ahead: Vec<git2::Oid>,
     #[serde(with = "but_serde::oid_vec")]
     pub diverged_behind: Vec<git2::Oid>,
-    pub forge_repo_info: Option<ForgeRepoInfo>,
 }
 
 impl BaseBranch {
@@ -362,9 +360,6 @@ pub(crate) fn target_to_base_branch(ctx: &Context, target: &Target) -> Result<Ba
         target.remote_url.clone()
     };
 
-    let forge_accounts = but_forge::get_all_forge_accounts()?;
-    let forge_repo_info = but_forge::derive_forge_repo_info(&remote_url, &forge_accounts);
-
     let base = BaseBranch {
         branch_name: target.branch.fullname(),
         remote_name: target.branch.remote().to_string(),
@@ -386,7 +381,6 @@ pub(crate) fn target_to_base_branch(ctx: &Context, target: &Target) -> Result<Ba
         diverged,
         diverged_ahead,
         diverged_behind,
-        forge_repo_info,
     };
     Ok(base)
 }

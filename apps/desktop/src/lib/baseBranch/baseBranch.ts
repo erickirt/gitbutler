@@ -32,7 +32,6 @@ export class BaseBranch {
 	diverged!: boolean;
 	divergedAhead!: string[];
 	divergedBehind!: string[];
-	forgeRepoInfo!: ForgeRepoInfo | null;
 
 	actualPushRemoteName(): string {
 		return this.pushRemoteName || this.remoteName;
