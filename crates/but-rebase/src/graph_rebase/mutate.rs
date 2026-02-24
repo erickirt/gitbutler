@@ -14,9 +14,13 @@ use crate::graph_rebase::{
 pub enum InsertSide {
     /// When inserting above, any nodes that point to the selector will now
     /// point to the inserted node instead.
+    ///
+    /// IE: Any child commits will become a child of what is getting inserted.
     Above,
     /// When inserting below, any nodes that the selector points to will now be
     /// pointed to by the inserted node instead.
+    ///
+    /// IE: Any parent commits will become a parent of what is getting inserted.
     Below,
 }
 

@@ -15,12 +15,33 @@ pub(crate) mod function {
         /// The successful rebase result, if a new commit was created.
         pub rebase: Option<SuccessfulRebase>,
         /// Selector pointing to the newly created commit, if one was created.
+        ///
+        /// A commit may not be created if all the diff_specs are rejected. See
+        /// [`create_commit`] for more details.
         pub commit_selector: Option<Selector>,
-        /// Rejected diff specs from commit creation, matching legacy behavior.
+        /// Rejected diff specs from commit creation. See [`create_commit`] for
+        /// more details.
         pub rejected_specs: Vec<(but_core::tree::create_tree::RejectionReason, DiffSpec)>,
     }
 
     /// Create a commit from `changes` and insert it relative to `relative_to` on `side`.
+    ///
+    /// Similar to other `editor` based functions, this consumes an editor and
+    /// gives it back as a [`SuccessfulRebase`] which can be used to chain more
+    /// operations or just materialize the result.
+    ///
+    /// `changes` defines which changes from the worktree should be committed.
+    /// See [`create_commit`] for more details.
+    ///
+    /// `relative_to` and `side` determine the position to insert the commit.
+    /// See [`InsertSide`] to learn more about insertion semantics.
+    ///
+    /// `message` will be the message used for the newly created commit.
+    ///
+    /// `context_lines` define how many diff context lines are being used for
+    /// this particular function call. The provided `context_lines` MUST align
+    /// with the `context_lines` value used to generate the `DiffSpec`s passed
+    /// in the `changes` parameter.
     pub fn commit_create(
         mut editor: Editor,
         changes: Vec<DiffSpec>,
