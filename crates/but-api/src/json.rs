@@ -124,6 +124,8 @@ mod hex_hash {
 }
 pub use hex_hash::{HexHash, HexHashString};
 
+use crate::commit::{CommitCreateResult, MoveChangesResult};
+
 mod error {
     //! Utilities to control which errors show in the frontend.
     //!
@@ -437,6 +439,18 @@ pub struct UIMoveChangesResult {
     pub replaced_commits: Vec<(HexHash, HexHash)>,
 }
 
+impl From<MoveChangesResult> for UIMoveChangesResult {
+    fn from(value: MoveChangesResult) -> Self {
+        Self {
+            replaced_commits: value
+                .replaced_commits
+                .into_iter()
+                .map(|(old, new)| (old.into(), new.into()))
+                .collect(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 /// UI type for creating a commit in the rebase graph.
@@ -448,4 +462,17 @@ pub struct UICommitCreateResult {
         but_core::tree::create_tree::RejectionReason,
         but_serde::BStringForFrontend,
     )>,
+}
+
+impl From<CommitCreateResult> for UICommitCreateResult {
+    fn from(value: CommitCreateResult) -> Self {
+        Self {
+            new_commit: value.new_commit.map(Into::into),
+            paths_to_rejected_changes: value
+                .rejected_specs
+                .into_iter()
+                .map(|(r, d)| (r, d.path.into()))
+                .collect(),
+        }
+    }
 }
