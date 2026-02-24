@@ -503,7 +503,7 @@ pub async fn check_forge_account_is_valid(
             {
                 Some(account) => account,
                 None => {
-                    let known_accounts = but_github::list_known_github_accounts(storage).await?;
+                    let known_accounts = but_github::list_known_github_accounts(storage)?;
                     match known_accounts.first() {
                         Some(account) => account.clone(),
                         None => {
@@ -524,7 +524,7 @@ pub async fn check_forge_account_is_valid(
             {
                 Some(account) => account,
                 None => {
-                    let known_accounts = but_gitlab::list_known_gitlab_accounts(storage).await?;
+                    let known_accounts = but_gitlab::list_known_gitlab_accounts(storage)?;
                     match known_accounts.first() {
                         Some(account) => account.clone(),
                         None => {

@@ -154,9 +154,9 @@ pub async fn get_gh_user(
 /// * `Err(_)` - If storage access fails
 #[but_api]
 #[instrument(err(Debug))]
-pub async fn list_known_github_accounts() -> Result<Vec<but_github::GithubAccountIdentifier>> {
+pub fn list_known_github_accounts() -> Result<Vec<but_github::GithubAccountIdentifier>> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
-    but_github::list_known_github_accounts(&storage).await
+    but_github::list_known_github_accounts(&storage)
 }
 
 /// Validates stored GitHub credentials.

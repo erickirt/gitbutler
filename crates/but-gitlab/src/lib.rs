@@ -171,7 +171,7 @@ pub async fn check_credentials(
     }
 }
 
-pub async fn list_known_gitlab_accounts(
+pub fn list_known_gitlab_accounts(
     storage: &but_forge_storage::Controller,
 ) -> Result<Vec<token::GitlabAccountIdentifier>> {
     token::list_known_gitlab_accounts(storage).context("Failed to list known GitLab usernames")

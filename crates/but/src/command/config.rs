@@ -69,7 +69,7 @@ async fn show_overview(ctx: &mut Context, out: &mut OutputChannel) -> Result<()>
     };
 
     // Get forge accounts
-    let known_accounts = but_api::github::list_known_github_accounts().await?;
+    let known_accounts = but_api::github::list_known_github_accounts()?;
     let forge_accounts: Vec<ForgeAccountInfo> = known_accounts
         .iter()
         .map(|account| ForgeAccountInfo {
@@ -434,8 +434,8 @@ pub(crate) async fn forge_config(
 
 /// Show overview of forge configuration (same as list-users)
 async fn forge_show_overview(out: &mut OutputChannel) -> Result<()> {
-    let known_gh_accounts = but_api::github::list_known_github_accounts().await?;
-    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts().await?;
+    let known_gh_accounts = but_api::github::list_known_github_accounts()?;
+    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts()?;
 
     if let Some(out) = out.for_human() {
         if known_gh_accounts.is_empty() && known_gl_accounts.is_empty() {
@@ -886,8 +886,8 @@ fn forget_account(account: &AccountToForget) -> Result<()> {
 async fn forge_forget(username: Option<String>, out: &mut OutputChannel) -> Result<()> {
     use cli_prompts::DisplayPrompt;
 
-    let known_gh_accounts = but_api::github::list_known_github_accounts().await?;
-    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts().await?;
+    let known_gh_accounts = but_api::github::list_known_github_accounts()?;
+    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts()?;
 
     // Gather all potential accounts to delete based on the provided username (or all if no username provided)
     let mut accounts_to_delete: Vec<AccountToForget> = Vec::new();

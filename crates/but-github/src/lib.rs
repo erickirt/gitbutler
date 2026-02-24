@@ -284,7 +284,7 @@ pub async fn check_credentials(
     }
 }
 
-pub async fn list_known_github_accounts(
+pub fn list_known_github_accounts(
     storage: &but_forge_storage::Controller,
 ) -> Result<Vec<token::GithubAccountIdentifier>> {
     token::list_known_github_accounts(storage).context("Failed to list known GitHub usernames")

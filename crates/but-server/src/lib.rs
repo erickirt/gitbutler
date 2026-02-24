@@ -629,12 +629,20 @@ pub async fn run() {
             post(json_response(github::forget_github_account_cmd)),
         )
         .route(
+            "/list_known_github_accounts",
+            post(json_response(github::list_known_github_accounts_cmd)),
+        )
+        .route(
             "/clear_all_github_tokens",
             post(json_response(github::clear_all_github_tokens_cmd)),
         )
         .route(
             "/forget_gitlab_account",
             post(json_response(gitlab::forget_gitlab_account_cmd)),
+        )
+        .route(
+            "/list_known_gitlab_accounts",
+            post(json_response(gitlab::list_known_gitlab_accounts_cmd)),
         )
         .route(
             "/clear_all_gitlab_tokens",
@@ -925,9 +933,6 @@ async fn handle_command(
                 Err(e) => Err(e),
             }
         }
-        "list_known_github_accounts" => {
-            github::list_known_github_accounts().await.map(|r| json!(r))
-        }
         "get_gh_user" => {
             let params = deserialize_json(request.params);
             match params {
@@ -958,9 +963,6 @@ async fn handle_command(
                 }
                 Err(e) => Err(e),
             }
-        }
-        "list_known_gitlab_accounts" => {
-            gitlab::list_known_gitlab_accounts().await.map(|r| json!(r))
         }
         "get_gl_user" => {
             let params = deserialize_json(request.params);

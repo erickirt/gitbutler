@@ -118,9 +118,9 @@ pub async fn get_gl_user(
 /// * `Err(_)` - If storage access fails
 #[but_api]
 #[instrument(err(Debug))]
-pub async fn list_known_gitlab_accounts() -> Result<Vec<but_gitlab::GitlabAccountIdentifier>> {
+pub fn list_known_gitlab_accounts() -> Result<Vec<but_gitlab::GitlabAccountIdentifier>> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
-    but_gitlab::list_known_gitlab_accounts(&storage).await
+    but_gitlab::list_known_gitlab_accounts(&storage)
 }
 
 /// Validates stored GitLab credentials.

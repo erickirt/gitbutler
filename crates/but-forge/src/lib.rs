@@ -129,21 +129,9 @@ fn normalize_host_for_comparison(value: &str) -> String {
 
 /// Get all known forge accounts
 pub fn get_all_forge_accounts() -> anyhow::Result<Vec<ForgeUser>> {
-    if let Ok(handle) = tokio::runtime::Handle::try_current() {
-        tokio::task::block_in_place(|| handle.block_on(get_all_forge_accounts_async()))
-    } else {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()?;
-        runtime.block_on(get_all_forge_accounts_async())
-    }
-}
-
-/// Get all known forge accounts, the way of the async people.
-pub async fn get_all_forge_accounts_async() -> anyhow::Result<Vec<ForgeUser>> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
-    let gh_accounts = but_github::list_known_github_accounts(&storage).await?;
-    let gl_accounts = but_gitlab::list_known_gitlab_accounts(&storage).await?;
+    let gh_accounts = but_github::list_known_github_accounts(&storage)?;
+    let gl_accounts = but_gitlab::list_known_gitlab_accounts(&storage)?;
 
     let mut forge_users = vec![];
     for gh_account in gh_accounts {
