@@ -793,11 +793,19 @@ export class StackService {
 	}
 
 	get amendCommit() {
-		return this.api.endpoints.amendCommit.useMutation();
+		if (get(useNewRebaseEngine)) {
+			return this.api.endpoints.commitAmend.useMutation();
+		} else {
+			return this.api.endpoints.legacyAmendCommit.useMutation();
+		}
 	}
 
 	get amendCommitMutation() {
-		return this.api.endpoints.amendCommit.mutate;
+		if (get(useNewRebaseEngine)) {
+			return this.api.endpoints.commitAmend.mutate;
+		} else {
+			return this.api.endpoints.legacyAmendCommit.mutate;
+		}
 	}
 
 	/** Squash all the commits in a branch together */
@@ -1311,7 +1319,7 @@ function injectEndpoints(api: ClientState["backendApi"], uiState: UiState) {
 					invalidatesList(ReduxTag.HeadSha),
 				],
 			}),
-			amendCommit: build.mutation<
+			legacyAmendCommit: build.mutation<
 				string /** Return value is the updated commit id. */,
 				{
 					projectId: string;
@@ -1328,6 +1336,40 @@ function injectEndpoints(api: ClientState["backendApi"], uiState: UiState) {
 				invalidatesTags: (_result, _error, args) => [
 					invalidatesList(ReduxTag.WorktreeChanges),
 					invalidatesItem(ReduxTag.BranchChanges, args.stackId),
+					invalidatesList(ReduxTag.HeadSha),
+				],
+			}),
+			commitAmend: build.mutation<
+				string /** Return value is the updated commit id. */,
+				{
+					projectId: string;
+					commitId: string;
+					worktreeChanges: DiffSpec[];
+				}
+			>({
+				extraOptions: {
+					command: "commit_amend",
+					actionName: "Amend Commit",
+				},
+				query: ({ projectId, commitId, worktreeChanges }) => ({
+					projectId,
+					commitId,
+					changes: worktreeChanges,
+				}),
+				transformResponse: (response: CreateCommitOutcome) => {
+					if (response.newCommit) {
+						return response.newCommit;
+					}
+
+					const rejected = response.pathsToRejectedChanges
+						.map(([reason, path]) => `${reason}: ${path}`)
+						.join(", ");
+					const details = rejected ? ` Rejected changes: ${rejected}` : "";
+					throw new Error(`Failed to amend commit: no commit was created.${details}`);
+				},
+				invalidatesTags: [
+					invalidatesList(ReduxTag.WorktreeChanges),
+					invalidatesList(ReduxTag.BranchChanges),
 					invalidatesList(ReduxTag.HeadSha),
 				],
 			}),

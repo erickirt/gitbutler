@@ -12,8 +12,10 @@ pub(crate) mod function {
     /// The result of creating and inserting a new commit in the graph rebase editor.
     #[derive(Debug)]
     pub struct CommitCreateOutcome {
-        /// The successful rebase result, if a new commit was created.
-        pub rebase: Option<SuccessfulRebase>,
+        /// A successful rebase result for continuing operations. This will be
+        /// always provided regardless of whether a commit was actually
+        /// created.
+        pub rebase: SuccessfulRebase,
         /// Selector pointing to the newly created commit, if one was created.
         ///
         /// A commit may not be created if all the diff_specs are rejected. See
@@ -70,7 +72,7 @@ pub(crate) mod function {
 
         let Some(new_commit_id) = create_out.new_commit else {
             return Ok(CommitCreateOutcome {
-                rebase: None,
+                rebase: editor.rebase()?,
                 commit_selector: None,
                 rejected_specs: create_out.rejected_specs,
             });
@@ -78,10 +80,9 @@ pub(crate) mod function {
 
         let commit_selector =
             editor.insert(relative_to_selector, Step::new_pick(new_commit_id), side)?;
-        let rebase = editor.rebase()?;
 
         Ok(CommitCreateOutcome {
-            rebase: Some(rebase),
+            rebase: editor.rebase()?,
             commit_selector: Some(commit_selector),
             rejected_specs: create_out.rejected_specs,
         })
