@@ -31,7 +31,12 @@ fn determine_forge_from_host(host: &str) -> Option<ForgeName> {
 }
 
 /// Derive the forge repository information from a remote URL.
-pub fn derive_forge_repo_info(url: &str, accounts: &[ForgeUser]) -> Option<ForgeRepoInfo> {
+///
+/// If the forge type can't be determined by simply looking for keywords in the repositories URL,
+/// look through all the known accounts and try to match their custom host strings to the repository's URL host.
+/// Looking at the known accounts involves retrieving data from storage, so that is a bit more expensive
+/// and that's why it's a fallback mechanism.
+pub fn derive_forge_repo_info(url: &str) -> Option<ForgeRepoInfo> {
     let git_url = GitUrl::parse(url).ok()?;
     let host = git_url.host()?;
     let protocol = git_url.scheme()?;
@@ -39,8 +44,11 @@ pub fn derive_forge_repo_info(url: &str, accounts: &[ForgeUser]) -> Option<Forge
     let provider_info: GenericProvider = git_url.provider_info().ok()?;
     // Attempt to figure out the forge by looking at the host string and
     // falling back to matching it to the known accounts custom host URL.
-    let forge = determine_forge_from_host(host)
-        .or_else(|| match_host_to_accounts_custom_host(host, accounts))?;
+    let forge = determine_forge_from_host(host).or_else(|| {
+        // Only fetch the accounts if it can't determine the forge type from the repository's host.
+        let accounts = get_all_forge_accounts().unwrap_or_default();
+        match_host_to_accounts_custom_host(host, &accounts)
+    })?;
 
     Some(ForgeRepoInfo {
         forge,
@@ -131,7 +139,8 @@ pub fn get_all_forge_accounts() -> anyhow::Result<Vec<ForgeUser>> {
     }
 }
 
-async fn get_all_forge_accounts_async() -> anyhow::Result<Vec<ForgeUser>> {
+/// Get all known forge accounts, the way of the async people.
+pub async fn get_all_forge_accounts_async() -> anyhow::Result<Vec<ForgeUser>> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
     let gh_accounts = but_github::list_known_github_accounts(&storage).await?;
     let gl_accounts = but_gitlab::list_known_gitlab_accounts(&storage).await?;
@@ -151,8 +160,7 @@ async fn get_all_forge_accounts_async() -> anyhow::Result<Vec<ForgeUser>> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ForgeName, ForgeUser, derive_forge_repo_info, match_host_to_accounts_custom_host,
-        normalize_host_for_comparison,
+        ForgeName, ForgeUser, match_host_to_accounts_custom_host, normalize_host_for_comparison,
     };
 
     #[test]
@@ -283,38 +291,5 @@ mod tests {
             normalize_host_for_comparison("  repository.com.  "),
             "repository.com"
         );
-    }
-
-    #[test]
-    fn derive_forge_repo_info_uses_custom_host_when_known_forge_is_not_detected() {
-        let accounts = vec![ForgeUser::GitLab(
-            but_gitlab::GitlabAccountIdentifier::selfhosted(
-                "bob",
-                "https://api.repository.com/v1/api",
-            ),
-        )];
-
-        let info = derive_forge_repo_info("https://repository.com/org/repo.git", &accounts)
-            .expect("expected forge info");
-
-        assert_eq!(info.forge, ForgeName::GitLab);
-        assert_eq!(info.owner, "org");
-        assert_eq!(info.repo, "repo");
-        assert_eq!(info.protocol, "https");
-    }
-
-    #[test]
-    fn derive_forge_repo_info_prefers_known_forge_from_repository_host() {
-        let accounts = vec![ForgeUser::GitLab(
-            but_gitlab::GitlabAccountIdentifier::selfhosted(
-                "bob",
-                "https://api.repository.com/v1/api",
-            ),
-        )];
-
-        let info = derive_forge_repo_info("https://github.com/org/repo.git", &accounts)
-            .expect("expected forge info");
-
-        assert_eq!(info.forge, ForgeName::GitHub);
     }
 }
