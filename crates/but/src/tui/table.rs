@@ -21,6 +21,9 @@ pub struct Cell {
     pub content: String,
     pub width: Option<usize>,
     pub align: Alignment,
+    /// If true, this column will never be truncated when shrinking to fit the terminal.
+    /// Other flexible columns will be shrunk first.
+    pub no_truncate: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,11 +37,18 @@ impl Cell {
             content: content.into(),
             width: None,
             align: Alignment::Left,
+            no_truncate: false,
         }
     }
 
     pub fn with_width(mut self, width: usize) -> Self {
         self.width = Some(width);
+        self
+    }
+
+    /// Mark this column as never truncatable. Other flexible columns will shrink first.
+    pub fn no_truncate(mut self) -> Self {
+        self.no_truncate = true;
         self
     }
 }
@@ -122,9 +132,10 @@ impl Table {
         let separator_width = num_columns.saturating_sub(1); // spaces between columns
         let total_fixed_width: usize = widths.iter().sum::<usize>() + separator_width;
 
-        // If we exceed terminal width, shrink columns proportionally
+        // If we exceed terminal width, shrink flexible columns to fit.
+        // Columns marked `no_truncate` keep their full content width;
+        // only other flexible columns are shrunk.
         if total_fixed_width > self.terminal_width {
-            // Find columns without explicit widths (flexible columns)
             let flexible_indices: Vec<usize> = self
                 .headers
                 .iter()
@@ -133,15 +144,44 @@ impl Table {
                 .collect();
 
             if !flexible_indices.is_empty() {
-                let fixed_width: usize = self.headers.iter().filter_map(|h| h.width).sum();
+                let fixed_width: usize = self
+                    .headers
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, h)| {
+                        if h.width.is_some() {
+                            Some(widths[i])
+                        } else {
+                            None
+                        }
+                    })
+                    .sum();
 
                 let available_for_flexible = self
                     .terminal_width
                     .saturating_sub(fixed_width + separator_width);
-                let per_flexible = available_for_flexible / flexible_indices.len();
 
-                for &idx in &flexible_indices {
-                    widths[idx] = widths[idx].min(per_flexible);
+                // Separate no_truncate columns from shrinkable ones
+                let no_truncate_width: usize = flexible_indices
+                    .iter()
+                    .filter(|&&i| self.headers[i].no_truncate)
+                    .map(|&i| widths[i])
+                    .sum();
+
+                let shrinkable_indices: Vec<usize> = flexible_indices
+                    .iter()
+                    .filter(|&&i| !self.headers[i].no_truncate)
+                    .copied()
+                    .collect();
+
+                if !shrinkable_indices.is_empty() {
+                    let available_for_shrinkable =
+                        available_for_flexible.saturating_sub(no_truncate_width);
+                    let per_shrinkable = available_for_shrinkable / shrinkable_indices.len();
+
+                    for &idx in &shrinkable_indices {
+                        widths[idx] = widths[idx].min(per_shrinkable);
+                    }
                 }
             }
         }
