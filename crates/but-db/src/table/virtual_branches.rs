@@ -12,8 +12,7 @@ pub(crate) const M: &[M<'static>] = &[M::up(
 	`default_target_push_remote_name` TEXT,
 	`last_pushed_base_sha` TEXT,
 	`toml_last_seen_mtime_ns` INTEGER,
-	`toml_last_seen_sha256` TEXT,
-	`toml_mirror_dirty` INTEGER NOT NULL DEFAULT 0
+	`toml_last_seen_sha256` TEXT
 );
 
 CREATE TABLE `vb_stacks`(
@@ -84,8 +83,6 @@ pub struct VbState {
     pub toml_last_seen_mtime_ns: Option<i64>,
     /// Last observed SHA-256 for `virtual_branches.toml`.
     pub toml_last_seen_sha256: Option<String>,
-    /// `true` when DB was mutated and the TOML mirror still needs to be refreshed.
-    pub toml_mirror_dirty: bool,
 }
 
 /// Normalized stack row from `vb_stacks`.
@@ -246,8 +243,7 @@ impl VirtualBranchesHandle<'_> {
                             default_target_push_remote_name,
                             last_pushed_base_sha,
                             toml_last_seen_mtime_ns,
-                            toml_last_seen_sha256,
-                            toml_mirror_dirty
+                            toml_last_seen_sha256
                      FROM vb_state
                      WHERE id = 1",
                 )?;
@@ -265,7 +261,6 @@ impl VirtualBranchesHandle<'_> {
                     last_pushed_base_sha: row.get(6)?,
                     toml_last_seen_mtime_ns: row.get(7)?,
                     toml_last_seen_sha256: row.get(8)?,
-                    toml_mirror_dirty: row.get(9)?,
                 }
             };
 
@@ -389,10 +384,9 @@ impl VirtualBranchesHandleMut<'_> {
                 default_target_push_remote_name,
                 last_pushed_base_sha,
                 toml_last_seen_mtime_ns,
-                toml_last_seen_sha256,
-                toml_mirror_dirty
+                toml_last_seen_sha256
              ) VALUES (
-                1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10
+                1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
              )
              ON CONFLICT(id) DO UPDATE SET
                 initialized = excluded.initialized,
@@ -403,8 +397,7 @@ impl VirtualBranchesHandleMut<'_> {
                 default_target_push_remote_name = excluded.default_target_push_remote_name,
                 last_pushed_base_sha = excluded.last_pushed_base_sha,
                 toml_last_seen_mtime_ns = excluded.toml_last_seen_mtime_ns,
-                toml_last_seen_sha256 = excluded.toml_last_seen_sha256,
-                toml_mirror_dirty = excluded.toml_mirror_dirty",
+                toml_last_seen_sha256 = excluded.toml_last_seen_sha256",
             rusqlite::params![
                 state.initialized,
                 state.default_target_remote_name,
@@ -415,7 +408,6 @@ impl VirtualBranchesHandleMut<'_> {
                 state.last_pushed_base_sha,
                 state.toml_last_seen_mtime_ns,
                 state.toml_last_seen_sha256,
-                state.toml_mirror_dirty,
             ],
         )?;
         Ok(())

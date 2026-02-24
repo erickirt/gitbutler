@@ -125,7 +125,6 @@ fn set_state_upsert_updates_existing_row() -> anyhow::Result<()> {
     let mut initial = VbState {
         initialized: true,
         default_target_branch_name: Some("main".into()),
-        toml_mirror_dirty: true,
         ..VbState::default()
     };
     {
@@ -136,7 +135,6 @@ fn set_state_upsert_updates_existing_row() -> anyhow::Result<()> {
     initial.default_target_branch_name = Some("next".into());
     initial.toml_last_seen_mtime_ns = Some(123);
     initial.toml_last_seen_sha256 = Some("abc123".into());
-    initial.toml_mirror_dirty = false;
     {
         let handle = db.virtual_branches_mut()?;
         handle.set_state(&initial)?;
@@ -160,7 +158,6 @@ fn toml_sync_metadata_roundtrips_across_replacements() -> anyhow::Result<()> {
     let mut first = sample_snapshot();
     first.state.toml_last_seen_mtime_ns = Some(100);
     first.state.toml_last_seen_sha256 = Some("hash-first".into());
-    first.state.toml_mirror_dirty = true;
     {
         let handle = db.virtual_branches_mut()?;
         handle.replace_snapshot(&first)?;
@@ -169,7 +166,6 @@ fn toml_sync_metadata_roundtrips_across_replacements() -> anyhow::Result<()> {
     let mut second = first.clone();
     second.state.toml_last_seen_mtime_ns = Some(101);
     second.state.toml_last_seen_sha256 = Some("hash-second".into());
-    second.state.toml_mirror_dirty = false;
     {
         let handle = db.virtual_branches_mut()?;
         handle.replace_snapshot(&second)?;
@@ -184,7 +180,6 @@ fn toml_sync_metadata_roundtrips_across_replacements() -> anyhow::Result<()> {
         snapshot.state.toml_last_seen_sha256.as_deref(),
         Some("hash-second")
     );
-    assert!(!snapshot.state.toml_mirror_dirty);
     Ok(())
 }
 
@@ -405,7 +400,6 @@ fn sample_snapshot() -> VirtualBranchesSnapshot {
             last_pushed_base_sha: Some("2222222222222222222222222222222222222222".into()),
             toml_last_seen_mtime_ns: Some(42),
             toml_last_seen_sha256: Some("abc".into()),
-            toml_mirror_dirty: false,
         },
         stacks: vec![VbStack {
             id: "stack-a".into(),

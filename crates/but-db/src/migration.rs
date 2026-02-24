@@ -165,7 +165,7 @@ const DIESEL_SCHEMA_MIGRATION_TABLE: &str =
 /// Also, it's a known issue, maybe order matters?
 /// <https://github.com/diesel-rs/diesel/issues/2365#issuecomment-2899347817>
 /// TODO: the busy_timeout doesn't seem to be effective.
-pub(crate) fn improve_concurrency(conn: &rusqlite::Connection) -> anyhow::Result<()> {
+pub fn improve_concurrency(conn: &rusqlite::Connection) -> anyhow::Result<()> {
     let query = r#"
         PRAGMA journal_mode = WAL;               -- better write-concurrency,
         PRAGMA synchronous = NORMAL;             -- fsync only in critical moments,

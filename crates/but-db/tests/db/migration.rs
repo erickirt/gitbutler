@@ -361,8 +361,7 @@ mod run {
         	`default_target_push_remote_name` TEXT,
         	`last_pushed_base_sha` TEXT,
         	`toml_last_seen_mtime_ns` INTEGER,
-        	`toml_last_seen_sha256` TEXT,
-        	`toml_mirror_dirty` INTEGER NOT NULL DEFAULT 0
+        	`toml_last_seen_sha256` TEXT
         );
 
         -- table workflows
@@ -477,7 +476,7 @@ mod run {
         id | name | output_summary | output_text | output_title | started_at | status_type | status_conclusion | status_completed_at | head_sha | url | html_url | details_url | pull_requests | reference | last_sync_at | struct_version
 
         Table: vb_state
-        id | initialized | default_target_remote_name | default_target_branch_name | default_target_remote_url | default_target_sha | default_target_push_remote_name | last_pushed_base_sha | toml_last_seen_mtime_ns | toml_last_seen_sha256 | toml_mirror_dirty
+        id | initialized | default_target_remote_name | default_target_branch_name | default_target_remote_url | default_target_sha | default_target_push_remote_name | last_pushed_base_sha | toml_last_seen_mtime_ns | toml_last_seen_sha256
 
         Table: vb_stacks
         id | source_refname | upstream_remote_name | upstream_branch_name | sort_order | in_workspace | legacy_name | legacy_notes | legacy_ownership | legacy_allow_rebasing | legacy_post_commits | legacy_tree_sha | legacy_head_sha | legacy_created_timestamp_ms | legacy_updated_timestamp_ms

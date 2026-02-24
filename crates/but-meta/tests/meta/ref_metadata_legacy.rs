@@ -24,11 +24,14 @@ fn journey() -> anyhow::Result<()> {
     roundtrip_journey(&mut store)?;
     let writable_toml_path = store.path().to_owned();
     drop(store);
+    // The file exists, but is empty and valid. This is handled correctly by code
+    // that cares about the file.
+    insta::assert_snapshot!(std::fs::read_to_string(&writable_toml_path)?, @"
+    [branch_targets]
 
-    assert!(
-        !writable_toml_path.exists(),
-        "The file is deleted when the workspace is removed"
-    );
+    [branches]
+    ");
+
     let store = VirtualBranchesTomlMetadata::from_path(&writable_toml_path)?;
     assert_eq!(
         store.iter().count(),
@@ -37,9 +40,14 @@ fn journey() -> anyhow::Result<()> {
     );
     drop(store);
     assert!(
-        !writable_toml_path.exists(),
-        "default content isn't written back either"
+        writable_toml_path.exists(),
+        "default content is mirrored back to TOML"
     );
+    insta::assert_snapshot!(std::fs::read_to_string(&writable_toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
 
     Ok(())
 }
@@ -279,9 +287,20 @@ fn read_only() -> anyhow::Result<()> {
 
     let toml_path = store.path().to_owned();
     assert!(toml_path.exists(), "the file is still present");
+    let toml_content = std::fs::read_to_string(&toml_path)?;
     let was_deleted = store.remove("refs/heads/gitbutler/workspace".try_into()?)?;
     assert!(was_deleted, "This basically clears out everything");
-    assert!(!toml_path.exists(), "implemented brutally by file deletion");
+    assert!(
+        toml_path.exists(),
+        "workspace clear keeps an empty TOML mirror"
+    );
+    // The file exists, but is empty and valid. This is handled correctly by code
+    // that cares about the file.
+    assert_eq!(
+        std::fs::read_to_string(&toml_path)?,
+        toml_content,
+        "The content of the toml file didn't change as syncing happens on drop"
+    );
 
     // Asking for the workspace
     let ws = store.workspace("refs/heads/gitbutler/integration".try_into()?)?;
@@ -303,10 +322,13 @@ fn read_only() -> anyhow::Result<()> {
 
     drop(store);
 
-    assert!(
-        !toml_path.exists(),
-        "It won't recreate a previously deleted file"
-    );
+    assert!(toml_path.exists(), "the TOML mirror stays available");
+    insta::assert_snapshot!(std::fs::read_to_string(&toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
+
     Ok(())
 }
 
@@ -518,7 +540,12 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     let branch_name: gix::refs::FullName = "refs/heads/feat".try_into()?;
     let mut branch = store.branch(branch_name.as_ref())?;
     assert!(branch.is_default(), "nothing was there yet");
-    assert!(!toml_path.exists(), "file wasn't written yet");
+    assert!(toml_path.exists(), "TOML mirror exists from initialization");
+    insta::assert_snapshot!(std::fs::read_to_string(&toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
     assert_eq!(branch.stack_id(), None, "default values have no stack-id");
 
     branch.review = but_core::ref_metadata::Review {
@@ -879,9 +906,14 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     "#);
 
     drop(store);
+    insta::assert_snapshot!(std::fs::read_to_string(&toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
     assert!(
-        !toml_path.exists(),
-        "if everything is just the default, the file is deleted on write"
+        toml_path.exists(),
+        "default state is still mirrored into TOML"
     );
 
     let mut store = VirtualBranchesTomlMetadata::from_path(&toml_path)?;
@@ -1427,5 +1459,41 @@ fn legacy_change_id_deserializes_as_null_sha() -> anyhow::Result<()> {
         "legacy ChangeId should deserialize as null SHA to allow loading old toml files"
     );
 
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn falls_back_to_in_memory_db_when_persistent_db_open_fails() -> anyhow::Result<()> {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let tmp = tempdir()?;
+    let toml_path = tmp.path().join("virtual_branches.toml");
+    std::fs::write(&toml_path, "[branch_targets]\n\n[branches]\n")?;
+
+    let original_permissions = std::fs::metadata(tmp.path())?.permissions();
+    let mut read_only_permissions = original_permissions.clone();
+    read_only_permissions.set_mode(0o555);
+    std::fs::set_permissions(tmp.path(), read_only_permissions)?;
+
+    let store_result = VirtualBranchesTomlMetadata::from_path(&toml_path);
+
+    // Restore permissions so TempDir cleanup can remove the directory.
+    std::fs::set_permissions(tmp.path(), original_permissions)?;
+
+    let _store = store_result?;
+
+    assert!(
+        !tmp.path().join("but.sqlite").exists(),
+        "failed on-disk DB open should not leave a persistent sqlite file behind"
+    );
+    assert!(
+        !tmp.path().join("but.sqlite-wal").exists(),
+        "failed on-disk DB open should not leave sqlite wal sidecars behind"
+    );
+    assert!(
+        !tmp.path().join("but.sqlite-shm").exists(),
+        "failed on-disk DB open should not leave sqlite shm sidecars behind"
+    );
     Ok(())
 }
