@@ -38,11 +38,10 @@ fn commit_above_commit() -> Result<()> {
     )?;
 
     assert!(outcome.rejected_specs.is_empty());
-    let rebase = outcome.rebase.expect("a new commit was created");
     let selector = outcome
         .commit_selector
         .expect("a selector for the new commit");
-    let materialized = rebase.materialize()?;
+    let materialized = outcome.rebase.materialize()?;
     let new_commit_id = materialized.lookup_pick(selector)?;
 
     let new_commit = repo.find_commit(new_commit_id)?;
@@ -85,11 +84,10 @@ fn commit_below_commit() -> Result<()> {
     )?;
 
     assert!(outcome.rejected_specs.is_empty());
-    let rebase = outcome.rebase.expect("a new commit was created");
     let selector = outcome
         .commit_selector
         .expect("a selector for the new commit");
-    let materialized = rebase.materialize()?;
+    let materialized = outcome.rebase.materialize()?;
     let new_commit_id = materialized.lookup_pick(selector)?;
 
     let new_commit = repo.find_commit(new_commit_id)?;
@@ -126,11 +124,10 @@ fn commit_above_reference() -> Result<()> {
     )?;
 
     assert!(outcome.rejected_specs.is_empty());
-    let rebase = outcome.rebase.expect("a new commit was created");
     let selector = outcome
         .commit_selector
         .expect("a selector for the new commit");
-    let materialized = rebase.materialize()?;
+    let materialized = outcome.rebase.materialize()?;
     let new_commit_id = materialized.lookup_pick(selector)?;
 
     let new_commit = repo.find_commit(new_commit_id)?;
@@ -178,11 +175,10 @@ fn commit_below_merge_commit_uses_first_parent() -> Result<()> {
     )?;
 
     assert!(outcome.rejected_specs.is_empty());
-    let rebase = outcome.rebase.expect("a new commit was created");
     let selector = outcome
         .commit_selector
         .expect("a selector for the new commit");
-    let materialized = rebase.materialize()?;
+    let materialized = outcome.rebase.materialize()?;
     let new_commit_id = materialized.lookup_pick(selector)?;
 
     let new_commit = repo.find_commit(new_commit_id)?;
@@ -220,10 +216,6 @@ fn commit_all_rejected_is_noop() -> Result<()> {
         0,
     )?;
 
-    assert!(
-        outcome.rebase.is_none(),
-        "no rebase should happen if nothing was committed"
-    );
     assert!(
         outcome.commit_selector.is_none(),
         "no selector if there is no new commit"

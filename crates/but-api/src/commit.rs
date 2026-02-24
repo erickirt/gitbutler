@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use anyhow::bail;
 use bstr::{BString, ByteSlice};
 use but_api_macros::but_api;
 use but_core::{DiffSpec, sync::RepoExclusive, tree::create_tree::RejectionReason};
@@ -229,13 +228,12 @@ pub(crate) fn commit_create_only_impl(
         context_lines,
     )?;
 
-    let new_commit = match (rebase, commit_selector) {
-        (Some(rebase), Some(commit_selector)) => {
+    let new_commit = match commit_selector {
+        Some(commit_selector) => {
             let materialized = rebase.materialize()?;
             Some(materialized.lookup_pick(commit_selector)?)
         }
-        (None, None) => None,
-        (Some(_), None) | (None, Some(_)) => bail!("BUG: inconsistent commit outcome"),
+        None => None,
     };
 
     ws.refresh_from_head(&repo, &meta)?;
