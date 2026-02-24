@@ -1,11 +1,14 @@
 //! Provides some slightly higher level tools to help with manipulating commits, in preparation for use in the editor.
 
-use anyhow::{Context as _, Result, bail};
+use anyhow::{Context, Result, bail};
 use gix::prelude::ObjectIdExt;
 
 use crate::{
     commit::{DateMode, create},
-    graph_rebase::{Editor, Pick, Selector, Step, ToCommitSelector},
+    graph_rebase::{
+        Editor, Pick, Selector, Step, ToCommitSelector, ToReferenceSelector,
+        util::collect_ordered_parents,
+    },
 };
 
 impl Editor {
@@ -34,6 +37,33 @@ impl Editor {
             bail!("BUG: Expected pick step from commit selector. This should never happen");
         };
         Ok((selector, self.find_commit(*id)?))
+    }
+
+    /// Finds the first pick parent of a reference
+    pub fn find_reference_target(
+        &self,
+        selector: impl ToReferenceSelector,
+    ) -> Result<(Selector, but_core::Commit<'_>)> {
+        let selector = self
+            .history
+            .normalize_selector(selector.to_reference_selector(self)?)?;
+
+        let parents = collect_ordered_parents(&self.graph, selector.id);
+        let first_parent = parents
+            .first()
+            .context("Failed to find a parent for selected reference in the step graph.")?;
+
+        let Step::Pick(pick) = &self.graph[*first_parent] else {
+            bail!("BUG: collect_ordered_parents provided a non-pick return value");
+        };
+
+        Ok((
+            Selector {
+                id: *first_parent,
+                revision: self.history.current_revision(),
+            },
+            self.find_commit(pick.id)?,
+        ))
     }
 
     /// Writes a commit with correct signing to the in memory repository.
