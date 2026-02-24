@@ -75,6 +75,9 @@
 	const baseBranchQuery = $derived(baseBranchService.baseBranch(projectId));
 	const baseBranch = $derived(baseBranchQuery.response);
 	const baseBranchName = $derived(baseBranch?.shortName);
+	const forgeProviderQuery = $derived(baseBranchService.forgeProvider(projectId));
+	const detectedForgeProvider = $derived(forgeProviderQuery.response);
+	const detectedForgeProviderIsLoading = $derived(detectedForgeProvider === undefined);
 
 	// =============================================================================
 	// WORKSPACE & MODE MANAGEMENT
@@ -152,10 +155,11 @@
 			pushRepo: forkInfo,
 			baseBranch: baseBranchName,
 			githubAuthenticated: !!githubAccessToken.accessToken.current,
-			forgeIsLoading: githubAccessToken.isLoading.current || gitlabIsLoading,
+			forgeIsLoading:
+				githubAccessToken.isLoading.current || gitlabIsLoading || detectedForgeProviderIsLoading,
 			githubError: githubAccessToken.error.current,
 			gitlabAuthenticated: !!gitlabAccessToken.accessToken.current,
-			detectedForgeProvider: baseBranch?.forgeRepoInfo?.forge ?? undefined,
+			detectedForgeProvider: detectedForgeProvider ?? undefined,
 			forgeOverride: projects?.find((project) => project.id === projectId)?.forge_override,
 		});
 	});

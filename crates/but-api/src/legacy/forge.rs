@@ -17,6 +17,17 @@ pub fn pr_templates(ctx: &but_ctx::Context, forge: ForgeName) -> Result<Vec<Stri
     Ok(available_review_templates(&ctx.workdir_or_fail()?, &forge))
 }
 
+/// Get the forge provider name.
+///
+/// This is determined by the forge the base branch is pointing to.
+#[but_api]
+#[instrument(err(Debug))]
+pub fn forge_provider(ctx: &Context) -> Result<Option<ForgeName>> {
+    let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    Ok(forge_repo_info.map(|info| info.forge))
+}
+
 /// Get the list of review template paths for the given project.
 #[but_api]
 #[instrument(err(Debug))]
