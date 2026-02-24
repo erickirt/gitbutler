@@ -14,7 +14,6 @@ description = "Store and retrieve information about forges"
 doctest = false
 
 [dependencies]
-but-secret.workspace = true
 but-fs = { workspace = true, features = ["legacy"] }
 
 serde.workspace = true

@@ -1145,7 +1145,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "but-fs",
- "but-secret",
  "serde",
  "serde_json",
 ]
