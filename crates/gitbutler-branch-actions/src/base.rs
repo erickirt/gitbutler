@@ -362,7 +362,8 @@ pub(crate) fn target_to_base_branch(ctx: &Context, target: &Target) -> Result<Ba
         target.remote_url.clone()
     };
 
-    let forge_repo_info = but_forge::derive_forge_repo_info(&remote_url);
+    let forge_accounts = but_forge::get_all_forge_accounts()?;
+    let forge_repo_info = but_forge::derive_forge_repo_info(&remote_url, &forge_accounts);
 
     let base = BaseBranch {
         branch_name: target.branch.fullname(),
