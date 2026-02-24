@@ -12,9 +12,145 @@ use tracing::instrument;
 
 use crate::{
     CliId, IdMap,
+    command::legacy::rub::parse_sources,
     tui::get_text::{self, HTML_COMMENT_END_MARKER, HTML_COMMENT_START_MARKER},
     utils::{Confirm, ConfirmDefault, OutputChannel},
 };
+
+/// Automatically merge the review once all prerequisites are met.
+pub async fn enable_auto_merge(
+    ctx: &mut Context,
+    selector: Option<String>,
+    off: bool,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
+    // Fail fast if no forge user is authenticated, before pushing or prompting.
+    ensure_forge_authentication(ctx).await?;
+
+    let reviews =
+        but_api::legacy::forge::list_reviews(ctx, Some(but_forge::CacheConfig::CacheOnly))
+            .unwrap_or_default();
+    let review_ids = resolve_review_selection(ctx, selector)?;
+
+    if review_ids.is_empty() {
+        if let Some(out) = out.for_human() {
+            writeln!(out, "No reviews selected")?;
+        }
+        return Ok(());
+    }
+    let review_count = review_ids.len();
+
+    let action = if off { "disabled" } else { "enabled" };
+    let mut skipped_reviews = 0;
+
+    // Iterate over the reviews that need to be mutated. Skip if their in an invalid state.
+    for review_id in review_ids {
+        let review_numeric_id: Option<i64> = review_id.try_into().ok();
+        let review = review_numeric_id
+            .and_then(|review_numeric_id| reviews.iter().find(|r| r.number == review_numeric_id));
+
+        if let Some(review) = review {
+            if review.draft {
+                if let Some(out) = out.for_human() {
+                    writeln!(
+                        out,
+                        "Skipping review ({}{}) {}. Review is still draft.",
+                        review.unit_symbol, review.number, review.title
+                    )?;
+                }
+                skipped_reviews += 1;
+                continue;
+            }
+
+            if !review.is_open() {
+                if let Some(out) = out.for_human() {
+                    writeln!(
+                        out,
+                        "Skipping review ({}{}) {}. Review is not open.",
+                        review.unit_symbol, review.number, review.title
+                    )?;
+                }
+                skipped_reviews += 1;
+                continue;
+            }
+
+            if let Some(out) = out.for_human() {
+                writeln!(
+                    out,
+                    "Auto-merge {} for review ({}{}) {}",
+                    action, review.unit_symbol, review.number, review.title
+                )?;
+            }
+        } else if let Some(out) = out.for_human() {
+            writeln!(out, "Auto-merge {action} for review {review_id}")?;
+        }
+
+        but_api::legacy::forge::set_review_auto_merge(ctx.to_sync(), review_id, !off).await?;
+    }
+
+    if let Some(out) = out.for_human() {
+        let actual_reviews_modified = review_count - skipped_reviews;
+        if actual_reviews_modified > 0 {
+            let review_word = if actual_reviews_modified == 1 {
+                "review"
+            } else {
+                "reviews"
+            };
+            writeln!(out, "Auto-merge {action} for {review_count} {review_word}")?;
+        }
+
+        if skipped_reviews > 0 {
+            let review_word = if skipped_reviews == 1 {
+                "review"
+            } else {
+                "reviews"
+            };
+            writeln!(
+                out,
+                "Skipped {review_count} {review_word} because of reasons.\nOnce those reasons have been addressed, run `but fetch` to refetch the data and try again."
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Set the draftiness of or or multiple reviews.
+pub async fn set_draftiness(
+    ctx: &mut Context,
+    selector: Option<String>,
+    draft: bool,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
+    // Fail fast if no forge user is authenticated, before pushing or prompting.
+    ensure_forge_authentication(ctx).await?;
+
+    let review_ids = resolve_review_selection(ctx, selector)?;
+
+    if review_ids.is_empty() {
+        if let Some(out) = out.for_human() {
+            writeln!(out, "No reviews selected for auto-merge")?;
+        }
+        return Ok(());
+    }
+    let review_count = review_ids.len();
+
+    for review_id in review_ids {
+        but_api::legacy::forge::set_review_draftiness(ctx.to_sync(), review_id, draft).await?;
+    }
+
+    if let Some(out) = out.for_human() {
+        let action = if draft { "draft" } else { "ready-for-review" };
+        let review_word = if review_count == 1 {
+            "review"
+        } else {
+            "reviews"
+        };
+        writeln!(out, "{review_count} {review_word} set as {action}.")?;
+    }
+
+    Ok(())
+}
 
 /// Set the review template for the given project.
 pub fn set_review_template(
@@ -929,6 +1065,146 @@ pub fn get_review_numbers(
     }
 }
 
+/// Given a string selector, resolve the selection of review IDs to manipulate.
+///
+/// This function accepts one or a combination of:
+/// - Review IDs (like PR or MR number), as long as they are associated with branches in the workspace.
+/// - CLI IDs, as long as they are for branches or stacks.
+fn resolve_review_selection(
+    ctx: &mut Context,
+    selector: Option<String>,
+) -> anyhow::Result<Vec<usize>> {
+    let id_map = IdMap::new_from_context(ctx, None)?;
+    let applied_stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
+    let target_review_ids = if let Some(selector) = selector {
+        // Extract any review IDs that match any of the associated reviews in the workspace.
+        let mut unique_review_ids = parse_review_ids(&selector, &applied_stacks);
+        // Concatenate any review IDs associated with the selected CliIDs.
+        unique_review_ids.extend(resolve_cli_ids_to_review_ids(
+            ctx,
+            &selector,
+            &applied_stacks,
+            &id_map,
+        ));
+        unique_review_ids.sort();
+        unique_review_ids.dedup();
+        unique_review_ids
+    } else {
+        interactive_review_id_selection(&applied_stacks)?
+    };
+    Ok(target_review_ids)
+}
+
+fn interactive_review_id_selection(
+    applied_stacks: &[but_workspace::legacy::ui::StackEntry],
+) -> anyhow::Result<Vec<usize>> {
+    use cli_prompts::DisplayPrompt;
+
+    #[derive(Debug, Clone)]
+    struct BranchReview<'a> {
+        branch_name: &'a str,
+        review_id: usize,
+    }
+
+    impl From<BranchReview<'_>> for String {
+        fn from(value: BranchReview) -> Self {
+            format!("{} ({})", value.branch_name, value.review_id)
+        }
+    }
+
+    let mut branch_reviews = vec![];
+    for stack in applied_stacks {
+        for head in &stack.heads {
+            if let Some(review_id) = head.review_id {
+                let branch_name = head.name.to_str()?;
+                branch_reviews.push(BranchReview {
+                    branch_name,
+                    review_id,
+                });
+            }
+        }
+    }
+
+    let review_selection_prompt = cli_prompts::prompts::Multiselect::new(
+        "Please select the reviews you want to target.",
+        branch_reviews.into_iter(),
+    );
+
+    let selected_reviews = review_selection_prompt
+        .display()
+        .map_err(|_| anyhow::anyhow!("Unable to determine which reviews to target"))?
+        .iter()
+        .map(|b| b.review_id)
+        .collect::<Vec<_>>();
+
+    Ok(selected_reviews)
+}
+
+fn resolve_cli_ids_to_review_ids(
+    ctx: &mut Context,
+    selector: &str,
+    applied_stacks: &[but_workspace::legacy::ui::StackEntry],
+    id_map: &IdMap,
+) -> Vec<usize> {
+    parse_sources(ctx, id_map, selector)
+        .ok()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|cli_id| match cli_id {
+            CliId::Branch { name, stack_id, .. } => applied_stacks
+                .iter()
+                .find_map(|stack| {
+                    if stack.id == stack_id {
+                        stack.review_for_head(&name)
+                    } else {
+                        None
+                    }
+                })
+                .map(|r| vec![r]),
+            CliId::Stack { stack_id, .. } => applied_stacks.iter().find_map(|stack| {
+                if stack.id == Some(stack_id) {
+                    Some(stack.review_ids())
+                } else {
+                    None
+                }
+            }),
+            // Other selectors simply don't make sense here. I'm truly sorry.
+            // No, but seriously: Only selecting branches or whole stacks make sense, for now.
+            _ => None,
+        })
+        .flatten()
+        .collect::<Vec<_>>()
+}
+
+fn parse_review_ids(
+    selector: &str,
+    applied_stacks: &[but_workspace::legacy::ui::StackEntry],
+) -> Vec<usize> {
+    let valid_review_id_selectors = extract_valid_ids(selector);
+
+    applied_stacks
+        .iter()
+        .flat_map(|stack| {
+            stack
+                .heads
+                .iter()
+                .filter_map(|h| h.review_id)
+                .collect::<Vec<_>>()
+        })
+        .filter(|review_id| valid_review_id_selectors.contains(review_id))
+        .collect::<Vec<_>>()
+}
+
+fn extract_valid_ids(selector: &str) -> Vec<usize> {
+    selector
+        .split(',')
+        .filter_map(|s| s.trim().parse::<usize>().ok())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -987,5 +1263,29 @@ mod tests {
         let result = parse_review_message("\nActual title on second line");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("empty PR title"));
+    }
+
+    #[test]
+    fn extract_valid_ids_parses_comma_separated_numbers() {
+        let ids = extract_valid_ids("1,2,3");
+        assert_eq!(ids, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn extract_valid_ids_trims_whitespace() {
+        let ids = extract_valid_ids(" 1,  2 ,   3 ");
+        assert_eq!(ids, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn extract_valid_ids_ignores_invalid_entries() {
+        let ids = extract_valid_ids("1,abc,3,-5,4.2,,0");
+        assert_eq!(ids, vec![1, 3, 0]);
+    }
+
+    #[test]
+    fn extract_valid_ids_empty_input_returns_empty_vec() {
+        let ids = extract_valid_ids("");
+        assert!(ids.is_empty());
     }
 }
