@@ -125,28 +125,115 @@ pub async fn set_draftiness(
     // Fail fast if no forge user is authenticated, before pushing or prompting.
     ensure_forge_authentication(ctx).await?;
 
+    let reviews =
+        but_api::legacy::forge::list_reviews(ctx, Some(but_forge::CacheConfig::CacheOnly))
+            .unwrap_or_default();
     let review_ids = resolve_review_selection(ctx, selector)?;
 
     if review_ids.is_empty() {
         if let Some(out) = out.for_human() {
-            writeln!(out, "No reviews selected for auto-merge")?;
+            writeln!(out, "No reviews selected")?;
         }
         return Ok(());
     }
     let review_count = review_ids.len();
+    let mut skipped_reviews = 0;
 
+    // Iterate over the reviews and validate the state, before mutating.
     for review_id in review_ids {
+        let review_numeric_id: Option<i64> = review_id.try_into().ok();
+        let review = review_numeric_id
+            .and_then(|review_numeric_id| reviews.iter().find(|r| r.number == review_numeric_id));
+
+        if let Some(review) = review {
+            if !review.is_open() {
+                if let Some(out) = out.for_human() {
+                    writeln!(
+                        out,
+                        "Skipping review ({}{}) {}. Review is not open.",
+                        review.unit_symbol, review.number, review.title
+                    )?;
+                }
+                skipped_reviews += 1;
+                continue;
+            }
+
+            if draft && review.draft {
+                if let Some(out) = out.for_human() {
+                    writeln!(
+                        out,
+                        "Skipping review ({}{}) {}. Review is already draft.",
+                        review.unit_symbol, review.number, review.title
+                    )?;
+                }
+                skipped_reviews += 1;
+                continue;
+            }
+
+            if !draft && !review.draft {
+                if let Some(out) = out.for_human() {
+                    writeln!(
+                        out,
+                        "Skipping review ({}{}) {}. Review is already ready for review.",
+                        review.unit_symbol, review.number, review.title
+                    )?;
+                }
+                skipped_reviews += 1;
+                continue;
+            }
+
+            if let Some(out) = out.for_human() {
+                let action = if draft {
+                    "Set as draft"
+                } else {
+                    "Set as ready for review"
+                };
+                writeln!(
+                    out,
+                    "{} review ({}{}) {}",
+                    action, review.unit_symbol, review.number, review.title
+                )?;
+            }
+        } else if let Some(out) = out.for_human() {
+            let action = if draft {
+                "Set as draft"
+            } else {
+                "Set as ready for review"
+            };
+            writeln!(out, "{action} review {review_id}")?;
+        }
+
         but_api::legacy::forge::set_review_draftiness(ctx.to_sync(), review_id, draft).await?;
     }
 
     if let Some(out) = out.for_human() {
-        let action = if draft { "draft" } else { "ready-for-review" };
-        let review_word = if review_count == 1 {
-            "review"
+        let action = if draft {
+            "set as draft"
         } else {
-            "reviews"
+            "set as ready-for-review"
         };
-        writeln!(out, "{review_count} {review_word} set as {action}.")?;
+        let actual_reviews_modified = review_count - skipped_reviews;
+
+        if actual_reviews_modified > 0 {
+            let review_word = if actual_reviews_modified == 1 {
+                "review"
+            } else {
+                "reviews"
+            };
+            writeln!(out, "{actual_reviews_modified} {review_word} {action}.")?;
+        }
+
+        if skipped_reviews > 0 {
+            let review_word = if skipped_reviews == 1 {
+                "review"
+            } else {
+                "reviews"
+            };
+            writeln!(
+                out,
+                "Skipped {skipped_reviews} {review_word} because review state is incompatible with this action.\nOnce those reasons have been addressed, run `but fetch` to refetch the data and try again."
+            )?;
+        }
     }
 
     Ok(())
