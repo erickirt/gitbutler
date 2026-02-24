@@ -186,7 +186,7 @@ pub async fn set_draftiness(
                 let action = if draft {
                     "Set as draft"
                 } else {
-                    "Set as ready for review"
+                    "Set as ready"
                 };
                 writeln!(
                     out,
@@ -198,7 +198,7 @@ pub async fn set_draftiness(
             let action = if draft {
                 "Set as draft"
             } else {
-                "Set as ready for review"
+                "Set as ready"
             };
             writeln!(out, "{action} review {review_id}")?;
         }
@@ -210,7 +210,7 @@ pub async fn set_draftiness(
         let action = if draft {
             "set as draft"
         } else {
-            "set as ready-for-review"
+            "set as ready"
         };
         let actual_reviews_modified = review_count - skipped_reviews;
 
@@ -1169,7 +1169,11 @@ fn resolve_review_selection(
     )?;
     let target_review_ids = if let Some(selector) = selector {
         // Extract any review IDs that match any of the associated reviews in the workspace.
-        let mut unique_review_ids = parse_review_ids(&selector, &applied_stacks);
+        let review_ids = applied_stacks
+            .iter()
+            .flat_map(|stack| stack.review_ids())
+            .collect::<Vec<_>>();
+        let mut unique_review_ids = parse_review_ids(&selector, &review_ids);
         // Concatenate any review IDs associated with the selected CliIDs.
         unique_review_ids.extend(resolve_cli_ids_to_review_ids(
             ctx,
@@ -1267,21 +1271,12 @@ fn resolve_cli_ids_to_review_ids(
         .collect::<Vec<_>>()
 }
 
-fn parse_review_ids(
-    selector: &str,
-    applied_stacks: &[but_workspace::legacy::ui::StackEntry],
-) -> Vec<usize> {
+fn parse_review_ids(selector: &str, review_ids: &[usize]) -> Vec<usize> {
     let valid_review_id_selectors = extract_valid_ids(selector);
 
-    applied_stacks
+    review_ids
         .iter()
-        .flat_map(|stack| {
-            stack
-                .heads
-                .iter()
-                .filter_map(|h| h.review_id)
-                .collect::<Vec<_>>()
-        })
+        .cloned()
         .filter(|review_id| valid_review_id_selectors.contains(review_id))
         .collect::<Vec<_>>()
 }
@@ -1375,5 +1370,41 @@ mod tests {
     fn extract_valid_ids_empty_input_returns_empty_vec() {
         let ids = extract_valid_ids("");
         assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn parse_review_ids_returns_matching_ids_in_review_order() {
+        let review_ids = vec![42, 7, 13, 99];
+
+        let parsed = parse_review_ids("7,99", &review_ids);
+
+        assert_eq!(parsed, vec![7, 99]);
+    }
+
+    #[test]
+    fn parse_review_ids_ignores_non_matching_and_invalid_selector_values() {
+        let review_ids = vec![1, 2, 3, 4];
+
+        let parsed = parse_review_ids("2,abc,999,-1,4.2", &review_ids);
+
+        assert_eq!(parsed, vec![2]);
+    }
+
+    #[test]
+    fn parse_review_ids_handles_whitespace_and_duplicate_selector_ids() {
+        let review_ids = vec![10, 20, 30];
+
+        let parsed = parse_review_ids(" 20, 20 , 30 ", &review_ids);
+
+        assert_eq!(parsed, vec![20, 30]);
+    }
+
+    #[test]
+    fn parse_review_ids_empty_selector_returns_empty_vec() {
+        let review_ids = vec![1, 2, 3];
+
+        let parsed = parse_review_ids("", &review_ids);
+
+        assert!(parsed.is_empty());
     }
 }
