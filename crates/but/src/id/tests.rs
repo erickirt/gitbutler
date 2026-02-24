@@ -1163,7 +1163,140 @@ fn short_uncommitted_files_are_properly_reverse_hexed() -> anyhow::Result<()> {
         ),
     ]
     "#);
+    Ok(())
+}
 
+#[test]
+fn commit_matches_are_deduplicated_by_commit_oid() -> anyhow::Result<()> {
+    let commit_id = id(2);
+    let stacks = vec![stack([segment(
+        "branch",
+        [commit_id],
+        Some(id(1)),
+        [commit_id],
+    )])];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("02", Box::new(changed_paths_fn))?;
+    assert_eq!(matches.len(), 1);
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Commit { commit_id: id, .. } if *id == commit_id)),
+        "same commit reachable through local and remote views should not be ambiguous"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn dedupe_does_not_hide_ambiguity_between_distinct_commits() -> anyhow::Result<()> {
+    let id1 = hex_to_id("21aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    let id2 = hex_to_id("21bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    let stacks = vec![stack([segment("branch", [id1, id2], None, [])])];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("21", Box::new(changed_paths_fn))?;
+    assert_eq!(
+        matches.len(),
+        2,
+        "distinct commits sharing a prefix must remain ambiguous"
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Commit { commit_id, .. } if *commit_id == id1))
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Commit { commit_id, .. } if *commit_id == id2))
+    );
+
+    Ok(())
+}
+
+#[test]
+fn dedupe_does_not_hide_ambiguity_between_branches_in_different_stacks() -> anyhow::Result<()> {
+    let stacks = vec![
+        Stack {
+            id: Some(StackId::from_number_for_testing(1)),
+            ..stack([segment("foo", [id(1)], None, [])])
+        },
+        Stack {
+            id: Some(StackId::from_number_for_testing(2)),
+            ..stack([segment("foo", [id(2)], None, [])])
+        },
+    ];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("foo", Box::new(changed_paths_fn))?;
+    assert_eq!(
+        matches.len(),
+        2,
+        "same branch name across different stacks must remain ambiguous"
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Branch { name, stack_id, .. } if name == "foo" && *stack_id == Some(StackId::from_number_for_testing(1))))
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Branch { name, stack_id, .. } if name == "foo" && *stack_id == Some(StackId::from_number_for_testing(2))))
+    );
+
+    Ok(())
+}
+
+#[test]
+fn dedupe_does_not_hide_ambiguity_between_unmanaged_branches_with_same_name() -> anyhow::Result<()>
+{
+    use std::collections::HashSet;
+
+    let stacks = vec![
+        stack([segment("foo", [id(1)], None, [])]),
+        stack([segment("foo", [id(2)], None, [])]),
+    ];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("foo", Box::new(changed_paths_fn))?;
+    assert_eq!(
+        matches.len(),
+        2,
+        "same branch name across unmanaged stacks must remain ambiguous"
+    );
+    assert!(matches.iter().all(
+        |m| matches!(m, CliId::Branch { name, stack_id, .. } if name == "foo" && stack_id.is_none())
+    ));
+
+    let unique_ids: HashSet<_> = matches.iter().map(CliId::to_short_string).collect();
+    assert_eq!(
+        unique_ids.len(),
+        2,
+        "the two unmanaged branches must stay distinct"
+    );
     Ok(())
 }
 
