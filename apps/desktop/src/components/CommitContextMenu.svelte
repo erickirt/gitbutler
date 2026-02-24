@@ -253,7 +253,7 @@
 						{#snippet submenu({ close: closeSubmenu })}
 							<ContextMenuSection>
 								<ContextMenuItem
-									label="Branch from this commit"
+									label="Add branch above"
 									disabled={isReadOnly || refCreation.current.isLoading}
 									onclick={async () => {
 										if (!isReadOnly) {
@@ -264,7 +264,7 @@
 									}}
 								/>
 								<ContextMenuItem
-									label="Branch after this commit"
+									label="Add branch below"
 									disabled={isReadOnly || refCreation.current.isLoading}
 									onclick={async () => {
 										if (!isReadOnly) {
