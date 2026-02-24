@@ -230,6 +230,38 @@ fn optional_fields_can_be_none() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn delete_without_existing_is_noop() -> anyhow::Result<()> {
+    let mut cache = in_memory_cache();
+
+    cache.update_check_mut()?.delete()?;
+    let result = cache.update_check().try_get();
+
+    assert_eq!(result, Ok(None));
+
+    Ok(())
+}
+
+#[test]
+fn delete_removes_existing() -> anyhow::Result<()> {
+    let mut cache = in_memory_cache();
+
+    let initial_result = CachedCheckResult {
+        checked_at: DateTime::from_timestamp(1000000, 0).unwrap(),
+        status: sample_status(true),
+        suppressed_at: None,
+        suppress_duration_hours: None,
+    };
+    cache.update_check_mut()?.save(&initial_result)?;
+
+    cache.update_check_mut()?.delete()?;
+
+    let result_after_delete = cache.update_check().try_get();
+    assert_eq!(result_after_delete, Ok(None));
+
+    Ok(())
+}
+
 fn sample_status(up_to_date: bool) -> CheckUpdateStatus {
     CheckUpdateStatus {
         up_to_date,
