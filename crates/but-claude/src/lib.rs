@@ -201,6 +201,10 @@ pub enum SystemMessage {
     CompactFinished {
         summary: String,
     },
+    /// Claude is rate limited and waiting before retrying.
+    RateLimited {
+        retry_after_ms: u64,
+    },
     /// Deprecated and will be removed, see `GitButlerUpdate::CommitCreated`.
     CommitCreated(CommitCreatedDetails),
 }

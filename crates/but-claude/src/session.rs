@@ -590,6 +590,22 @@ impl Claudes {
                                     ).await?;
                                     break;
                                 }
+                                SdkMessage::RateLimitEvent(rate_limit) => {
+                                    tracing::info!(
+                                        stack_id = ?stack_id,
+                                        retry_after_ms = rate_limit.retry_after_ms,
+                                        "Rate limited by API"
+                                    );
+                                    send_message_with_lock(
+                                        &sync_ctx,
+                                        &broadcaster,
+                                        original_session_id,
+                                        stack_id,
+                                        MessagePayload::System(SystemMessage::RateLimited {
+                                            retry_after_ms: rate_limit.retry_after_ms,
+                                        }),
+                                    ).await?;
+                                }
                                 // System and StreamEvent messages are informational
                                 _ => {
                                     tracing::trace!(

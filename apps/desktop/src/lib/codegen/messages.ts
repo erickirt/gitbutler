@@ -340,6 +340,23 @@ export function formatMessages(
 					contentBlocks: [{ type: "text", text: msg }],
 				});
 			}
+			if (payload.type === "rateLimited") {
+				const retryAt = new Date(new Date(message.createdAt).getTime() + payload.retryAfterMs);
+				const timeStr = retryAt.toLocaleTimeString([], {
+					hour: "2-digit",
+					minute: "2-digit",
+					second: "2-digit",
+				});
+				const msg = `Rate limited until ${timeStr}`;
+				out.push({
+					source: "claude",
+					createdAt: message.createdAt,
+					message: msg,
+					toolCalls: [],
+					toolCallsPendingApproval: [],
+					contentBlocks: [{ type: "text", text: msg }],
+				});
+			}
 		} else if (payload.source === "gitButler") {
 			if (payload.type === "commitCreated") {
 				out.push({
@@ -569,7 +586,8 @@ export function currentStatus(events: ClaudeMessage[], isActive?: boolean): Clau
 		(lastEvent.payload.type === "userAbort" ||
 			lastEvent.payload.type === "claudeExit" ||
 			lastEvent.payload.type === "unhandledException" ||
-			lastEvent.payload.type === "compactFinished")
+			lastEvent.payload.type === "compactFinished" ||
+			lastEvent.payload.type === "rateLimited")
 	) {
 		// Once we have the TODOs, if all the TODOs are completed, we can change
 		// this to conditionally return 'enabled' or 'completed'

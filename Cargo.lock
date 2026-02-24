@@ -1951,7 +1951,7 @@ checksum = "3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831"
 [[package]]
 name = "claude-agent-sdk-rs"
 version = "0.6.3"
-source = "git+https://github.com/gitbutlerapp/claude-agent-sdk-rs?rev=1a82f44f7524b74cc206f74b3b49358d30de64fb#1a82f44f7524b74cc206f74b3b49358d30de64fb"
+source = "git+https://github.com/gitbutlerapp/claude-agent-sdk-rs?rev=b5e32cd6e8e3df4f2ac2d1aa1c90b66688c3d04c#b5e32cd6e8e3df4f2ac2d1aa1c90b66688c3d04c"
 dependencies = [
  "anyhow",
  "async-stream",
