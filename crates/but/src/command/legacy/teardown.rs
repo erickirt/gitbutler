@@ -137,7 +137,7 @@ pub(crate) fn teardown(ctx: &mut Context, out: &mut OutputChannel) -> anyhow::Re
         .workdir()
         .ok_or_else(|| anyhow::anyhow!("Repository has no workdir"))?;
 
-    let output = std::process::Command::new("git")
+    let output = std::process::Command::new(gix::path::env::exe_invocation())
         .arg("-C")
         .arg(workdir)
         .arg("checkout")
@@ -156,7 +156,7 @@ pub(crate) fn teardown(ctx: &mut Context, out: &mut OutputChannel) -> anyhow::Re
         }
 
         // Also update HEAD to be a symbolic ref to the branch
-        std::process::Command::new("git")
+        std::process::Command::new(gix::path::env::exe_invocation())
             .arg("-C")
             .arg(workdir)
             .args([
