@@ -160,6 +160,10 @@ export type SystemMessage =
 	| {
 			type: "compactFinished";
 			summary: string;
+	  }
+	| {
+			type: "rateLimited";
+			retryAfterMs: number;
 	  };
 
 /**
