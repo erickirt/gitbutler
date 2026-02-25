@@ -48,24 +48,26 @@
 	}
 
 	$effect(() => {
-		if (!$target || !$outline || metadata?.dim) {
+		const currentTarget = $target;
+
+		if (!currentTarget || !$outline || metadata?.dim) {
 			return;
 		}
 
-		$target.classList.add("focused");
-		const element = createCursor($target);
-		copyPosition($target, element);
+		currentTarget.classList.add("focused");
+		const element = createCursor(currentTarget);
+		copyPosition(currentTarget, element);
 
 		const observer = new ResizeObserver(() => {
-			if ($target && element.isConnected) {
-				copyPosition($target, element);
+			if (currentTarget && element.isConnected) {
+				copyPosition(currentTarget, element);
 			}
 		});
 
-		observer.observe($target);
+		observer.observe(currentTarget);
 
 		return () => {
-			$target.classList.remove("focused");
+			currentTarget.classList.remove("focused");
 			element.remove();
 			observer.disconnect();
 		};
