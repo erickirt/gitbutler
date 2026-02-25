@@ -4,14 +4,7 @@ use crate::utils::{CommandExt, Sandbox};
 
 /// Get commit SHA from a git reference
 fn get_commit_sha(env: &Sandbox, git_ref: &str) -> String {
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg(git_ref)
-        .output()
-        .expect("git rev-parse failed");
-    String::from_utf8_lossy(&output.stdout).trim().to_string()
+    env.invoke_git(&format!("rev-parse {git_ref}"))
 }
 
 /// Check if a branch contains a commit with the given message substring

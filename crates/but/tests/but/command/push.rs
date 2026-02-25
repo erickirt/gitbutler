@@ -22,14 +22,7 @@ fn push_refuses_conflicted_commits() -> anyhow::Result<()> {
         .success();
 
     // add origin as local repository
-    let _ = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("remote")
-        .arg("add")
-        .arg("origin")
-        .arg(".")
-        .output()?;
+    env.invoke_git("remote add origin .");
 
     // Get the first commit's CLI ID from status
     let status_output = env.but("--json status").allow_json().output()?;

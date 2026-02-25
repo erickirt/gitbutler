@@ -43,14 +43,8 @@ To return to GitButler mode, run:
 "#]]);
 
     // Verify we're on branch A
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     Ok(())
 }
@@ -101,14 +95,8 @@ To return to GitButler mode, run:
 "#]]);
 
     // Verify we're on branch A (the first one)
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     // Verify file from branch A is present
     let file_a = env.projects_root().join("A");
@@ -135,17 +123,8 @@ fn dangling_commit_on_workspace() -> anyhow::Result<()> {
 
     // Create a dangling commit on top of workspace
     env.file("UserFile", "user content");
-    let git_dir = env.projects_root();
-    std::process::Command::new("git")
-        .arg("-C")
-        .arg(git_dir)
-        .args(["add", "."])
-        .output()?;
-    std::process::Command::new("git")
-        .arg("-C")
-        .arg(git_dir)
-        .args(["commit", "-m", "User commit on workspace"])
-        .output()?;
+    env.invoke_git("add .");
+    env.invoke_git("commit -m 'User commit on workspace'");
 
     // Run teardown
     env.but("teardown")
@@ -186,14 +165,8 @@ To return to GitButler mode, run:
 "#]]);
 
     // Verify we're on branch A
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     // Verify the change is left uncommitted (not cherry-picked)
     let file_path = env.projects_root().join("UserFile");
@@ -203,15 +176,10 @@ To return to GitButler mode, run:
     );
 
     // Check that there are uncommitted changes
-    let status = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .args(["status", "--porcelain"])
-        .output()?;
-    let status_output = String::from_utf8_lossy(&status.stdout);
+    let status = env.invoke_git("status --porcelain");
     assert!(
-        status_output.contains("UserFile"),
-        "UserFile should be uncommitted: {status_output}"
+        status.contains("UserFile"),
+        "UserFile should be uncommitted: {status}"
     );
 
     Ok(())
@@ -233,16 +201,8 @@ fn dangling_commit_spanning_multiple_branches() -> anyhow::Result<()> {
         .arg("echo modified >> A && echo modified >> B")
         .current_dir(git_dir)
         .output()?;
-    std::process::Command::new("git")
-        .arg("-C")
-        .arg(git_dir)
-        .args(["add", "A", "B"])
-        .output()?;
-    std::process::Command::new("git")
-        .arg("-C")
-        .arg(git_dir)
-        .args(["commit", "-m", "User commit touching both branches"])
-        .output()?;
+    env.invoke_git("add A B");
+    env.invoke_git("commit -m 'User commit touching both branches'");
 
     // Run teardown - should cherry-pick to first branch (A)
     env.but("teardown")
@@ -286,14 +246,8 @@ To return to GitButler mode, run:
 "#]]);
 
     // Verify we're on branch A
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     // Verify that changes to file A AND B are present
     let file_a_path = env.projects_root().join("A");
@@ -374,14 +328,8 @@ To return to GitButler mode, run:
 "#]]);
 
     // Verify we're on branch A
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     // Verify that changes to file A AND B are present
     let file_a_path = env.projects_root().join("FileForA");
@@ -420,14 +368,8 @@ fn json_output_single_branch() -> anyhow::Result<()> {
 "#]]);
 
     // check the current git branch is A
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     Ok(())
 }
@@ -453,14 +395,8 @@ fn json_output_with_dangling_commits() -> anyhow::Result<()> {
 "#]]);
 
     // check the current git branch is A
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "A");
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "A");
 
     Ok(())
 }

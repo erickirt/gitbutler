@@ -10,17 +10,8 @@ fn merge_first_branch_into_gb_local_and_verify_rebase() -> anyhow::Result<()> {
     env.but("setup").assert().success();
 
     // Verify we're on gitbutler/workspace
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()?;
-    assert_eq!(
-        String::from_utf8_lossy(&output.stdout).trim(),
-        "gitbutler/workspace"
-    );
+    let output = env.invoke_git("rev-parse --abbrev-ref HEAD");
+    assert_eq!(output, "gitbutler/workspace");
 
     // Create first branch
     env.but("branch new first-branch").assert().success();
@@ -52,15 +43,7 @@ fn merge_first_branch_into_gb_local_and_verify_rebase() -> anyhow::Result<()> {
     ");
 
     // Get the current main branch commit (should be the initial commit M)
-    let main_before = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("main")
-        .output()?;
-    let main_before_hash = String::from_utf8_lossy(&main_before.stdout)
-        .trim()
-        .to_string();
+    let main_before_hash = env.invoke_git("rev-parse main");
 
     // Merge the first branch
     env.but(format!("merge {first_branch}"))
@@ -89,15 +72,7 @@ To undo this operation:
 "#]]);
 
     // Verify that main has been updated with the merge commit
-    let main_after = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("main")
-        .output()?;
-    let main_after_hash = String::from_utf8_lossy(&main_after.stdout)
-        .trim()
-        .to_string();
+    let main_after_hash = env.invoke_git("rev-parse main");
 
     // Main should have changed
     assert_ne!(
@@ -106,17 +81,8 @@ To undo this operation:
     );
 
     // Verify the merge commit has both parents
-    let parents = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-list")
-        .arg("--parents")
-        .arg("-n")
-        .arg("1")
-        .arg("main")
-        .output()?;
-    let parents_str = String::from_utf8_lossy(&parents.stdout);
-    let parent_count = parents_str.split_whitespace().count() - 1; // Subtract 1 for the commit itself
+    let parents = env.invoke_git("rev-list --parents -n 1 main");
+    let parent_count = parents.split_whitespace().count() - 1; // Subtract 1 for the commit itself
     assert_eq!(parent_count, 2, "Merge commit should have 2 parents");
 
     // Verify file1.txt exists on main now
@@ -143,16 +109,7 @@ To undo this operation:
     );
 
     // Verify the second branch is rebased on top of the updated main
-    let second_branch_base = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("merge-base")
-        .arg("main")
-        .arg("second-branch")
-        .output()?;
-    let second_branch_base_hash = String::from_utf8_lossy(&second_branch_base.stdout)
-        .trim()
-        .to_string();
+    let second_branch_base_hash = env.invoke_git("merge-base main second-branch");
 
     // The merge base should be the new main (the second branch was rebased)
     assert_eq!(

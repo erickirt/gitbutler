@@ -224,10 +224,7 @@ pub(crate) async fn metrics_config(
                 app_non_anon_metrics_enabled: None,
             };
 
-            but_api::legacy::settings::update_telemetry(
-                &app_settings_sync,
-                but_api::legacy::settings::UpdateTelemetryParams { update },
-            )?;
+            app_settings_sync.update_telemetry(update)?;
 
             if let Some(out) = out.for_human() {
                 writeln!(

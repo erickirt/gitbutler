@@ -42,7 +42,7 @@ pub(crate) enum DiffLine {
 pub(crate) enum WorktreeFilter {
     Unassigned,
     Uncommitted(Box<UncommittedCliId>),
-    Stack(gitbutler_stack::StackId),
+    Stack(but_core::ref_metadata::StackId),
 }
 
 impl DiffFileEntry {
@@ -88,6 +88,7 @@ impl DiffFileEntry {
             .collect()
     }
 
+    #[cfg(feature = "legacy")]
     pub fn from_commit(
         ctx: &mut but_ctx::Context,
         commit_id: gix::ObjectId,
@@ -121,6 +122,7 @@ impl DiffFileEntry {
             .collect()
     }
 
+    #[cfg(feature = "legacy")]
     pub fn from_branch(
         ctx: &but_ctx::Context,
         short_name: String,

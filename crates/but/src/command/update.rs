@@ -21,7 +21,7 @@ pub fn handle(
 }
 
 fn check_for_updates(out: &mut OutputChannel, app_settings: &AppSettings) -> Result<()> {
-    let mut cache = but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok());
+    let mut cache = but_ctx::Context::app_cache();
     let status = check_status(AppName::Cli, app_settings, &mut cache)?;
 
     if let Some(status) = status {
@@ -87,7 +87,7 @@ fn suppress_updates(out: &mut OutputChannel, days: u32) -> Result<()> {
     let hours = days * 24;
 
     // Call the suppress_update function
-    let mut cache = but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok());
+    let mut cache = but_ctx::Context::app_cache();
     but_update::suppress_update(&mut cache, hours)?;
 
     if let Some(writer) = out.for_human() {

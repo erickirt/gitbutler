@@ -22,12 +22,8 @@ fn no_remote_creates_gb_local() -> anyhow::Result<()> {
     let env = Sandbox::open_with_default_settings("repo-no-remote")?;
 
     // Verify initial state - no remotes
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("remote")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "");
+    let output = env.invoke_git("remote");
+    assert_eq!(output, "");
 
     // Run setup
     env.but("setup")
@@ -84,25 +80,12 @@ Learn more at https://docs.gitbutler.com/cli-overview
 "#]]);
 
     // Verify gb-local remote was created
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("remote")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "gb-local");
+    let output = env.invoke_git("remote");
+    assert_eq!(output, "gb-local");
 
     // Verify remote HEAD was created
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("symbolic-ref")
-        .arg("refs/remotes/gb-local/HEAD")
-        .output()?;
-    assert!(output.status.success());
-    assert_eq!(
-        String::from_utf8_lossy(&output.stdout).trim(),
-        "refs/remotes/gb-local/main"
-    );
+    let output = env.invoke_git("symbolic-ref refs/remotes/gb-local/HEAD");
+    assert_eq!(output, "refs/remotes/gb-local/main");
 
     Ok(())
 }
@@ -166,17 +149,8 @@ Learn more at https://docs.gitbutler.com/cli-overview
 "#]]);
 
     // Verify gb-local remote was created with development branch
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("symbolic-ref")
-        .arg("refs/remotes/gb-local/HEAD")
-        .output()?;
-    assert!(output.status.success());
-    assert_eq!(
-        String::from_utf8_lossy(&output.stdout).trim(),
-        "refs/remotes/gb-local/development"
-    );
+    let output = env.invoke_git("symbolic-ref refs/remotes/gb-local/HEAD");
+    assert_eq!(output, "refs/remotes/gb-local/development");
 
     Ok(())
 }
@@ -186,21 +160,14 @@ fn remote_exists_but_no_remote_head() -> anyhow::Result<()> {
     let env = Sandbox::open_with_default_settings("repo-with-remote-no-head")?;
 
     // Verify remote exists but no HEAD
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("remote")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "origin");
+    let output = env.invoke_git("remote");
+    assert_eq!(output, "origin");
 
     // Verify no remote HEAD exists initially
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("symbolic-ref")
-        .arg("refs/remotes/origin/HEAD")
-        .output()?;
-    assert!(!output.status.success());
+    env.invoke_git_fails(
+        "symbolic-ref refs/remotes/origin/HEAD",
+        "remote exists but has no HEAD initially",
+    );
 
     // Run setup - should fail because there's no remote HEAD to discover
     env.but("setup")
@@ -263,20 +230,10 @@ fn remote_exists_with_head() -> anyhow::Result<()> {
     let env = Sandbox::open_with_default_settings("repo-with-remote-and-head")?;
 
     // Verify remote exists with HEAD
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("remote")
-        .output()?;
-    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "origin");
+    let output = env.invoke_git("remote");
+    assert_eq!(output, "origin");
 
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("symbolic-ref")
-        .arg("refs/remotes/origin/HEAD")
-        .output()?;
-    assert!(output.status.success());
+    env.invoke_git("symbolic-ref refs/remotes/origin/HEAD");
 
     // Run setup
     env.but("setup")
@@ -532,13 +489,10 @@ fn init_flag_creates_repo() -> anyhow::Result<()> {
     let env = Sandbox::empty()?;
 
     // Verify no git repo exists
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--git-dir")
-        .output()?;
-    assert!(!output.status.success());
+    env.invoke_git_fails(
+        "rev-parse --git-dir",
+        "empty sandbox should not contain a git repository",
+    );
 
     env.but("setup --init")
         .assert()
@@ -597,24 +551,11 @@ Learn more at https://docs.gitbutler.com/cli-overview
 "#]]);
 
     // Verify git repo was created
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--git-dir")
-        .output()?;
-    assert!(output.status.success());
+    let output = env.invoke_git("rev-parse --git-dir");
+    assert!(!output.is_empty());
 
     // Verify initial commit was created (may have additional workspace commit)
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-list")
-        .arg("--count")
-        .arg("HEAD")
-        .output()?;
-    assert!(output.status.success());
-    let commit_count: u32 = String::from_utf8_lossy(&output.stdout).trim().parse()?;
+    let commit_count: u32 = env.invoke_git("rev-list --count HEAD").parse()?;
     assert!(
         commit_count >= 1,
         "Expected at least 1 commit, found {commit_count}"
@@ -646,13 +587,8 @@ fn init_flag_json_output() -> anyhow::Result<()> {
 "#]]);
 
     // Verify git repo was created
-    let output = std::process::Command::new("git")
-        .arg("-C")
-        .arg(env.projects_root())
-        .arg("rev-parse")
-        .arg("--git-dir")
-        .output()?;
-    assert!(output.status.success());
+    let output = env.invoke_git("rev-parse --git-dir");
+    assert!(!output.is_empty());
 
     Ok(())
 }

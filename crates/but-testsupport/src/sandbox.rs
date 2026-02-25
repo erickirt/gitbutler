@@ -353,14 +353,42 @@ impl Sandbox {
 /// Invocations
 impl Sandbox {
     /// Invoke an isolated `git` with the given `args`, which will be split automatically.
-    pub fn invoke_git(&self, args: &str) -> &Self {
+    /// Return its trimmed `stdout` for consumption.
+    ///
+    /// # Use `gix::Repository` if you can
+    ///
+    /// This method should only be used if there is no convenient way to do this via [`Self::open_repo()`].
+    pub fn invoke_git(&self, args: &str) -> String {
         let cmd = snapbox::cmd::Command::new(gix::path::env::exe_invocation());
-        isolate_snapbox_cmd(cmd)
+        let output = isolate_snapbox_cmd(cmd)
             .current_dir(self.projects_root())
             .args(shell_words::split(args).expect("statically known args must split correctly"))
-            .assert()
-            .success();
-        self
+            .output()
+            .expect("git should execute");
+        assert!(
+            output.status.success(),
+            "git {args} failed with {status:?}",
+            status = output.status
+        );
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    }
+
+    /// Invoke an isolated `git` with the given `args`, assert it fails, and return the trimmed stdout.
+    ///
+    /// Use this when the command is expected to fail for a specific `reason`.
+    pub fn invoke_git_fails(&self, args: &str, reason: &str) -> String {
+        let cmd = snapbox::cmd::Command::new(gix::path::env::exe_invocation());
+        let output = isolate_snapbox_cmd(cmd)
+            .current_dir(self.projects_root())
+            .args(shell_words::split(args).expect("statically known args must split correctly"))
+            .output()
+            .expect("git should execute");
+        assert!(
+            !output.status.success(),
+            "git {args} should fail because: {reason}; got status {status:?}",
+            status = output.status
+        );
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
     }
 
     /// Invoke the given `script` in `bash` in this sandbox
