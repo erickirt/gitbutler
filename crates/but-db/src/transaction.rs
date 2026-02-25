@@ -26,16 +26,17 @@ impl<'conn> Transaction<'conn> {
     }
 }
 
-/// Transactions
+/// Transactions, to allow ORM handles to be created more easily,
+/// and make sure multiple dependent calls to the ORM can be consistent.
 impl DbHandle {
     /// Create a new *deferred* transaction which can be used to create new table-handles on.
     /// *Deferred* means that the transaction does not block other writers until the first
-    /// write actually happens, and hold the database lock while it is held.
+    /// read or write actually happens, and hold the database lock while the transaction is alive.
     /// It will, however, freeze what's read to the current state of the database, so changes
     /// won't be observable until commit/rollback.
-    /// Readers will always read from the original data.
+    /// This is a feature - readers will always read from the original data.
     ///
-    /// When used while a lock is taken elsewhere, *any read or write at a later time will block at first*,
+    /// When used while a write-lock is taken elsewhere, *any read or write at a later time will block at first*,
     /// and fail after a timeout.
     ///
     /// # IMPORTANT: run `commit()`
@@ -88,10 +89,13 @@ impl DbHandle {
 impl AppCacheHandle {
     /// Create a new *deferred* transaction which can be used to create new table-handles on.
     /// *Deferred* means that the transaction does not block other writers until the first
-    /// write actually happens, and hold the database lock while it is held.
+    /// read or write actually happens, and hold the database lock while the transaction is alive.
     /// It will, however, freeze what's read to the current state of the database, so changes
     /// won't be observable until commit/rollback.
-    /// Readers will always read from the original data.
+    /// This is a feature - readers will always read from the original data.
+    ///
+    /// When used while a write-lock is taken elsewhere, *any read or write at a later time will block at first*,
+    /// and fail after a timeout.
     ///
     /// # IMPORTANT: run `commit()`
     /// Don't forget to call [commit()](Transaction::commit()) to actually persist the result.
