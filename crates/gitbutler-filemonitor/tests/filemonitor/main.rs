@@ -120,14 +120,31 @@ mod watch_mode {
 
     #[test]
     fn from_env_or_settings() {
-        assert_eq!(WatchMode::from_env_or_settings("auto"), WatchMode::Auto);
-        assert_eq!(WatchMode::from_env_or_settings("legacy"), WatchMode::Legacy);
-        assert_eq!(WatchMode::from_env_or_settings("modern"), WatchMode::Modern);
+        assert_eq!(
+            WatchMode::from_env_or_settings("auto", |_| None),
+            WatchMode::Auto
+        );
+        assert_eq!(
+            WatchMode::from_env_or_settings("legacy", |_| None),
+            WatchMode::Legacy
+        );
+        assert_eq!(
+            WatchMode::from_env_or_settings("modern", |_| None),
+            WatchMode::Modern
+        );
 
         assert_eq!(
-            WatchMode::from_env_or_settings("invalid"),
+            WatchMode::from_env_or_settings("invalid", |_| None),
             WatchMode::Auto,
             "Invalid value should fall back to auto"
+        );
+    }
+
+    #[test]
+    fn from_env_or_settings_prefers_env() {
+        assert_eq!(
+            WatchMode::from_env_or_settings("legacy", |_| Some("modern".to_string())),
+            WatchMode::Modern
         );
     }
 

@@ -184,6 +184,7 @@ pub(crate) mod state {
             let worktree_dir = ctx.workdir_or_fail()?;
             let watch_mode = gitbutler_watcher::WatchMode::from_env_or_settings(
                 &app_settings.get()?.feature_flags.watch_mode,
+                |key| std::env::var(key).ok(),
             );
             let watcher = gitbutler_watcher::watch_in_background(
                 handler,

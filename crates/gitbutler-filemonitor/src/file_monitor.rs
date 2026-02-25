@@ -68,7 +68,6 @@ const ENV_WATCH_MODE: &str = "GITBUTLER_WATCH_MODE";
 pub enum WatchMode {
     /// Recursively watch the worktree (and an extra git-dir if the repo uses
     /// a linked worktree with a git-dir outside the worktree), using [`notify::RecursiveMode::Recursive`].
-    #[default]
     Legacy,
     /// Ignore-aware watch plan: non-recursive watches of non-ignored worktree directories,
     /// plus explicit git-dir watches and dynamic watch additions for newly created directories.
@@ -76,6 +75,7 @@ pub enum WatchMode {
     Modern,
     /// Automatically pick a mode based on platform heuristics.
     ///
+    #[default]
     /// Currently, this enables `Modern` on WSL (Windows Subsystem for Linux.) and `Legacy` elsewhere.
     Auto,
 }
@@ -115,15 +115,19 @@ impl WatchMode {
     /// Initialise the mode from `watch_mode_from_settings`, with environment variable override.
     /// If the environment variable `GITBUTLER_WATCH_MODE` is set, it overrides the feature flag.
     /// Otherwise, the feature flag value is used.
-    pub fn from_env_or_settings(watch_mode_from_settings: &str) -> Self {
-        std::env::var(ENV_WATCH_MODE)
-            .ok()
+    pub fn from_env_or_settings<F>(watch_mode_from_settings: &str, get_env_var: F) -> Self
+    where
+        F: Fn(&str) -> Option<String>,
+    {
+        let env_var = get_env_var(ENV_WATCH_MODE);
+        env_var
+            .as_deref()
             .and_then(|env_var_value| env_var_value.parse().ok())
             .or_else(|| watch_mode_from_settings.parse().ok())
             .unwrap_or_else(|| {
                 tracing::warn!(
                     feature_flag = watch_mode_from_settings,
-                    env_var = ?std::env::var(ENV_WATCH_MODE),
+                    env_var = ?env_var,
                     "unknown watch mode from feature flag or environment variable; falling back to auto"
                 );
                 WatchMode::Auto
