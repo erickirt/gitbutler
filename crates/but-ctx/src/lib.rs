@@ -567,6 +567,18 @@ impl Context {
     }
 }
 
+/// Non-project/global data access. Only for when no project is available (yet).
+impl Context {
+    /// Create an application cache handle in the configured application cache directory.
+    /// This is independent of projects.
+    ///
+    /// This is a convenience for callers that need app-cache access before a `Context`
+    /// instance is available. If you have an instance, use [`Self::app_cache`] instead.
+    pub fn app_cache() -> but_db::AppCacheHandle {
+        but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok())
+    }
+}
+
 /// Utilities
 impl Context {
     /// Return a wrapper for metadata that only supports read-only access when presented with the project wide permission

@@ -279,7 +279,7 @@ fn determine_sync_operations(
         None
     } else {
         // Try to access cache to determine last check time
-        let cache = but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok());
+        let cache = Context::app_cache();
         let should_check = but_update::last_checked(&cache)
             .ok()
             .flatten()
