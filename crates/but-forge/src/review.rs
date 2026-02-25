@@ -1080,6 +1080,33 @@ pub async fn update_review_description_tables(
 
             Ok(())
         }
+        ForgeName::GitLab => {
+            let project_id = GitLabProjectId::new(owner, repo);
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let mr_iids: Vec<i64> = reviews.iter().map(|r| r.number).collect();
+
+            for review in reviews {
+                let updated_body = update_body(
+                    review.body.as_deref(),
+                    review.number,
+                    &mr_iids,
+                    &review.unit_symbol,
+                );
+
+                let params = but_gitlab::UpdateMergeRequestParams {
+                    project_id: project_id.clone(),
+                    mr_iid: review.number,
+                    title: None,
+                    description: Some(&updated_body),
+                    target_branch: None,
+                    state_event: None,
+                };
+
+                but_gitlab::mr::update(preferred_account, params, storage).await?;
+            }
+
+            Ok(())
+        }
         _ => Err(Error::msg(format!(
             "Updating review descriptions for forge {forge:?} is not implemented yet.",
         ))),

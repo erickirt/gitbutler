@@ -238,6 +238,46 @@ impl GitLabClient {
         Ok(mr.into())
     }
 
+    pub async fn update_merge_request(
+        &self,
+        params: &UpdateMergeRequestParams<'_>,
+    ) -> Result<MergeRequest> {
+        #[derive(Serialize)]
+        struct UpdateMergeRequestBody<'a> {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            title: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            description: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            target_branch: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            state_event: Option<&'a str>,
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}",
+            self.base_url, params.project_id, params.mr_iid
+        );
+
+        let body = UpdateMergeRequestBody {
+            title: params.title,
+            description: params.description,
+            target_branch: params.target_branch,
+            state_event: params.state_event,
+        };
+
+        let response = self.client.put(&url).json(&body).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to update merge request: {status} - {error_text}");
+        }
+
+        let mr: GitLabMergeRequest = response.json().await?;
+        Ok(mr.into())
+    }
+
     pub async fn merge_merge_request(&self, params: &MergeMergeRequestParams) -> Result<()> {
         #[derive(Serialize)]
         struct MergeMergeRequestBody {
@@ -395,6 +435,16 @@ pub struct CreateMergeRequestParams<'a> {
     pub source_project_id: Option<GitLabProjectId>,
     pub draft: bool,
 }
+
+pub struct UpdateMergeRequestParams<'a> {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub title: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub target_branch: Option<&'a str>,
+    pub state_event: Option<&'a str>,
+}
+
 pub struct MergeMergeRequestParams {
     pub project_id: GitLabProjectId,
     pub mr_iid: i64,
