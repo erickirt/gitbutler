@@ -152,6 +152,40 @@ fn handles_optional_fields() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn upsert_inserts_new_review() -> anyhow::Result<()> {
+    let mut db = in_memory_db();
+
+    let review = forge_review(1, "First PR", "feature-branch");
+    db.forge_reviews_mut()?.upsert(review.clone())?;
+
+    let reviews = db.forge_reviews().list_all()?;
+    assert_eq!(reviews, [review]);
+
+    Ok(())
+}
+
+#[test]
+fn upsert_updates_existing_review() -> anyhow::Result<()> {
+    let mut db = in_memory_db();
+
+    let review = forge_review(1, "First PR", "feature-branch");
+    db.forge_reviews_mut()?.upsert(review)?;
+
+    let mut updated_review = forge_review(1, "Updated PR title", "updated-branch");
+    updated_review.body = Some("Updated body".to_string());
+    updated_review.author = Some("updated-author".to_string());
+    updated_review.draft = true;
+    updated_review.sha = "updatedsha123".to_string();
+    updated_review.reviewers = "[\"alice\"]".to_string();
+    db.forge_reviews_mut()?.upsert(updated_review.clone())?;
+
+    let reviews = db.forge_reviews().list_all()?;
+    assert_eq!(reviews, [updated_review]);
+
+    Ok(())
+}
+
 fn forge_review(number: i64, title: &str, source_branch: &str) -> ForgeReview {
     ForgeReview {
         html_url: format!("https://github.com/owner/repo/pull/{number}"),
