@@ -9,7 +9,6 @@
 	import FocusCursor from "$components/FocusCursor.svelte";
 	import GlobalModal from "$components/GlobalModal.svelte";
 	import GlobalSettingsMenuAction from "$components/GlobalSettingsMenuAction.svelte";
-	import ProjectDropZone from "$components/ProjectDropZone.svelte";
 	import PromptModal from "$components/PromptModal.svelte";
 	import ReloadMenuAction from "$components/ReloadMenuAction.svelte";
 	import ReloadWarning from "$components/ReloadWarning.svelte";
@@ -208,7 +207,6 @@
 <ToggleSidebarMenuAction />
 <GlobalModal />
 <FocusCursor />
-<ProjectDropZone />
 
 {#if import.meta.env.MODE === "development"}
 	<ReloadWarning />
