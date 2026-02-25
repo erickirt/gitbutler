@@ -57,6 +57,18 @@ pub async fn get(
     Ok(mr)
 }
 
+pub async fn update(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    params: crate::client::UpdateMergeRequestParams<'_>,
+    storage: &but_forge_storage::Controller,
+) -> Result<crate::client::MergeRequest> {
+    let mr = GitLabClient::from_storage(storage, preferred_account)?
+        .update_merge_request(&params)
+        .await
+        .context("Failed to update merge request")?;
+    Ok(mr)
+}
+
 pub async fn merge(
     preferred_account: Option<&crate::GitlabAccountIdentifier>,
     params: crate::client::MergeMergeRequestParams,

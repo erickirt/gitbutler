@@ -218,6 +218,8 @@ impl GitHubClient {
             title: &'a str,
             body: &'a str,
             head: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            head_repo: Option<&'a str>,
             base: &'a str,
             draft: bool,
         }
@@ -231,6 +233,7 @@ impl GitHubClient {
             title: params.title,
             body: params.body,
             head: params.head,
+            head_repo: params.head_repo,
             base: params.base,
             draft: params.draft,
         };
@@ -712,6 +715,7 @@ pub struct CreatePullRequestParams<'a> {
     pub title: &'a str,
     pub body: &'a str,
     pub head: &'a str,
+    pub head_repo: Option<&'a str>,
     pub base: &'a str,
     pub draft: bool,
     pub owner: &'a str,

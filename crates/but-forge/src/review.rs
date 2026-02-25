@@ -938,10 +938,36 @@ pub struct CreateForgeReviewParams {
     pub draft: bool,
 }
 
+fn github_head_owner_and_repo<'a>(
+    forge_repo_info: &'a crate::forge::ForgeRepoInfo,
+    forge_push_repo_info: &'a Option<crate::forge::ForgeRepoInfo>,
+) -> (&'a str, Option<&'a str>) {
+    if let Some(forge_push_repo_info) = forge_push_repo_info
+        && forge_push_repo_info != forge_repo_info
+    {
+        // If there's a push repo defined, it means we're handling a fork.
+        // The head owner is the repository were we push the branches to (the fork) and
+        // the target repo (the one holding the base branch) is the original repository.
+        (
+            forge_push_repo_info.owner.as_str(),
+            Some(forge_push_repo_info.repo.as_str()),
+        )
+    } else {
+        // If there's no push repo, we assume the owner is the same as the owner of the target repo.
+        // We don't need a `head_repo`` in that case.
+        (forge_repo_info.owner.as_str(), None)
+    }
+}
+
 /// Create a new review (e.g. pull request) for a given forge repository
+///
+/// Some info on the push repo:
+/// If there's a push repository specified and it's different from the main repository,
+/// we assume we're opening a review from a fork.
 pub async fn create_forge_review(
     preferred_forge_user: &Option<crate::ForgeUser>,
     forge_repo_info: &crate::forge::ForgeRepoInfo,
+    forge_push_repo_info: &Option<crate::forge::ForgeRepoInfo>,
     params: &CreateForgeReviewParams,
     storage: &but_forge_storage::Controller,
 ) -> Result<ForgeReview> {
@@ -950,14 +976,17 @@ pub async fn create_forge_review(
     } = forge_repo_info;
     match forge {
         ForgeName::GitHub => {
-            // TODO: handle forks better
-            let head = format!("{}:{}", owner, params.source_branch);
+            let (head_owner, head_repo) =
+                github_head_owner_and_repo(forge_repo_info, forge_push_repo_info);
+
+            let head = format!("{}:{}", head_owner, params.source_branch);
             let pr_params = but_github::CreatePullRequestParams {
                 owner,
                 repo,
                 title: &params.title,
                 body: &params.body,
                 head: &head,
+                head_repo,
                 base: &params.target_branch,
                 draft: params.draft,
             };
@@ -967,14 +996,19 @@ pub async fn create_forge_review(
         }
         ForgeName::GitLab => {
             let project_id = GitLabProjectId::new(owner, repo);
-            // TODO: handle forks better
-            // TODO: handle draft properly
+            // If there's a push repo defined, we consider that the source repository.
+            let source_project_id = forge_push_repo_info
+                .as_ref()
+                .map(|repo_info| GitLabProjectId::new(&repo_info.owner, &repo_info.repo));
+
             let mr_params = but_gitlab::CreateMergeRequestParams {
                 project_id,
                 title: &params.title,
                 body: &params.body,
                 source_branch: &params.source_branch,
                 target_branch: &params.target_branch,
+                source_project_id,
+                draft: params.draft,
             };
             let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
             let mr = but_gitlab::mr::create(preferred_account, mr_params, storage).await?;
@@ -1042,6 +1076,33 @@ pub async fn update_review_description_tables(
                 };
 
                 but_github::pr::update(preferred_account, params, storage).await?;
+            }
+
+            Ok(())
+        }
+        ForgeName::GitLab => {
+            let project_id = GitLabProjectId::new(owner, repo);
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let mr_iids: Vec<i64> = reviews.iter().map(|r| r.number).collect();
+
+            for review in reviews {
+                let updated_body = update_body(
+                    review.body.as_deref(),
+                    review.number,
+                    &mr_iids,
+                    &review.unit_symbol,
+                );
+
+                let params = but_gitlab::UpdateMergeRequestParams {
+                    project_id: project_id.clone(),
+                    mr_iid: review.number,
+                    title: None,
+                    description: Some(&updated_body),
+                    target_branch: None,
+                    state_event: None,
+                };
+
+                but_gitlab::mr::update(preferred_account, params, storage).await?;
             }
 
             Ok(())
@@ -1144,6 +1205,49 @@ mod tests {
 
     fn p(path: &str) -> &Path {
         Path::new(path)
+    }
+
+    fn repo_info(owner: &str, repo: &str) -> crate::forge::ForgeRepoInfo {
+        crate::forge::ForgeRepoInfo {
+            forge: crate::forge::ForgeName::GitHub,
+            owner: owner.to_string(),
+            repo: repo.to_string(),
+            protocol: "https".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_github_head_owner_and_repo_without_push_repo() {
+        let forge_repo_info = repo_info("target-owner", "target-repo");
+
+        let (head_owner, head_repo) = github_head_owner_and_repo(&forge_repo_info, &None);
+
+        assert_eq!(head_owner, "target-owner");
+        assert_eq!(head_repo, None);
+    }
+
+    #[test]
+    fn test_github_head_owner_and_repo_with_fork_push_repo() {
+        let forge_repo_info = repo_info("target-owner", "target-repo");
+        let forge_push_repo_info = Some(repo_info("fork-owner", "fork-repo"));
+
+        let (head_owner, head_repo) =
+            github_head_owner_and_repo(&forge_repo_info, &forge_push_repo_info);
+
+        assert_eq!(head_owner, "fork-owner");
+        assert_eq!(head_repo, Some("fork-repo"));
+    }
+
+    #[test]
+    fn test_github_head_owner_and_repo_with_equal_push_repo() {
+        let forge_repo_info = repo_info("target-owner", "target-repo");
+        let forge_push_repo_info = Some(repo_info("target-owner", "target-repo"));
+
+        let (head_owner, head_repo) =
+            github_head_owner_and_repo(&forge_repo_info, &forge_push_repo_info);
+
+        assert_eq!(head_owner, "target-owner");
+        assert_eq!(head_repo, None);
     }
 
     #[test]

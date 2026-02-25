@@ -221,21 +221,32 @@ pub async fn publish_review(
     ctx: ThreadSafeContext,
     params: but_forge::CreateForgeReviewParams,
 ) -> Result<but_forge::ForgeReview> {
-    let (storage, forge_repo_info, preferred_forge_user) = {
+    let (storage, forge_repo_info, forge_push_repo_info, preferred_forge_user) = {
         let ctx = ctx.into_thread_local();
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
-        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url)
+            .context("No forge could be determined for this repository branch")?;
+        let forge_push_repo_info = if base_branch.remote_url != base_branch.push_remote_url {
+            let info = but_forge::derive_forge_repo_info(&base_branch.push_remote_url).context(
+                "Failed to derive forge repository information from the push remote URL.",
+            )?;
+            Some(info)
+        } else {
+            None
+        };
 
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
             forge_repo_info,
+            forge_push_repo_info,
             ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
 
     but_forge::create_forge_review(
         &preferred_forge_user,
-        &forge_repo_info.context("No forge could be determined for this repository branch")?,
+        &forge_repo_info,
+        &forge_push_repo_info,
         &params,
         &storage,
     )

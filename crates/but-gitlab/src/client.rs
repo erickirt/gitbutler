@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use but_secret::Sensitive;
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use serde::{Deserialize, Serialize};
@@ -165,17 +165,45 @@ impl GitLabClient {
             target_project_id: Option<i64>,
         }
 
+        // The host project id is the one where we create the merge request in.
+        // If there's a source project defined, it means we're dealing with a fork,
+        // and hence should create the review on it.
+        let host_project_id = if let Some(source_project_id) = &params.source_project_id {
+            source_project_id
+        } else {
+            &params.project_id
+        };
+
         let url = format!(
             "{}/projects/{}/merge_requests",
-            self.base_url, params.project_id
+            self.base_url, host_project_id
         );
 
+        // If there's a source project defined, and it's different than the
+        // 'main' project id, it means we're handling the creation of a merge request
+        // from a fork.
+        // Fetch the target project numeric ID and pass it to the params.
+        let target_project_id = if let Some(source_project_id) = &params.source_project_id
+            && &params.project_id != source_project_id
+        {
+            let target_project_id = self
+                .fetch_project(params.project_id.clone())
+                .await
+                .map(|project| project.id)
+                .context("Failed to fetch target project information.")?;
+            Some(target_project_id)
+        } else {
+            None
+        };
+
+        let title = update_draft_state_in_title(params.title, params.draft);
+
         let body = CreateMergeRequestBody {
-            title: params.title,
+            title: &title,
             description: params.body,
             source_branch: params.source_branch,
             target_branch: params.target_branch,
-            target_project_id: None,
+            target_project_id,
         };
 
         let response = self.client.post(&url).json(&body).send().await?;
@@ -204,6 +232,46 @@ impl GitLabClient {
 
         if !response.status().is_success() {
             bail!("Failed to get merge request: {}", response.status());
+        }
+
+        let mr: GitLabMergeRequest = response.json().await?;
+        Ok(mr.into())
+    }
+
+    pub async fn update_merge_request(
+        &self,
+        params: &UpdateMergeRequestParams<'_>,
+    ) -> Result<MergeRequest> {
+        #[derive(Serialize)]
+        struct UpdateMergeRequestBody<'a> {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            title: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            description: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            target_branch: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            state_event: Option<&'a str>,
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}",
+            self.base_url, params.project_id, params.mr_iid
+        );
+
+        let body = UpdateMergeRequestBody {
+            title: params.title,
+            description: params.description,
+            target_branch: params.target_branch,
+            state_event: params.state_event,
+        };
+
+        let response = self.client.put(&url).json(&body).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to update merge request: {status} - {error_text}");
         }
 
         let mr: GitLabMergeRequest = response.json().await?;
@@ -322,6 +390,40 @@ impl GitLabClient {
 
         Ok(())
     }
+
+    pub async fn fetch_project(&self, project_id: GitLabProjectId) -> Result<GitLabProject> {
+        #[derive(Deserialize)]
+        struct GitLabApiProject {
+            id: i64,
+            path_with_namespace: String,
+            default_branch: Option<String>,
+            #[serde(default)]
+            forked_from_project: Option<GitLabApiProjectRef>,
+        }
+
+        #[derive(Deserialize)]
+        struct GitLabApiProjectRef {
+            id: i64,
+        }
+
+        let url = format!("{}/projects/{}", self.base_url, project_id);
+        let response = self.client.get(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to fetch project: {status} - {error_text}");
+        }
+
+        let project: GitLabApiProject = response.json().await?;
+
+        Ok(GitLabProject {
+            id: project.id,
+            path_with_namespace: project.path_with_namespace,
+            default_branch: project.default_branch,
+            forked_from_project_id: project.forked_from_project.map(|fork| fork.id),
+        })
+    }
 }
 
 pub struct CreateMergeRequestParams<'a> {
@@ -330,7 +432,19 @@ pub struct CreateMergeRequestParams<'a> {
     pub source_branch: &'a str,
     pub target_branch: &'a str,
     pub project_id: GitLabProjectId,
+    pub source_project_id: Option<GitLabProjectId>,
+    pub draft: bool,
 }
+
+pub struct UpdateMergeRequestParams<'a> {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub title: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub target_branch: Option<&'a str>,
+    pub state_event: Option<&'a str>,
+}
+
 pub struct MergeMergeRequestParams {
     pub project_id: GitLabProjectId,
     pub mr_iid: i64,
@@ -435,6 +549,14 @@ impl From<String> for GitLabLabel {
     fn from(name: String) -> Self {
         GitLabLabel { name }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct GitLabProject {
+    pub id: i64,
+    pub path_with_namespace: String,
+    pub default_branch: Option<String>,
+    pub forked_from_project_id: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
