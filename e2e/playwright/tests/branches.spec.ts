@@ -271,12 +271,12 @@ baz
 branch1 commit 1
 branch1 commit 2
 <<<<<` +
-			`<< ours
+			`<< New base: branch1: third commit
 branch1 commit 3
-||||||| ancestor
+||||||| Common ancestor
 =======
 conflicting change
->>>>>>> theirs
+>>>>>>> Current commit: Conflicting change commit
 `,
 	);
 
@@ -437,12 +437,12 @@ test("should be able gracefully handle adding a branch that is behind of our tar
 bar
 baz
 <<<<<` +
-			`<< ours
+			`<< New base: commit in base
 Update to main branch
-||||||| ancestor
+||||||| Common ancestor
 =======
 branch1 commit 1
->>>>>>> theirs
+>>>>>>> Current commit: branch1: first commit
 `,
 	);
 
@@ -500,12 +500,12 @@ bar
 baz
 Update to main branch
 <<<<<` +
-			`<< ours
+			`<< New base: branch1: first commit
 branch1 commit 1
-||||||| ancestor
+||||||| Common ancestor
 =======
 branch1 commit 2
->>>>>>> theirs
+>>>>>>> Current commit: branch1: second commit
 `,
 	);
 
