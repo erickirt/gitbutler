@@ -70,7 +70,7 @@
 	function onClick(e: MouseEvent) {
 		e.stopPropagation();
 		e.preventDefault();
-		internalContextMenu?.toggle();
+		internalContextMenu?.open();
 	}
 
 	function closeMenu() {

@@ -263,6 +263,7 @@
 				menuManager.register({
 					id: menuId,
 					element: menuContainer,
+					triggerElement: leftClickTrigger,
 					parentMenuId,
 					close: () => {
 						isVisible = false;
