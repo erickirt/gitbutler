@@ -7,6 +7,7 @@ use but_testsupport::StackState;
 
 mod cherry_pick;
 mod conflictable_restriction;
+mod disconnect;
 mod editor_creation;
 mod insert;
 mod materialize;

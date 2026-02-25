@@ -123,6 +123,55 @@ impl Editor {
         Ok(old)
     }
 
+    /// Connect all the children of A to all the parents of B
+    ///
+    /// This removes all the children edges of A and all the parent edges of B.
+    /// The intended usage is to 'remove' a segment from the graph.
+    ///
+    /// It's possible for both targets to be the same.
+    pub fn disconnect(
+        &mut self,
+        target_a: impl ToSelector,
+        target_b: impl ToSelector,
+    ) -> Result<()> {
+        let target_a = self
+            .history
+            .normalize_selector(target_a.to_selector(self)?)?;
+        let target_b = self
+            .history
+            .normalize_selector(target_b.to_selector(self)?)?;
+
+        // Edges to children.
+        let incoming_edges = self
+            .graph
+            .edges_directed(target_a.id, Direction::Incoming)
+            .map(|e| (e.id(), e.weight().to_owned(), e.source()))
+            .collect::<Vec<_>>();
+
+        // Edges to parents.
+        let outgoing_edges = self
+            .graph
+            .edges_directed(target_b.id, Direction::Outgoing)
+            .map(|e| (e.id(), e.weight().to_owned(), e.target()))
+            .collect::<Vec<_>>();
+
+        // Disconnect all parents from the target node.
+        for (edge_id, _, _) in &outgoing_edges {
+            self.graph.remove_edge(*edge_id);
+        }
+
+        // Connect all the children to all parents.
+        for (edge_id, _, edge_source) in incoming_edges {
+            self.graph.remove_edge(edge_id);
+            for (_, parent_edge_weight, parent_edge_target) in &outgoing_edges {
+                self.graph
+                    .add_edge(edge_source, *parent_edge_target, parent_edge_weight.clone());
+            }
+        }
+
+        Ok(())
+    }
+
     /// Inserts a new node relative to a selector
     ///
     /// When inserting above, any nodes that point to the selector will now
