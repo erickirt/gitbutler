@@ -68,12 +68,16 @@ const ENV_WATCH_MODE: &str = "GITBUTLER_WATCH_MODE";
 pub enum WatchMode {
     /// Recursively watch the worktree (and an extra git-dir if the repo uses
     /// a linked worktree with a git-dir outside the worktree), using [`notify::RecursiveMode::Recursive`].
+    #[default]
     Legacy,
     /// Ignore-aware watch plan: non-recursive watches of non-ignored worktree directories,
     /// plus explicit git-dir watches and dynamic watch additions for newly created directories.
     /// Each directory is watched with [`notify::RecursiveMode::NonRecursive`].
-    #[default]
     Modern,
+    /// Automatically pick a mode based on platform heuristics.
+    ///
+    /// Currently, this enables `Modern` on WSL (Windows Subsystem for Linux.) and `Legacy` elsewhere.
+    Auto,
 }
 
 impl std::str::FromStr for WatchMode {
@@ -83,6 +87,7 @@ impl std::str::FromStr for WatchMode {
         Ok(match s.trim().to_ascii_lowercase().as_str() {
             "legacy" => Self::Legacy,
             "modern" => Self::Modern,
+            "auto" => Self::Auto,
             _ => {
                 return Err(());
             }
@@ -94,16 +99,16 @@ impl WatchMode {
     /// Initialise the mode from the environment.
     pub fn from_env() -> Self {
         let Ok(mode) = std::env::var(ENV_WATCH_MODE) else {
-            return Self::Modern;
+            return Self::Auto;
         };
 
         mode.parse().ok().unwrap_or_else(|| {
             tracing::warn!(
                 env = ENV_WATCH_MODE,
                 value = mode,
-                "unknown watch mode; falling back to modern"
+                "unknown watch mode; falling back to auto"
             );
-            WatchMode::Modern
+            WatchMode::Auto
         })
     }
 
@@ -119,11 +124,34 @@ impl WatchMode {
                 tracing::warn!(
                     feature_flag = watch_mode_from_settings,
                     env_var = ?std::env::var(ENV_WATCH_MODE),
-                    "unknown watch mode from feature flag or environment variable; falling back to modern"
+                    "unknown watch mode from feature flag or environment variable; falling back to auto"
                 );
-                WatchMode::Modern
+                WatchMode::Auto
             })
     }
+}
+
+#[cfg(target_os = "linux")]
+fn is_wsl() -> bool {
+    if std::env::var_os("WSL_DISTRO_NAME").is_some() || std::env::var_os("WSL_INTEROP").is_some() {
+        return true;
+    }
+
+    for path in ["/proc/sys/kernel/osrelease", "/proc/version"] {
+        let Ok(contents) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        let lower = contents.to_ascii_lowercase();
+        if lower.contains("microsoft") || lower.contains("wsl") {
+            return true;
+        }
+    }
+    false
+}
+
+#[cfg(not(target_os = "linux"))]
+fn is_wsl() -> bool {
+    false
 }
 
 fn watch_backoff_policy() -> backoff::ExponentialBackoff {
@@ -234,7 +262,7 @@ pub fn spawn(
     project_id: ProjectId,
     worktree_path: &std::path::Path,
     out: tokio::sync::mpsc::UnboundedSender<InternalEvent>,
-    mut watch_mode: WatchMode,
+    watch_mode: WatchMode,
 ) -> Result<FileMonitorHandle> {
     let (cmd_tx, cmd_rx) = std::sync::mpsc::channel();
     let (notify_tx, notify_rx) = std::sync::mpsc::channel();
@@ -253,6 +281,8 @@ pub fn spawn(
     ))?;
     let git_dir = repo.path().to_owned();
 
+    let mut effective_watch_mode = watch_mode;
+
     match watch_mode {
         WatchMode::Legacy => {
             setup_legacy_watch(&mut debouncer, &worktree_path, &git_dir)?;
@@ -266,18 +296,41 @@ pub fn spawn(
                     ?err,
                     "watch-plan setup failed; falling back to legacy watch mode"
                 );
-                watch_mode = WatchMode::Legacy;
+                effective_watch_mode = WatchMode::Legacy;
+                setup_legacy_watch(&mut debouncer, &worktree_path, &git_dir)?;
+            }
+        }
+        WatchMode::Auto => {
+            if is_wsl() {
+                match setup_watch_plan(&mut debouncer, project_id, &repo, &worktree_path, &git_dir)
+                {
+                    Ok(()) => {
+                        effective_watch_mode = WatchMode::Modern;
+                    }
+                    Err(err) => {
+                        tracing::warn!(
+                            %project_id,
+                            ?err,
+                            "watch-plan setup failed; falling back to legacy watch mode"
+                        );
+                        effective_watch_mode = WatchMode::Legacy;
+                        setup_legacy_watch(&mut debouncer, &worktree_path, &git_dir)?;
+                    }
+                }
+            } else {
+                effective_watch_mode = WatchMode::Legacy;
                 setup_legacy_watch(&mut debouncer, &worktree_path, &git_dir)?;
             }
         }
     }
     tracing::debug!(
         %project_id,
-        ?watch_mode,
+        requested = ?watch_mode,
+        effective = ?effective_watch_mode,
         "file watcher started"
     );
 
-    let dynamic_watch_enabled = matches!(watch_mode, WatchMode::Modern);
+    let dynamic_watch_enabled = matches!(effective_watch_mode, WatchMode::Modern);
     let worktree_path = worktree_path.to_owned();
     task::spawn_blocking(move || {
         let _runtime = tracing::span!(Level::INFO, "file monitor", %project_id ).entered();
