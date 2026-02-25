@@ -719,9 +719,7 @@ fn compute_resolutions(
                 ResolutionApproach::Unapply => Ok((stack.id, IntegrationResult::UnapplyBranch)),
                 ResolutionApproach::Delete => Ok((stack.id, IntegrationResult::DeleteBranch)),
                 ResolutionApproach::Merge => {
-                    // Make a merge commit on top of the branch commits,
-                    // then rebase the tree on top of that. If the tree ends
-                    // up conflicted, commit the tree.
+                    // Make a merge commit. It will be set as a stack head later.
                     let target_commit = repo.find_commit(stack.tip.to_git2())?;
                     let top_branch = stack.heads.last().context("top branch not found")?;
 
