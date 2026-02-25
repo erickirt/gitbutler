@@ -5,6 +5,8 @@ pub use output_channel::{
     Confirm, ConfirmDefault, ConfirmOrEmpty, InputOutputChannel, OutputChannel,
 };
 
+mod pager;
+
 pub mod metrics;
 #[cfg(feature = "legacy")]
 pub use metrics::types::BackgroundMetrics;

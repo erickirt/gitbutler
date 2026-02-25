@@ -1,9 +1,14 @@
 use std::io::{IsTerminal, Write};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use minus::ExitStrategy;
 
-use crate::{args::OutputFormat, utils::json_pretty_to_stdout};
+use crate::{
+    args::OutputFormat,
+    utils::{
+        json_pretty_to_stdout,
+        pager::{self, Pager},
+    },
+};
 
 /// Default value for a confirmation prompt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,7 +39,7 @@ pub struct OutputChannel {
     /// The output to use if there is no pager.
     stdout: std::io::Stdout,
     /// Possibly a pager we are using. If `Some`, the pager itself is used for output instead of `stdout`.
-    pager: Option<minus::Pager>,
+    pager: Option<Pager>,
     /// When `Some`, JSON values written via `write_value` are captured here instead of going to stdout.
     /// Used by `--status-after` to buffer mutation JSON before combining with status JSON.
     json_buffer: Option<serde_json::Value>,
@@ -224,19 +229,32 @@ impl std::fmt::Write for OutputChannel {
         use std::io::Write;
         match self.format {
             OutputFormat::Human | OutputFormat::Shell => {
-                if let Some(out) = self.pager.as_mut() {
-                    out.write_str(s)
-                } else {
-                    self.stdout.write_all(s.as_bytes()).or_else(|err| {
-                        if err.kind() == std::io::ErrorKind::BrokenPipe {
-                            // Ignore broken pipes and keep writing.
-                            // This allows the caller to use `?` without having to think
-                            // about ignoring errors selectively.
-                            Ok(())
-                        } else {
-                            Err(std::fmt::Error)
-                        }
-                    })
+                match self.pager.as_mut() {
+                    Some(Pager::Builtin(pager)) => pager.write_str(s),
+                    Some(Pager::External(_, stdin)) => {
+                        stdin.write_all(s.as_bytes()).or_else(|err| {
+                            if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                // Ignore broken pipes and keep writing.
+                                // This allows the caller to use `?` without having to think
+                                // about ignoring errors selectively.
+                                Ok(())
+                            } else {
+                                Err(std::fmt::Error)
+                            }
+                        })
+                    }
+                    None => {
+                        self.stdout.write_all(s.as_bytes()).or_else(|err| {
+                            if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                // Ignore broken pipes and keep writing.
+                                // This allows the caller to use `?` without having to think
+                                // about ignoring errors selectively.
+                                Ok(())
+                            } else {
+                                Err(std::fmt::Error)
+                            }
+                        })
+                    }
                 }
             }
             OutputFormat::Json | OutputFormat::None => {
@@ -490,21 +508,21 @@ impl OutputChannel {
     /// It's configured to print to stdout unless [`OutputFormat::Json`] is used, then it prints everything
     /// to a `/dev/null` equivalent, so callers never have to worry if they interleave JSON with other output.
     pub fn new_with_optional_pager(format: OutputFormat, use_pager: bool) -> Self {
+        let stdout = std::io::stdout();
+        let pager = if !use_pager
+            || !matches!(format, OutputFormat::Human)
+            || std::env::var_os("NOPAGER").is_some()
+            || !stdout.is_terminal()
+        {
+            None
+        } else {
+            pager::try_init_pager()
+        };
+
         OutputChannel {
             format,
-            stdout: std::io::stdout(),
-            pager: if !matches!(format, OutputFormat::Human)
-                || std::env::var_os("NOPAGER").is_some()
-                || !use_pager
-            {
-                None
-            } else {
-                let pager = minus::Pager::new();
-                let msg = "can talk to newly created pager";
-                pager.set_exit_strategy(ExitStrategy::PagerQuit).expect(msg);
-                pager.set_prompt("GitButler").expect(msg);
-                Some(pager)
-            },
+            stdout,
+            pager,
             json_buffer: None,
         }
     }
@@ -535,8 +553,17 @@ impl Drop for OutputChannel {
         {
             eprintln!("warning: failed to flush buffered JSON on drop: {err}");
         }
-        if let Some(pager) = self.pager.take() {
-            minus::page_all(pager).ok();
+        match self.pager.take() {
+            Some(Pager::Builtin(pager)) => {
+                minus::page_all(pager).ok();
+            }
+            Some(Pager::External(mut child, child_stdin)) => {
+                // Drop the child process stdin to signal EOF to the pager, which should cause it
+                // to exit.
+                drop(child_stdin);
+                child.wait().ok();
+            }
+            None => (),
         }
     }
 }
