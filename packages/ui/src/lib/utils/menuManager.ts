@@ -1,6 +1,7 @@
 export interface MenuInstance {
 	id: string;
 	element: HTMLElement;
+	triggerElement?: HTMLElement;
 	parentMenuId?: string;
 	close: () => void;
 }
@@ -29,13 +30,23 @@ class MenuManager {
 	private handleGlobalClick(event: MouseEvent) {
 		const target = event.target as HTMLElement;
 
-		// Find if the click is inside any menu
+		// Find if the click is inside any menu or its trigger element
 		let clickedMenu: MenuInstance | null = null;
+		let clickedTrigger = false;
 		for (const menu of this.menus.values()) {
 			if (menu.element.contains(target)) {
 				clickedMenu = menu;
 				break;
 			}
+			if (menu.triggerElement?.contains(target)) {
+				clickedTrigger = true;
+				break;
+			}
+		}
+
+		// If the click is on a trigger element, let the trigger's own handler deal with it
+		if (clickedTrigger) {
+			return;
 		}
 
 		// If no menu was clicked, close all menus
