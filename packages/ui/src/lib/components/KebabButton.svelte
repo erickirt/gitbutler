@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
 	import ContextMenu from "$components/ContextMenu.svelte";
-	import Icon from "$components/Icon.svelte";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
+	import NewIcon from "$components/NewIcon.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import type { Snippet } from "svelte";
 
 	interface Props {
@@ -15,7 +15,7 @@
 		contextMenu: Snippet<[{ close: () => void }]>;
 		menuSide?: "top" | "bottom" | "left" | "right";
 		menuAlign?: "start" | "center" | "end";
-		icon?: keyof typeof iconsJson;
+		icon?: NewIconName;
 		onMenuClose?: () => void;
 		onMenuOpen?: () => void;
 		onMenuToggle?: (isOpen: boolean, isLeftClick: boolean) => void;
@@ -109,7 +109,7 @@
 		data-testid={testId}
 		aria-label="Open context menu"
 	>
-		<Icon name={icon} />
+		<NewIcon name={icon} />
 	</button>
 {:else}
 	<Button

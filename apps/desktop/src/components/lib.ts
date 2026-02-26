@@ -1,7 +1,7 @@
+import type { BranchIconName } from "$components/BranchHeaderIcon.svelte";
 import type { UpstreamCommit, Commit, CommitState } from "$lib/branches/v3";
 import type { CommitStatusType } from "$lib/commits/commit";
 import type { PushStatus } from "$lib/stacks/stack";
-import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 const colorMap: Record<CommitStatusType, string> & { Error: string } = {
 	LocalOnly: "var(--clr-commit-local)",
@@ -15,7 +15,7 @@ const colorMap: Record<CommitStatusType, string> & { Error: string } = {
 export function getIconFromCommitState(
 	commitId?: string,
 	commitState?: CommitState,
-): keyof typeof iconsJson {
+): BranchIconName {
 	if (!commitId || !commitState) {
 		return "branch-local";
 	}
@@ -23,9 +23,9 @@ export function getIconFromCommitState(
 		case "LocalOnly":
 			return "branch-local";
 		case "LocalAndRemote":
-			return commitState.subject !== commitId ? "branch-shadow-commit" : "branch-remote";
+			return commitState.subject !== commitId ? "branch-double-commit" : "branch";
 		case "Integrated":
-			return "tick-small";
+			return "branch-tick";
 		default:
 			return "branch-local";
 	}

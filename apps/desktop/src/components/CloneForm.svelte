@@ -139,7 +139,7 @@
 	<Button kind="outline" disabled={loading} onclick={handleCancel}>Cancel</Button>
 	<Button
 		style="pop"
-		icon={errors.length > 0 ? "update" : "chevron-right-small"}
+		icon={errors.length > 0 ? "refresh" : "chevron-right"}
 		disabled={loading}
 		{loading}
 		onclick={cloneRepository}

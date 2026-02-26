@@ -12,7 +12,7 @@
 	import {
 		Button,
 		ElementId,
-		Icon,
+		NewIcon,
 		Link,
 		Modal,
 		RadioButton,
@@ -248,7 +248,7 @@
 					Creates a branch that depends on a selected stack.
 					<br />
 					A stack's top branches also have a
-					<i class="create-dependent-icon"><Icon name="new-dep-branch" /></i> icon to create dependent
+					<i class="create-dependent-icon"><NewIcon name="stack-plus" /></i> icon to create dependent
 					branches.
 				{/if}
 			</p>

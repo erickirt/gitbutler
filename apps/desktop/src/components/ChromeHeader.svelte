@@ -19,7 +19,7 @@
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 	import {
 		Button,
-		Icon,
+		NewIcon,
 		NotificationButton,
 		OptionsGroup,
 		Select,
@@ -138,7 +138,7 @@
 				</Button>
 			{:else}
 				<div class="chrome-you-are-up-to-date">
-					<Icon name="tick-small" />
+					<NewIcon name="tick" />
 					<span class="text-12">You’re up to date</span>
 				</div>
 			{/if}
@@ -169,12 +169,12 @@
 						reversedDirection
 						width="auto"
 						kind="outline"
-						icon="select-chevron"
+						icon="chevron-select"
 						class="project-selector-btn"
 					>
 						{#snippet custom()}
 							<div class="project-selector-btn__content">
-								<Icon name="repo-book-small" color="var(--clr-text-2)" />
+								<NewIcon name="repo" color="var(--clr-text-2)" />
 								<span class="text-12 text-bold">{projectTitle}</span>
 							</div>
 						{/snippet}
@@ -224,7 +224,7 @@
 				<Tooltip text="Current branch">
 					<div class="chrome-current-branch">
 						<div class="chrome-current-branch__content">
-							<Icon name="branch-remote" color="var(--clr-text-2)" />
+							<NewIcon name="branch" color="var(--clr-text-2)" />
 							<span class="text-12 text-bold clr-text-2 truncate">{currentBranchName}</span>
 							{#if isNotInWorkspace}
 								<span class="text-12 text-bold clr-text-2 op-60"> read-only </span>
@@ -265,7 +265,7 @@
 			<Button
 				testId={TestId.ChromeHeaderCreateBranchButton}
 				kind="outline"
-				icon="plus-small"
+				icon="plus"
 				hotkey="⌘B"
 				reversedDirection
 				onclick={() => createBranchModal?.show()}
@@ -277,7 +277,7 @@
 					testId={TestId.ChromeHeaderCreateCodegenSessionButton}
 					kind="outline"
 					tooltip="New Codegen Session"
-					icon="ai-new-session"
+					icon="ai-plus"
 					onclick={() => {
 						createAiStack();
 					}}

@@ -143,7 +143,7 @@
 				<ContextMenuSection>
 					<ContextMenuItem
 						label="Uncommit"
-						icon="undo-small"
+						icon="undo"
 						testId={TestId.CommitRowContextMenu_UncommitMenuButton}
 						disabled={isReadOnly}
 						onclick={(e: MouseEvent) => {
@@ -167,7 +167,7 @@
 					/>
 					<ContextMenuItem
 						label="Edit commit"
-						icon="edit-commit"
+						icon="commit-edit"
 						testId={TestId.CommitRowContextMenu_EditCommit}
 						disabled={isReadOnly}
 						onclick={async () => {
@@ -183,7 +183,7 @@
 				{#if commitUrl}
 					<ContextMenuItem
 						label="Open in browser"
-						icon="open-link"
+						icon="open-in-browser"
 						onclick={async () => {
 							await urlService.openExternalUrl(commitUrl);
 							close();
@@ -225,7 +225,7 @@
 				{#if contextData.commitStatus === "LocalAndRemote" || contextData.commitStatus === "LocalOnly"}
 					{@const stackId = contextData.stackId}
 
-					<ContextMenuItemSubmenu label="Add empty commit" icon="new-empty-commit">
+					<ContextMenuItemSubmenu label="Add empty commit" icon="commit-plus">
 						{#snippet submenu({ close: closeSubmenu })}
 							<ContextMenuSection>
 								<ContextMenuItem
@@ -249,7 +249,7 @@
 							</ContextMenuSection>
 						{/snippet}
 					</ContextMenuItemSubmenu>
-					<ContextMenuItemSubmenu label="Create branch" icon="branch-remote">
+					<ContextMenuItemSubmenu label="Create branch" icon="branch">
 						{#snippet submenu({ close: closeSubmenu })}
 							<ContextMenuSection>
 								<ContextMenuItem

@@ -6,7 +6,7 @@
 	import CodegenToolCall from "$components/codegen/CodegenToolCall.svelte";
 	import CodegenUserMessage from "$components/codegen/CodegenUserMessage.svelte";
 	import { type Message } from "$lib/codegen/messages";
-	import { Icon, Markdown } from "@gitbutler/ui";
+	import { NewIcon, Markdown } from "@gitbutler/ui";
 	import type { PermissionDecision } from "$lib/codegen/types";
 
 	type Props = {
@@ -96,7 +96,7 @@
 				onclick={() => (expanded = !expanded)}
 			>
 				<div class="compaction-summary__arrow" class:expanded>
-					<Icon name="chevron-right" />
+					<NewIcon name="chevron-right" />
 				</div>
 				<p class="text-13 text-italic clr-text-2 truncate">
 					Conversation compacted to preserve context

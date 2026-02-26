@@ -8,7 +8,7 @@
 	import { ORGANIZATION_SERVICE } from "@gitbutler/shared/organizations/organizationService";
 	import { organizationTable } from "@gitbutler/shared/organizations/organizationsSlice";
 	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
-	import { Button, CardGroup, EmptyStatePlaceholder, Icon } from "@gitbutler/ui";
+	import { Button, CardGroup, EmptyStatePlaceholder, NewIcon } from "@gitbutler/ui";
 
 	const organizationService = inject(ORGANIZATION_SERVICE);
 	const appState = inject(APP_STATE);
@@ -44,7 +44,7 @@
 <div class="page-container">
 	<header class="page-header">
 		<div class="page-title">
-			<Icon name="settings" />
+			<NewIcon name="settings" />
 			<h1>Organizations</h1>
 		</div>
 		<p class="page-description">Manage your organizations and team collaboration settings</p>
@@ -84,11 +84,11 @@
 											</div>
 											<div class="organization-stats">
 												<div class="stat">
-													<Icon name="profile" />
+													<NewIcon name="user" />
 													<span>{getOrganizationMembersCount(organization)} members</span>
 												</div>
 												<div class="stat">
-													<Icon name="search" />
+													<NewIcon name="search" />
 													<span>{getOrganizationProjectsCount(organization)} projects</span>
 												</div>
 											</div>

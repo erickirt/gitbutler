@@ -157,7 +157,7 @@
 			{#if branch.remoteTrackingBranch}
 				<ContextMenuItem
 					label="Open in browser"
-					icon="open-link"
+					icon="open-in-browser"
 					testId={TestId.BranchHeaderContextMenu_OpenInBrowser}
 					onclick={() => {
 						const url = forge.current.branch(branchName)?.url;
@@ -180,7 +180,7 @@
 			<ContextMenuSection>
 				<ContextMenuItemSubmenu
 					label="Create branch"
-					icon="new-dep-branch"
+					icon="stack-plus"
 					disabled={isReadOnly || refCreation.current.isLoading}
 				>
 					{#snippet submenu({ close: closeSubmenu })}
@@ -209,7 +209,7 @@
 				</ContextMenuItemSubmenu>
 				<ContextMenuItem
 					label="Add empty commit"
-					icon="new-empty-commit"
+					icon="commit-plus"
 					testId={TestId.BranchHeaderContextMenu_AddEmptyCommit}
 					onclick={async () => {
 						await insertBlankCommitInBranch({
@@ -224,7 +224,7 @@
 				{#if branch.commits.length > 1}
 					<ContextMenuItem
 						label="Squash all commits"
-						icon="squash-commits"
+						icon="commit-squash-multiple"
 						testId={TestId.BranchHeaderContextMenu_SquashAllCommits}
 						onclick={async () => {
 							await stackService.squashAllCommits({
@@ -242,7 +242,7 @@
 				{#if $aiGenEnabled && aiConfigurationValid && !branch.remoteTrackingBranch && stackId}
 					<ContextMenuItem
 						label="Generate branch name"
-						icon="ai-edit"
+						icon="edit-ai"
 						testId={TestId.BranchHeaderContextMenu_GenerateBranchName}
 						disabled={isReadOnly}
 						onclick={() => {

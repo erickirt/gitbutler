@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { getContext, onMount } from "svelte";
 	import type { SegmentContext } from "$components/segmentControl/segmentTypes";
-	import type iconsJson from "$lib/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	interface SegmentProps {
@@ -13,7 +13,7 @@
 		children?: Snippet;
 		tooltip?: string;
 		tooltipPosition?: "top" | "bottom";
-		icon?: keyof typeof iconsJson;
+		icon?: NewIconName;
 	}
 
 	const { id, children, disabled, icon, tooltip, tooltipPosition, testId }: SegmentProps = $props();
@@ -67,7 +67,7 @@
 		{/if}
 		{#if icon}
 			<span class="segment-control-item__icon" aria-hidden="true">
-				<Icon name={icon} />
+				<NewIcon name={icon} />
 			</span>
 		{/if}
 	</button>

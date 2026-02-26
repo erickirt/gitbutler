@@ -1,7 +1,7 @@
 <script lang="ts">
 	import DialogBubble from "$components/DialogBubble.svelte";
 	import { MessageRole, type UserPrompt } from "$lib/ai/types";
-	import { Button, Icon, Textbox } from "@gitbutler/ui";
+	import { Button, NewIcon, Textbox } from "@gitbutler/ui";
 
 	interface Props {
 		prompt: UserPrompt;
@@ -106,10 +106,10 @@
 		onkeydown={(e) => e.key === "Enter" && toggleExpand()}
 	>
 		{#if !isInEditing}
-			<Icon name="doc" />
+			<NewIcon name="file-text" />
 			<h3 class="text-15 text-bold title">{promptName}</h3>
 			<div class="icon">
-				<Icon name={expanded ? "chevron-up" : "chevron-down"} />
+				<NewIcon name={expanded ? "chevron-up" : "chevron-down"} />
 			</div>
 		{:else}
 			<Textbox bind:value={promptName} wide onclick={(e) => e.stopPropagation()} />
@@ -164,7 +164,7 @@
 							e.stopPropagation();
 							deletePrompt?.(prompt);
 						}}
-						icon="bin-small">Delete</Button
+						icon="bin">Delete</Button
 					>
 					<Button kind="outline" icon="edit" onclick={() => (editing = true)}>Edit prompt</Button>
 				{/if}

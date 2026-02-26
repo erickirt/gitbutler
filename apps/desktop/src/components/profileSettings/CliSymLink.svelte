@@ -2,7 +2,7 @@
 	import { BACKEND } from "$lib/backend";
 	import { CLI_MANAGER } from "$lib/cli/cli";
 	import { inject } from "@gitbutler/core/context";
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 	import { copyToClipboard } from "@gitbutler/ui/utils/clipboard";
 
 	interface Props {
@@ -32,7 +32,7 @@
 		{@const command = cliCommand(cliPath.response, platformName)}
 		<p>{command}</p>
 		<button type="button" class="symlink-copy-icon" onclick={() => copyToClipboard(command)}>
-			<Icon name="copy" />
+			<NewIcon name="copy" />
 		</button>
 	{/if}
 </div>

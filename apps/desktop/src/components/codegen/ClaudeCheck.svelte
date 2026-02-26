@@ -2,7 +2,7 @@
 	import { CLAUDE_CODE_SERVICE } from "$lib/codegen/claude";
 	import { SETTINGS_SERVICE } from "$lib/config/appSettingsV2";
 	import { inject } from "@gitbutler/core/context";
-	import { Icon, Textbox, AsyncButton, Codeblock } from "@gitbutler/ui";
+	import { NewIcon, Textbox, AsyncButton, Codeblock } from "@gitbutler/ui";
 	import { fromStore } from "svelte/store";
 
 	type Props = {
@@ -91,10 +91,10 @@
 	<div class="flex items-center gap-8 m-b-6">
 		<div class="flex items-center gap-8 flex-1">
 			{#if isClaudeNotAvailable}
-				<Icon name="warning" color="warning" />
+				<NewIcon name="warning" color="var(--clr-theme-warn-element)" />
 				<h4 class="text-16 text-semibold text-body">Claude Code can't be found</h4>
 			{:else}
-				<Icon name="success" color="safe" />
+				<NewIcon name="tick" color="var(--clr-theme-safe-element)" />
 				<h4 class="text-16 text-semibold text-body">Claude code is connected</h4>
 			{/if}
 		</div>
@@ -130,10 +130,10 @@
 			onclick={handleSuccessClick}
 		>
 			<p class="text-12">You're all set! Connection's good!</p>
-			<Icon name="tick" />
+			<NewIcon name="tick" />
 		</div>
 	{:else}
-		<AsyncButton style="gray" action={handleCheckAvailability} icon="update" loading={isChecking}>
+		<AsyncButton style="gray" action={handleCheckAvailability} icon="refresh" loading={isChecking}>
 			Check Connection
 		</AsyncButton>
 	{/if}

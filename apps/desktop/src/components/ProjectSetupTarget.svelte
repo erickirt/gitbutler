@@ -9,7 +9,16 @@
 	import { unique } from "$lib/utils/array";
 	import { getBestBranch, getBestRemote, getBranchRemoteFromRef } from "$lib/utils/branch";
 	import { inject } from "@gitbutler/core/context";
-	import { Button, CardGroup, Icon, Link, Select, SelectItem, TestId, Toggle } from "@gitbutler/ui";
+	import {
+		Button,
+		CardGroup,
+		NewIcon,
+		Link,
+		Select,
+		SelectItem,
+		TestId,
+		Toggle,
+	} from "@gitbutler/ui";
 	import { slide } from "svelte/transition";
 	import type { RemoteBranchInfo } from "$lib/baseBranch/baseBranch";
 
@@ -166,7 +175,7 @@
 		onclick={() => (showMoreInfo = !showMoreInfo)}
 	>
 		<div class="project-setup__fold-icon" class:rotate-icon={showMoreInfo}>
-			<Icon name="chevron-right" />
+			<NewIcon name="chevron-right" />
 		</div>
 
 		<div class="stack-v gap-6 full-width">
@@ -217,7 +226,7 @@
 			style="pop"
 			{loading}
 			onclick={onSetTargetClick}
-			icon="chevron-right-small"
+			icon="chevron-right"
 			testId={TestId.ProjectSetupPageTargetContinueButton}
 			id="set-base-branch"
 		>

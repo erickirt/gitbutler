@@ -208,16 +208,16 @@
 
 	function getPermissionModeIcon(
 		mode: PermissionMode,
-	): "edit-with-permissions" | "checklist" | "allow-all" {
+	): "edit-shield" | "checklist" | "tick-double" {
 		switch (mode) {
 			case "default":
-				return "edit-with-permissions";
+				return "edit-shield";
 			case "plan":
 				return "checklist";
 			case "acceptEdits":
-				return "allow-all";
+				return "tick-double";
 			default:
-				return "edit-with-permissions";
+				return "edit-shield";
 		}
 	}
 
@@ -436,7 +436,7 @@
 								<ContextMenuSection>
 									<ContextMenuItem
 										label="Clear context"
-										icon="clear"
+										icon="eraser"
 										disabled={isDisabled}
 										onclick={() => {
 											clearContextAndRules();

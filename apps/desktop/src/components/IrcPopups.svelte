@@ -36,7 +36,7 @@
 					/>
 					<Button
 						size="icon"
-						icon={collapsed ? "chevron-down-small" : "chevron-up-small"}
+						icon={collapsed ? "chevron-down" : "chevron-up"}
 						kind="ghost"
 						onclick={() => {
 							collapsed = !collapsed;

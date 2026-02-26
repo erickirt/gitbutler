@@ -19,8 +19,8 @@
 {#await Promise.all([approvers, rejectors]) then [approvers, rejectors]}
 	{#if approvers.length > 0 || rejectors.length > 0}
 		<div class="reviewers-groups">
-			<AvatarGroup avatars={rejectors} maxAvatars={2} icon="refresh-small" iconColor="warning" />
-			<AvatarGroup avatars={approvers} maxAvatars={2} icon="tick-small" iconColor="safe" />
+			<AvatarGroup avatars={rejectors} maxAvatars={2} icon="refresh" iconColor="warning" />
+			<AvatarGroup avatars={approvers} maxAvatars={2} icon="tick" iconColor="safe" />
 		</div>
 	{:else}
 		<span class="row-placeholder">—</span>

@@ -152,7 +152,7 @@
 <!-- Content filter -->
 {#snippet contentMatchesRegex()}
 	<Textbox
-		iconLeft="text-width"
+		iconLeft="text-contain"
 		wide
 		value={contentRegex}
 		oninput={(v) => (contentRegex = v)}
@@ -170,7 +170,7 @@
 		}))}
 		placeholder="Change type..."
 		flex="1"
-		icon="file-changes"
+		icon="file-diff"
 		onselect={(selected) => {
 			treeChangeType = selected as FileStatus;
 		}}

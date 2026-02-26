@@ -8,8 +8,8 @@
 </script>
 
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
 	import InfoButton from "$components/InfoButton.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import {
 		CountColumnSide,
 		isDeltaLine,
@@ -134,9 +134,9 @@
 			{#if deltaLine}
 				<div class="table__row-checkbox" class:staged class:locked>
 					{#if staged}
-						<Icon name="tick-small" />
+						<NewIcon name="tick" />
 					{:else}
-						<Icon name="minus-small" />
+						<NewIcon name="minus" />
 					{/if}
 				</div>
 			{/if}
@@ -156,7 +156,8 @@
 				<InfoButton
 					inheritColor
 					size="small"
-					icon="locked-extra-small"
+					icon="lock"
+					iconSize={10}
 					maxWidth="15rem"
 					iconTopOffset="0"
 				>
@@ -323,7 +324,7 @@
 	}
 
 	.table__lockColumn {
-		padding: 0 1px;
+		padding: 0 4px;
 		border-color: var(--clr-diff-count-border);
 		border-right: 1px solid var(--clr-diff-count-border);
 		background-color: var(--clr-diff-count-bg);

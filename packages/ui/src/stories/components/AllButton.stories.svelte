@@ -28,11 +28,11 @@
 	reversedDirection?: boolean;
 })}
 	<div class="group">
-		<Button {size} {style} kind="solid" icon="plus-small" {reversedDirection}>
+		<Button {size} {style} kind="solid" icon="plus" {reversedDirection}>
 			{label}
 		</Button>
-		<Button {size} {style} kind="outline" icon="plus-small" {reversedDirection}>{label}</Button>
-		<Button {size} {style} kind="ghost" icon="plus-small" {reversedDirection}>{label}</Button>
+		<Button {size} {style} kind="outline" icon="plus" {reversedDirection}>{label}</Button>
+		<Button {size} {style} kind="ghost" icon="plus" {reversedDirection}>{label}</Button>
 
 		<Button {size} {style} kind="solid" {reversedDirection}>{label}</Button>
 		<Button {size} {style} kind="outline" {reversedDirection}>{label}</Button>
@@ -42,9 +42,9 @@
 		<Button {size} {style} kind="outline" {reversedDirection} hotkey="Esc">{label}</Button>
 		<Button {size} {style} kind="ghost" {reversedDirection} hotkey="Esc">{label}</Button>
 
-		<Button {size} {style} kind="solid" icon="plus-small" />
-		<Button {size} {style} kind="outline" icon="plus-small" />
-		<Button {size} {style} kind="ghost" icon="plus-small" />
+		<Button {size} {style} kind="solid" icon="plus" />
+		<Button {size} {style} kind="outline" icon="plus" />
+		<Button {size} {style} kind="ghost" icon="plus" />
 	</div>
 {/snippet}
 

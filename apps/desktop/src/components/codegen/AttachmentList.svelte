@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileIcon, Icon, Tooltip } from "@gitbutler/ui";
+	import { FileIcon, NewIcon, Tooltip } from "@gitbutler/ui";
 	import { splitFilePath } from "@gitbutler/ui/utils/filePath";
 	import { fly } from "svelte/transition";
 	import type { PromptAttachment } from "$lib/codegen/types";
@@ -44,7 +44,7 @@
 				<div class="attachment-content text-12 text-semibold">
 					<!-- COMMIT -->
 					{#if attachment.type === "commit"}
-						<Icon name="commit" color="var(--clr-text-2)" />
+						<NewIcon name="commit" color="var(--clr-text-2)" />
 						<span class="path">
 							#{attachment.commitId.slice(0, 6)}
 						</span>
@@ -59,7 +59,7 @@
 						</span>
 
 						{#if commitId}
-							<Icon name="commit" color="var(--clr-text-3)" />
+							<NewIcon name="commit" color="var(--clr-text-3)" />
 							<Tooltip text={commitId}>
 								<span class="commit-badge">
 									#{commitId.slice(0, 6)}
@@ -76,13 +76,13 @@
 							{splitFilePath(path).filename}
 						</span>
 
-						<Icon name="text" color="var(--clr-text-3)" />
+						<NewIcon name="text-block" color="var(--clr-text-3)" />
 						<span>
 							{start}:{end}
 						</span>
 
 						{#if commitId}
-							<Icon name="commit" color="var(--clr-text-3)" />
+							<NewIcon name="commit" color="var(--clr-text-3)" />
 							<Tooltip text={commitId}>
 								<span class="commit-badge">
 									#{commitId.slice(0, 6)}
@@ -100,7 +100,7 @@
 					<!-- FOLDER -->
 					{#if attachment.type === "folder"}
 						{@const { path } = attachment}
-						<Icon name="folder" color="var(--clr-text-2)" />
+						<NewIcon name="folder" color="var(--clr-text-2)" />
 						<span class="path">
 							{path}
 						</span>
@@ -116,7 +116,7 @@
 					aria-label="Remove {attachment}"
 					title="Remove file"
 				>
-					<Icon name="cross-small" />
+					<NewIcon name="cross" size={14} />
 				</button>
 			{/if}
 		</div>

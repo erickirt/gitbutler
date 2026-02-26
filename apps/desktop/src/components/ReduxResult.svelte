@@ -7,7 +7,7 @@
 <script lang="ts" generics="A, B extends string | undefined, C extends string | undefined">
 	import { isParsedError } from "$lib/error/parser";
 
-	import { Icon, InfoMessage } from "@gitbutler/ui";
+	import { NewIcon, InfoMessage } from "@gitbutler/ui";
 	import { QueryStatus } from "@reduxjs/toolkit/query";
 	import type { Result } from "$lib/state/helpers";
 	import type { Snippet } from "svelte";
@@ -89,7 +89,7 @@
 		{@render props.loading(data)}
 	{:else if !props.hideLoading}
 		<div class="text-12 loading-spinner">
-			<Icon name="spinner" />
+			<NewIcon name="spinner" />
 			<span>{status}</span>
 		</div>
 	{/if}

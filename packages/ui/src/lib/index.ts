@@ -21,6 +21,7 @@ export { default as EmptyStatePlaceholder } from "$components/EmptyStatePlacehol
 export { default as HunkDiff, type LineClickParams } from "$components/hunkDiff/HunkDiff.svelte";
 export { default as HunkDiffSkeleton } from "$components/hunkDiff/HunkDiffSkeleton.svelte";
 export { default as Icon, type IconName } from "$components/Icon.svelte";
+export { default as NewIcon, type IconName as NewIconName } from "$components/NewIcon.svelte";
 export { default as ImageDiff } from "$components/ImageDiff.svelte";
 export { default as InfoButton } from "$components/InfoButton.svelte";
 export { default as InfoMessage, type MessageStyle } from "$components/InfoMessage.svelte";
@@ -30,7 +31,6 @@ export {
 } from "$components/IntegrationSeriesRow.svelte";
 export { default as KebabButton } from "$components/KebabButton.svelte";
 export { default as LineStats } from "$components/LineStats.svelte";
-export { default as LinkButton } from "$components/LinkButton.svelte";
 export { default as Modal, type ModalProps } from "$components/Modal.svelte";
 export { default as ModalHeader } from "$components/ModalHeader.svelte";
 export { default as ModalFooter } from "$components/ModalFooter.svelte";

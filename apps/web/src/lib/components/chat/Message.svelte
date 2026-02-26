@@ -31,7 +31,7 @@
 		Button,
 		ContextMenu,
 		EmojiPicker,
-		Icon,
+		NewIcon,
 		PopoverActionsContainer,
 		PopoverActionsItem,
 	} from "@gitbutler/ui";
@@ -167,7 +167,7 @@
 >
 	{#if message.issue}
 		<div class="chat-message__issue-icon" class:resolved={message.resolved}>
-			<Icon name="warning-small" />
+			<NewIcon name="warning" size={14} />
 		</div>
 	{:else}
 		<img class="chat-message__avatar" src={message.user.avatarUrl} alt={authorName} />
@@ -276,7 +276,7 @@
 
 			<!-- Reply -->
 			<PopoverActionsItem
-				icon="reply"
+				icon="arrow-corner-up-right"
 				tooltip="Reply"
 				thin
 				onclick={() => onReply()}

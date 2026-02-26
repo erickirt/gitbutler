@@ -26,7 +26,7 @@
 		iconClass?: string;
 		customStyle?: string;
 		// Additional elements
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: NewIconName;
 		hotkey?: string;
 		tooltip?: string;
 		tooltipPosition?: TooltipPosition;
@@ -47,13 +47,13 @@
 </script>
 
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip, { type TooltipAlign, type TooltipPosition } from "$components/Tooltip.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { focusable } from "$lib/focus/focusable";
 	import { formatHotkeyForPlatform } from "$lib/utils/hotkeySymbols";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { onMount, tick } from "svelte";
-	import type iconsJson from "$lib/data/icons.json";
 	import type { ComponentColorType, ComponentKindType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
@@ -197,9 +197,9 @@
 		{#if icon || loading}
 			<div class={["btn-icon", iconClass]}>
 				{#if loading}
-					<Icon name="spinner" spinnerRadius={size === "tag" ? 4 : 5} />
+					<NewIcon name="spinner" />
 				{:else if icon}
-					<Icon name={icon} />
+					<NewIcon name={icon} />
 				{/if}
 			</div>
 		{/if}

@@ -6,15 +6,16 @@
 		}[];
 		maxAvatars?: number;
 		size?: "small" | "medium" | "large";
-		icon?: IconName;
+		icon?: NewIconName;
 		iconColor?: ComponentColorType;
 	}
 </script>
 
 <script lang="ts">
-	import Icon, { type IconName } from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
 	import Avatar from "$components/avatar/Avatar.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	const { avatars, maxAvatars = 3, size = "medium", icon, iconColor }: Props = $props();
@@ -63,7 +64,7 @@
 
 		{#if avatars.length > 0 && icon}
 			<div class="avatar-icon {iconColor}">
-				<Icon name={icon} />
+				<NewIcon name={icon} />
 			</div>
 		{/if}
 	</div>

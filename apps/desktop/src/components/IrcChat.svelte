@@ -23,7 +23,7 @@
 					<IrcChannel type="private" nick={chat.current.username}>
 						{#snippet headerActions()}
 							<Button
-								icon="open-link"
+								icon="arrow-up-righ"
 								size="icon"
 								kind="ghost"
 								onclick={() => {

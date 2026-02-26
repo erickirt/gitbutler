@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { eventTimeStamp } from "@gitbutler/shared/branches/utils";
 
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 	import type { IssueUpdateEvent } from "@gitbutler/shared/patchEvents/types";
 
 	const UNKNOWN_AUTHOR = "Unknown author";
@@ -30,7 +30,7 @@
 
 		{#if issueUpdate.resolved}
 			<div class="issue-update__status-icon">
-				<Icon name="tick-small" />
+				<NewIcon name="tick" />
 			</div>
 
 			<p class="text-12 issue-update__status">resolved</p>

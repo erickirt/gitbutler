@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { eventTimeStamp } from "@gitbutler/shared/branches/utils";
 
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 	import type { PatchStatusEvent } from "@gitbutler/shared/patchEvents/types";
 
 	const UNKNOWN_USER = "Unknown User";
@@ -21,7 +21,7 @@
 
 <div class="patch-status" class:request-changes={!event.data.status}>
 	<div class="patch-status__icon" class:request-changes={!event.data.status}>
-		<Icon name={event.data.status ? "confeti" : "refresh-small"} />
+		<NewIcon name={event.data.status ? "tick" : "refresh"} />
 	</div>
 
 	<div class="patch-status-content">

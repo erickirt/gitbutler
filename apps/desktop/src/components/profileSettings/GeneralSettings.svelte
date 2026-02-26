@@ -200,7 +200,7 @@
 			{#snippet actions()}
 				<Button
 					kind="outline"
-					icon="signout"
+					icon="logout"
 					onclick={async () => {
 						await userService.forgetUserCredentials();
 					}}>Forget credentials</Button

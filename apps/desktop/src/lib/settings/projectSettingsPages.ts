@@ -1,32 +1,39 @@
-import iconsJson from "@gitbutler/ui/data/icons.json";
+import { type NewIconName } from "@gitbutler/ui";
+
+interface SettingsPage {
+	id: string;
+	label: string;
+	icon: NewIconName;
+	adminOnly?: boolean;
+}
 
 export const projectSettingsPages = [
 	{
 		id: "project",
 		label: "Project",
-		icon: "profile" as keyof typeof iconsJson,
+		icon: "user",
 	},
 	{
 		id: "git",
 		label: "Git stuff",
-		icon: "git" as keyof typeof iconsJson,
+		icon: "git",
 	},
 	{
 		id: "ai",
 		label: "AI options",
-		icon: "ai" as keyof typeof iconsJson,
+		icon: "ai",
 	},
 	{
 		id: "agent",
 		label: "Agent",
-		icon: "ai-agent" as keyof typeof iconsJson,
+		icon: "agent",
 	},
 	{
 		id: "experimental",
 		label: "Experimental",
-		icon: "idea" as keyof typeof iconsJson,
+		icon: "lab",
 	},
-] as const;
+] as const satisfies readonly SettingsPage[];
 
 export type ProjectSettingsPage = (typeof projectSettingsPages)[number];
 export type ProjectSettingsPageId = ProjectSettingsPage["id"];

@@ -89,7 +89,7 @@
 		{#if lockFile && !displayLockHunks}
 			<div class="lock-files-hidden-by-default">
 				<p class="text-12 hidden-lock-file-message">Lock files are hidden by default</p>
-				<Button kind="outline" icon="eye-shown" onclick={() => (displayLockHunks = true)}
+				<Button kind="outline" icon="eye" onclick={() => (displayLockHunks = true)}
 					>Show diff</Button
 				>
 			</div>

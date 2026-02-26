@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { focusable } from "$lib/focus/focusable";
-	import type iconsJson from "$lib/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	interface Props {
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: NewIconName;
 		iconSnippet?: Snippet;
 		selected?: boolean;
 		disabled?: boolean;
@@ -55,9 +55,9 @@
 	{#if icon || selected}
 		<div class="icon">
 			{#if icon}
-				<Icon name={loading ? "spinner" : icon} />
+				<NewIcon name={loading ? "spinner" : icon} />
 			{:else}
-				<Icon name="tick" />
+				<NewIcon name="tick" />
 			{/if}
 		</div>
 	{/if}

@@ -4,7 +4,7 @@
 	import { type CommitStatusType } from "$lib/commits/commit";
 	import { URL_SERVICE } from "$lib/utils/url";
 	import { inject } from "@gitbutler/core/context";
-	import { Avatar, Icon, TestId } from "@gitbutler/ui";
+	import { Avatar, NewIcon, TestId } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 
 	import { slide } from "svelte/transition";
@@ -135,7 +135,7 @@
 
 		{#if !selected && !args.disableCommitActions}
 			<div class="commit-row__drag-handle">
-				<Icon name="draggable-narrow" />
+				<NewIcon name="drag-vertical" />
 			</div>
 		{/if}
 
@@ -151,7 +151,7 @@
 		<div class="commit-content" class:has-conflicts={hasConflicts}>
 			{#if hasConflicts}
 				<div class="commit-conflict-indicator">
-					<Icon name="warning-small" />
+					<NewIcon name="warning" />
 				</div>
 			{/if}
 

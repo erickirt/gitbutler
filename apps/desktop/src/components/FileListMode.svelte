@@ -31,6 +31,6 @@
 	}}
 	size="small"
 >
-	<SegmentControl.Item id="list" testId={TestId.FileListModeOption} icon="list-view" />
-	<SegmentControl.Item id="tree" testId={TestId.FileListModeOption} icon="tree-view" />
+	<SegmentControl.Item id="list" testId={TestId.FileListModeOption} icon="list" />
+	<SegmentControl.Item id="tree" testId={TestId.FileListModeOption} icon="folder-tree" />
 </SegmentControl>

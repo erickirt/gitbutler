@@ -1,15 +1,15 @@
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { keysStringToArr } from "$lib/utils/hotkeys";
 	import { getContext } from "svelte";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	// Context key for submenu coordination
 	const SUBMENU_CONTEXT_KEY = "contextmenu-submenu-coordination";
 
 	interface Props {
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: NewIconName;
 		emoji?: string;
 		label: string;
 		disabled?: boolean;
@@ -74,7 +74,7 @@
 			</div>
 		{:else if icon}
 			<div class="menu-item__icon">
-				<Icon name={icon} />
+				<NewIcon name={icon} />
 			</div>
 		{/if}
 
@@ -92,7 +92,7 @@
 			{@render control()}
 		{:else if selected}
 			<div class="menu-item__icon">
-				<Icon name="tick" />
+				<NewIcon name="tick" />
 			</div>
 		{/if}
 	</div>

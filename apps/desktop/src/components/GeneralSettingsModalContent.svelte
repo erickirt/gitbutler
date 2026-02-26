@@ -17,7 +17,7 @@
 	import { USER_SERVICE } from "$lib/user/userService";
 	import { URL_SERVICE } from "$lib/utils/url";
 	import { inject } from "@gitbutler/core/context";
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 	import type { GeneralSettingsModalState } from "$lib/state/uiState.svelte";
 
 	type Props = {
@@ -79,7 +79,7 @@
 				class="social-btn"
 				onclick={async () => await urlService.openExternalUrl("https://docs.gitbutler.com/")}
 			>
-				<Icon name="docs" />
+				<NewIcon name="docs" />
 				<span class="text-13 text-bold">Docs</span>
 				<div class="text-13 open-link-icon">↗</div>
 			</button>
@@ -88,7 +88,7 @@
 				class="social-btn"
 				onclick={async () => await urlService.openExternalUrl("https://discord.gg/MmFkmaJ42D")}
 			>
-				<Icon name="discord" />
+				<NewIcon name="discord" />
 				<span class="text-13 text-bold">Our Discord</span>
 				<div class="text-13 open-link-icon">↗</div>
 			</button>

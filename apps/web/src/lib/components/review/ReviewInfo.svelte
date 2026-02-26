@@ -13,7 +13,7 @@
 	import ChangeStatus from "@gitbutler/shared/patches/ChangeStatus.svelte";
 	import { type PatchCommit } from "@gitbutler/shared/patches/types";
 	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
-	import { AvatarGroup, Icon } from "@gitbutler/ui";
+	import { AvatarGroup, NewIcon } from "@gitbutler/ui";
 	import { copyToClipboard } from "@gitbutler/ui/utils/clipboard";
 
 	const NO_REVIEWERS = "Not reviewed yet";
@@ -52,8 +52,8 @@
 	<Factoid label="Reviewed by" placeholderText={NO_REVIEWERS}>
 		{#await Promise.all([approvers, rejectors]) then [approvers, rejectors]}
 			{#if approvers.length > 0 || rejectors.length > 0}
-				<AvatarGroup avatars={rejectors} maxAvatars={2} icon="refresh-small" iconColor="warning" />
-				<AvatarGroup avatars={approvers} maxAvatars={2} icon="tick-small" iconColor="safe" />
+				<AvatarGroup avatars={rejectors} maxAvatars={2} icon="refresh" iconColor="warning" />
+				<AvatarGroup avatars={approvers} maxAvatars={2} icon="tick" iconColor="safe" />
 			{/if}
 		{/await}
 	</Factoid>
@@ -80,7 +80,7 @@
 				{commitShortSha}
 			</span>
 			<div class="factoid-icon">
-				<Icon name="copy-small" />
+				<NewIcon name="copy" size={14} />
 			</div>
 		</button>
 	</Factoid>

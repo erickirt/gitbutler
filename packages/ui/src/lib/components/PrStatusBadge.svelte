@@ -4,8 +4,8 @@
 
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 	interface Props {
 		status: PrStatusInfoType;
@@ -13,7 +13,7 @@
 
 	type StatusInfo = {
 		text: string;
-		icon: keyof typeof iconsJson | undefined;
+		icon: NewIconName;
 		style?: ComponentColorType;
 	};
 
@@ -24,13 +24,13 @@
 			case "loading":
 				return { text: "Loading...", icon: "spinner", style: "gray" };
 			case "merged":
-				return { text: "Merged", icon: "merged-pr-small", style: "purple" };
+				return { text: "Merged", icon: "pr-tick", style: "purple" };
 			case "closed":
-				return { text: "Closed", icon: "closed-pr-small", style: "danger" };
+				return { text: "Closed", icon: "pr-cross", style: "danger" };
 			case "draft":
-				return { text: "Draft", icon: "draft-pr-small", style: "gray" };
+				return { text: "Draft", icon: "pr-draft", style: "gray" };
 			default:
-				return { text: "Open", icon: "pr-small", style: "safe" };
+				return { text: "Open", icon: "pr", style: "safe" };
 		}
 	});
 </script>

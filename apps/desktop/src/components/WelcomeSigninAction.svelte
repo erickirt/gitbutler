@@ -27,7 +27,7 @@
 				<div class="flex gap-8 m-t-12">
 					<Button
 						style="pop"
-						icon="signin"
+						icon="login"
 						onclick={async () => {
 							await userService.openLoginPage();
 						}}>Log in / Sign up</Button
@@ -35,7 +35,7 @@
 
 					<Button
 						kind="outline"
-						icon="copy-small"
+						icon="copy"
 						onclick={async () => {
 							await userService.copyLoginPageLink();
 						}}>Copy login link</Button

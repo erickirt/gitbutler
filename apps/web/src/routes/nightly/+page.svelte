@@ -2,7 +2,7 @@
 	import Footer from "$lib/components/marketing/Footer.svelte";
 	import Header from "$lib/components/marketing/Header.svelte";
 	import ReleaseDownloadLinks from "$lib/components/marketing/ReleaseDownloadLinks.svelte";
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 	import type { Release } from "$lib/types/releases";
 	import type { LatestReleaseBuilds } from "$lib/utils/releaseUtils";
 
@@ -217,7 +217,7 @@
 					onclick={() => toggleRelease(release.version)}
 				>
 					<div class="release-row__chevron" class:expanded={expandedRelease === release.version}>
-						<Icon name="chevron-right" />
+						<NewIcon name="chevron-right" />
 					</div>
 					<div class="release-row__content">
 						<span class="release-row__version">{release.version}</span>

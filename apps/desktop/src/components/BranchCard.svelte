@@ -17,9 +17,9 @@
 	import { inject } from "@gitbutler/core/context";
 	import { ReviewBadge, TestId } from "@gitbutler/ui";
 	import { isDefined } from "@gitbutler/ui/utils/typeguards";
+	import type { BranchIconName } from "$components/BranchHeaderIcon.svelte";
 	import type { DropzoneHandler } from "$lib/dragging/handler";
 	import type { PushStatus } from "$lib/stacks/stack";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	interface BranchCardProps {
@@ -35,7 +35,7 @@
 
 	interface NormalBranchProps extends BranchCardProps {
 		type: "normal-branch";
-		iconName: keyof typeof iconsJson;
+		iconName: BranchIconName;
 		selected: boolean;
 		trackingBranch?: string;
 		isTopBranch?: boolean;
@@ -49,7 +49,7 @@
 
 	interface StackBranchProps extends BranchCardProps {
 		type: "stack-branch";
-		iconName: keyof typeof iconsJson;
+		iconName: BranchIconName;
 		stackId?: string;
 		laneId: string;
 		selected: boolean;
@@ -317,7 +317,7 @@
 			selected={args.selected}
 			draft={false}
 			{lineColor}
-			iconName="branch-remote"
+			iconName="branch"
 			{updateBranchName}
 			isUpdatingName={nameUpdate.current.isLoading}
 			failedMisserablyToUpdateBranchName={nameUpdate.current.isError}

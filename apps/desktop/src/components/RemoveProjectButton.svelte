@@ -39,7 +39,7 @@
 	testId={TestId.ProjectDeleteButton}
 	style="danger"
 	kind={outlineStyle ? "outline" : "solid"}
-	icon="bin-small"
+	icon="bin"
 	reversedDirection
 	onclick={handleClick}
 >
@@ -72,7 +72,7 @@
 			kind="outline"
 			reversedDirection
 			loading={isDeleting}
-			icon="bin-small"
+			icon="bin"
 			type="submit"
 		>
 			Remove

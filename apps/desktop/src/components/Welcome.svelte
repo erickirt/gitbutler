@@ -86,7 +86,7 @@
 				>
 					GitButler docs
 				</IconLink>
-				<IconLink icon="video" href="https://www.youtube.com/@gitbutlerapp">
+				<IconLink icon="youtube" href="https://www.youtube.com/@gitbutlerapp">
 					Watch tutorials
 				</IconLink>
 			</div>

@@ -22,7 +22,7 @@
 {:else if !$user}
 	<div class="login-signup-wrap">
 		<Button kind="outline" onclick={() => goto(routes.signupPath())}>Sign up</Button>
-		<Button style="pop" onclick={() => goto(routes.loginPath())} icon="signin">Log in</Button>
+		<Button style="pop" onclick={() => goto(routes.loginPath())} icon="login">Log in</Button>
 	</div>
 {/if}
 

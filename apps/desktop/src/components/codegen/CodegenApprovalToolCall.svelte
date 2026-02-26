@@ -8,7 +8,7 @@
 		ContextMenuSection,
 		ContextMenu,
 		Button,
-		Icon,
+		NewIcon,
 	} from "@gitbutler/ui";
 	import type { PermissionDecision } from "$lib/codegen/types";
 
@@ -94,7 +94,7 @@
 <div class="tool-call">
 	<div class="tool-call__details">
 		<div class="tool-call__header">
-			<Icon name={getToolIcon(toolCall.name)} color="var(--clr-text-3)" />
+			<NewIcon name={getToolIcon(toolCall.name)} color="var(--clr-text-3)" />
 			<span class="text-13 tool-name">{toolCall.name}</span>
 		</div>
 
@@ -103,7 +103,7 @@
 
 	{#if helperText}
 		<div class="tool-call__helper-text">
-			<Icon name="info-small-outline" />
+			<NewIcon name="info" />
 			<p class="text-12">
 				{helperText}
 			</p>
@@ -115,7 +115,7 @@
 			<Button
 				bind:el={wildcardButton}
 				kind="outline"
-				icon="select-chevron"
+				icon="chevron-select"
 				shrinkable
 				onclick={() => {
 					wildcardContextMenu?.toggle();

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MessageRole } from "$lib/ai/types";
-	import { Button, Icon, Textarea, Markdown } from "@gitbutler/ui";
+	import { Button, NewIcon, Textarea, Markdown } from "@gitbutler/ui";
 
 	interface Props {
 		role: MessageRole;
@@ -36,13 +36,13 @@
 	<div class="bubble">
 		<div class="bubble__header text-13 text-bold">
 			{#if role === MessageRole.User}
-				<Icon name="profile" />
+				<NewIcon name="user" />
 				<span>User</span>
 			{:else if role === MessageRole.System}
-				<Icon name="robot" />
+				<NewIcon name="robot" />
 				<span>System</span>
 			{:else}
-				<Icon name="robot" />
+				<NewIcon name="robot" />
 				<span>Assistant</span>
 			{/if}
 		</div>
@@ -68,12 +68,7 @@
 	{#if isLast && editing}
 		<div class="bubble-actions">
 			{#if !disableRemove}
-				<Button
-					icon="bin-small"
-					kind="outline"
-					style="danger"
-					onclick={() => onRemoveLastExample()}
-				>
+				<Button icon="bin" kind="outline" style="danger" onclick={() => onRemoveLastExample()}>
 					Remove example
 				</Button>
 			{/if}

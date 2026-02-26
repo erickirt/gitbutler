@@ -31,10 +31,10 @@
 </script>
 
 <div class="export-buttons">
-	<Button onclick={handleCopyCSS} kind="solid" icon={cssCopied ? "tick-small" : "copy-small"}>
+	<Button onclick={handleCopyCSS} kind="solid" icon={cssCopied ? "tick" : "copy"}>
 		{cssCopied ? "Copied" : "Copy CSS"}
 	</Button>
-	<Button onclick={handleCopyJSON} kind="outline" icon={jsonCopied ? "tick-small" : undefined}>
+	<Button onclick={handleCopyJSON} kind="outline" icon={jsonCopied ? "tick" : undefined}>
 		{jsonCopied ? "Copied" : "Copy JSON"}
 	</Button>
 </div>

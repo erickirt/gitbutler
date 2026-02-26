@@ -232,7 +232,7 @@
 							<p class="text-15 text-bold">{branch.title}</p>
 						{/if}
 						<div class="actions">
-							<Button icon="copy-small" kind="outline" onclick={copyLocation}>Share link</Button>
+							<Button icon="copy" kind="outline" onclick={copyLocation}>Share link</Button>
 							{@render startReview(branch)}
 							{#if branch.status === BranchStatus.Closed}
 								<AsyncButton action={async () => updateStatus(BranchStatus.Active)} kind="outline"
@@ -317,8 +317,7 @@
 											understand it's changes.
 										</em>
 									</p>
-									<Button icon="plus-small" kind="outline" onclick={editSummary}>Add summary</Button
-									>
+									<Button icon="plus" kind="outline" onclick={editSummary}>Add summary</Button>
 								{/if}
 							</div>
 						{/if}

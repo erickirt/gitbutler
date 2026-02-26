@@ -81,7 +81,7 @@
 
 	<Button
 		style="pop"
-		icon="chevron-right-small"
+		icon="chevron-right"
 		disabled={selectedId === projectId}
 		onclick={() => {
 			if (selectedId) goto(projectPath(selectedId));

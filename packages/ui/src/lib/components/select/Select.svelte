@@ -35,7 +35,7 @@
 		customSelectButton?: Snippet;
 		itemSnippet: Snippet<[{ item: SelectItem<T>; highlighted: boolean; idx: number }]>;
 		children?: Snippet;
-		icon?: keyof typeof iconsJson;
+		icon?: NewIconName;
 		autofocus?: boolean;
 		onselect?: (value: T, modifiers?: Modifiers) => void;
 		ontoggle?: (isOpen: boolean) => void;
@@ -47,12 +47,11 @@
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 	import OptionsGroup from "$components/select/OptionsGroup.svelte";
 	import SearchItem from "$components/select/SearchItem.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { portal } from "$lib/utils/portal";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { resizeObserver } from "$lib/utils/resizeObserver";
-
 	import { type Snippet } from "svelte";
-	import type iconsJson from "$lib/data/icons.json";
 
 	const {
 		id,
@@ -346,7 +345,7 @@
 				readonly
 				type="select"
 				iconLeft={icon}
-				iconRight="select-chevron"
+				iconRight="chevron-select"
 				value={options.find((item) => item.value === value)?.label}
 				disabled={disabled || loading}
 				{autofocus}

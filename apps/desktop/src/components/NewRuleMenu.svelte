@@ -43,7 +43,7 @@
 			}}
 		/>
 		<ContextMenuItem
-			icon="text-width"
+			icon="text-contain"
 			label="Contains text"
 			disabled={filterHasBeenAdded("contentMatchesRegex")}
 			onclick={() => {
@@ -51,7 +51,7 @@
 			}}
 		/>
 		<ContextMenuItem
-			icon="file-changes"
+			icon="file-diff"
 			label="Change type (coming soon)"
 			disabled={filterHasBeenAdded("fileChangeType") || true}
 			onclick={() => {

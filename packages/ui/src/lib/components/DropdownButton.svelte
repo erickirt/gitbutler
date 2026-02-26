@@ -2,13 +2,13 @@
 	import Button from "$components/Button.svelte";
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import type { ComponentColorType, ComponentKindType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		testId?: string;
-		icon?: keyof typeof iconsJson;
+		icon?: NewIconName;
 		style?: ComponentColorType;
 		kind?: ComponentKindType;
 		disabled?: boolean;

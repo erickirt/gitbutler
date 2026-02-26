@@ -2,7 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { inject } from "@gitbutler/core/context";
 	import { WEB_ROUTES_SERVICE } from "@gitbutler/shared/routing/webRoutes.svelte";
-	import { Button, Icon } from "@gitbutler/ui";
+	import { Button, NewIcon } from "@gitbutler/ui";
 
 	const routes = inject(WEB_ROUTES_SERVICE);
 
@@ -14,7 +14,7 @@
 <div class="private-project-error">
 	<div class="wrapper">
 		<div class="icon-container">
-			<Icon name="locked-small" size={48} />
+			<NewIcon name="lock" size={48} />
 		</div>
 		<h2 class="title text-15 text-body text-bold">Private Project</h2>
 		<p class="error-message text-13 text-body">

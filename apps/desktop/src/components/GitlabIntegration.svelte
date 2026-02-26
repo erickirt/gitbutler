@@ -228,10 +228,10 @@
 		disabled={showingFlow !== undefined}
 		loading={storePatResult.current.isLoading || storeSelfHostedPatResult.current.isLoading}
 		menuItems={[
-			{ label: "Add Personal Access Token", icon: "token-lock", onclick: startPatFlow },
+			{ label: "Add Personal Access Token", icon: "lock-auth", onclick: startPatFlow },
 			{
 				label: "Add Self-Hosted GitLab Account",
-				icon: "enterprise",
+				icon: "factory",
 				onclick: startSelfHostedFlow,
 			},
 		]}

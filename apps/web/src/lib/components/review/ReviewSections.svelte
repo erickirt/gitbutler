@@ -95,7 +95,7 @@
 					<Button
 						tooltip="Show interdiff"
 						kind="ghost"
-						icon={isInterdiffBarVisible ? "interdiff-fill" : "interdiff"}
+						icon="interdiff"
 						onclick={() => (isInterdiffBarVisible = !isInterdiffBarVisible)}
 					/>
 				</div>
@@ -119,7 +119,7 @@
 					popupAlign="right"
 				>
 					{#snippet customSelectButton()}
-						<Button kind="outline" icon="select-chevron" size="tag">
+						<Button kind="outline" icon="chevron-select" size="tag">
 							{beforeOptions.find((option) => option.value === selectedBefore.toString())?.label}
 						</Button>
 					{/snippet}
@@ -148,7 +148,7 @@
 					popupAlign="right"
 				>
 					{#snippet customSelectButton()}
-						<Button kind="outline" icon="select-chevron" size="tag">
+						<Button kind="outline" icon="chevron-select" size="tag">
 							{afterOptions.find((option) => option.value === selectedAfter.toString())?.label}
 						</Button>
 					{/snippet}
@@ -168,7 +168,7 @@
 				{#if interdiffActive}
 					<Button
 						kind="ghost"
-						icon="undo-small"
+						icon="undo"
 						size="tag"
 						tooltip="Reset to initial selection"
 						onclick={async () => {

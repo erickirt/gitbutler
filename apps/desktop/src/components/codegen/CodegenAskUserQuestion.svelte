@@ -281,7 +281,7 @@
 					kind="outline"
 					style="danger"
 					disabled={!onCancel}
-					icon="cross-small"
+					icon="cross"
 					onclick={() => {
 						onCancel?.();
 					}}>Discard and exit</Button
@@ -297,7 +297,7 @@
 					kind="outline"
 					style="danger"
 					disabled={!onCancel}
-					icon="cross-small"
+					icon="cross"
 					onclick={() => {
 						onCancel?.();
 					}}>Discard and exit</Button

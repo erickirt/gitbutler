@@ -19,7 +19,7 @@
 
 <script lang="ts">
 	import CopyButton from "$components/CopyButton.svelte";
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import SimpleCommitRowSkeleton from "$components/SimpleCommitRowSkeleton.svelte";
 	import { getTimeAndAuthor } from "$lib/utils/getTimeAndAuthor";
 
@@ -46,9 +46,9 @@
 	<div class="simple-commit-item no-select" class:content-only={onlyContent}>
 		{#if !onlyContent}
 			{#if isDone}
-				<Icon name="success" color="safe" />
+				<NewIcon name="tick" color="var(--clr-theme-safe-element)" />
 			{:else}
-				<Icon name="commit" />
+				<NewIcon name="commit" />
 			{/if}
 		{/if}
 		<div class="content">
@@ -79,7 +79,7 @@
 					<span class="details-divider">•</span>
 					<button type="button" class="details-btn link-btn" onclick={() => onOpen(url)}>
 						<span>Open</span>
-						<Icon name="open-link" />
+						<NewIcon name="arrow-up-righ" />
 					</button>
 				{/if}
 

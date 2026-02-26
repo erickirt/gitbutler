@@ -6,10 +6,9 @@
 	import { MODE_SERVICE } from "$lib/mode/modeService";
 	import { toHumanReadableTime } from "$lib/utils/time";
 	import { inject } from "@gitbutler/core/context";
-	import { Button, Icon, ScrollableContainer } from "@gitbutler/ui";
+	import { Button, NewIcon, ScrollableContainer, type NewIconName } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import type { Snapshot, SnapshotDetails } from "$lib/history/types";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 	interface Props {
 		entry: Snapshot;
@@ -48,120 +47,113 @@
 
 	function mapOperation(snapshotDetails: SnapshotDetails | undefined): {
 		text: string;
-		icon?: keyof typeof iconsJson;
+		icon?: NewIconName;
 		commitMessage?: string;
 	} {
 		if (!snapshotDetails) return { text: "", icon: "commit" };
 
+		function trailer(key: string) {
+			return snapshotDetails?.trailers.find((t) => t.key === key)?.value;
+		}
+		function entryTrailer(key: string) {
+			return entry.details?.trailers.find((t) => t.key === key)?.value;
+		}
+
 		switch (snapshotDetails.operation) {
-			// BRANCH OPERATIONS
+			// REMOVE
 			case "DeleteBranch":
+				return { text: `Delete branch "${entryTrailer("name")}"`, icon: "cross" };
+			case "DiscardLines":
+			case "DiscardHunk":
+			case "DiscardFile":
+				return { text: camelToTitleCase(snapshotDetails.operation), icon: "cross" };
+
+			// ADD
+			case "CreateBranch":
+				return { text: `Create branch "${trailer("name")}"`, icon: "plus" };
+			case "CreateCommit":
+			case "InsertBlankCommit":
 				return {
-					text: `Delete branch "${entry.details?.trailers.find((t) => t.key === "name")?.value}"`,
-					icon: "item-cross",
+					text:
+						snapshotDetails.operation === "CreateCommit"
+							? `Create commit ${getShortSha(entryTrailer("sha"))}`
+							: "Insert blank commit",
+					icon: "plus",
+					commitMessage: entryTrailer("message"),
 				};
-			case "ApplyBranch":
-				return {
-					text: `Apply branch "${entry.details?.trailers.find((t) => t.key === "name")?.value}"`,
-					icon: "item-tick",
-				};
-			case "UnapplyBranch":
-				return {
-					text: `Unapply branch "${snapshotDetails.trailers.find((t) => t.key === "name")?.value}"`,
-					icon: "item-dashed",
-				};
+
+			// EDIT
 			case "UpdateBranchName":
 				return {
-					text: `Renamed branch "${snapshotDetails.trailers.find((t) => t.key === "before")?.value}" to "${snapshotDetails.trailers.find((t) => t.key === "after")?.value}"`,
-					icon: "item-slash",
-				};
-			case "CreateBranch":
-				return {
-					text: `Create branch "${snapshotDetails.trailers.find((t) => t.key === "name")?.value}"`,
-					icon: "item-plus",
-				};
-			case "ReorderBranches":
-				return {
-					text: `Reorder branches "${snapshotDetails.trailers.find((t) => t.key === "before")?.value}" and "${snapshotDetails.trailers.find((t) => t.key === "after")?.value}"`,
-					icon: "item-link",
-				};
-			case "SelectDefaultVirtualBranch":
-				return {
-					text: `Select default virtual branch "${snapshotDetails.trailers.find((t) => t.key === "after")?.value}"`,
-					icon: "item-dot",
+					text: `Renamed branch "${trailer("before")}" to "${trailer("after")}"`,
+					icon: "edit",
 				};
 			case "UpdateBranchRemoteName":
 				return {
-					text: `Update branch remote name "${snapshotDetails.trailers.find((t) => t.key === "before")?.value}" to "${snapshotDetails.trailers.find((t) => t.key === "after")?.value}"`,
-					icon: "item-slash",
-				};
-			case "SetBaseBranch":
-				return { text: "Set base branch", icon: "item-slash" };
-			case "GenericBranchUpdate":
-				return { text: "Generic branch update", icon: "item-slash" };
-
-			// COMMIT OPERATIONS
-			case "CreateCommit":
-				return {
-					text: `Create commit ${getShortSha(entry.details?.trailers.find((t) => t.key === "sha")?.value)}`,
-					icon: "new-commit",
-					commitMessage: entry.details?.trailers.find((t) => t.key === "message")?.value,
-				};
-			case "UndoCommit":
-				return {
-					text: `Undo commit ${getShortSha(entry.details?.trailers.find((t) => t.key === "sha")?.value)}`,
-					icon: "undo-commit",
-					commitMessage: entry.details?.trailers.find((t) => t.key === "message")?.value,
+					text: `Update branch remote name "${trailer("before")}" to "${trailer("after")}"`,
+					icon: "edit",
 				};
 			case "AmendCommit":
-				return { text: "Amend commit", icon: "amend-commit" };
-			case "SquashCommit":
-				return { text: "Squash commit", icon: "squash-commit" };
+				return { text: "Amend commit", icon: "edit" };
 			case "UpdateCommitMessage":
 				return { text: "Update commit message", icon: "edit" };
-			case "MoveCommit":
-				return { text: "Move commit", icon: "move-commit" };
-			case "MoveBranch":
-				return { text: "Move branch", icon: "move-commit" };
-			case "TearOffBranch":
-				return { text: "Tear off branch", icon: "move-commit" };
-			case "ReorderCommit":
-				return { text: "Reorder commit", icon: "move-commit" };
-			case "InsertBlankCommit":
-				return { text: "Insert blank commit", icon: "blank-commit" };
-			case "MoveCommitFile":
-				return { text: "Move commit file", icon: "move-commit-file-small" };
-			case "Absorb":
-				return { text: "Absorb changes into commit", icon: "absorb" };
-			case "AutoCommit":
-				return { text: "Auto commit changes", icon: "auto-commit" };
-
-			// FILE OPERATIONS
-			case "MoveHunk":
-				return {
-					text: `Move hunk to "${entry.details?.trailers.find((t) => t.key === "name")?.value}"`,
-					icon: "item-move",
-				};
-			case "DiscardLines":
-				return { text: "Discard lines", icon: "item-cross" };
-			case "DiscardHunk":
-				return { text: "Discard change", icon: "item-cross" };
-			case "DiscardFile":
-				return { text: "Discard file", icon: "discard-file-small" };
-			case "FileChanges":
-				return { text: "File changes", icon: "file-changes-small" };
-
-			// OTHER OPERATIONS
-			case "MergeUpstream":
-				return { text: "Merge upstream", icon: "merged-pr-small" };
-			case "UpdateWorkspaceBase":
-				return { text: "Update workspace base", icon: "rebase" };
 			case "EnterEditMode":
 				return { text: "Enter Edit Mode", icon: "edit" };
+
+			// BRANCH
+			case "ApplyBranch":
+				return { text: `Apply branch "${entryTrailer("name")}"`, icon: "branch" };
+			case "UnapplyBranch":
+				return { text: `Unapply branch "${trailer("name")}"`, icon: "branch" };
+			case "ReorderBranches":
+				return {
+					text: `Reorder branches "${trailer("before")}" and "${trailer("after")}"`,
+					icon: "branch",
+				};
+			case "SelectDefaultVirtualBranch":
+				return { text: `Select default virtual branch "${trailer("after")}"`, icon: "branch" };
+			case "SetBaseBranch":
+				return { text: "Set base branch", icon: "branch" };
+			case "GenericBranchUpdate":
+				return { text: "Generic branch update", icon: "branch" };
+			case "SplitBranch":
+				return { text: "Split branch", icon: "branch" };
+			case "MoveBranch":
+			case "TearOffBranch":
+				return { text: camelToTitleCase(snapshotDetails.operation), icon: "branch" };
+
+			// COMMIT
+			case "UndoCommit":
+				return {
+					text: `Undo commit ${getShortSha(entryTrailer("sha"))}`,
+					icon: "undo",
+					commitMessage: entryTrailer("message"),
+				};
+			case "SquashCommit":
+				return { text: "Squash commit", icon: "commit-squash" };
+			case "MoveCommit":
+			case "ReorderCommit":
+				return { text: camelToTitleCase(snapshotDetails.operation), icon: "commit" };
+			case "MoveCommitFile":
+				return { text: "Move commit file", icon: "commit" };
+			case "Absorb":
+				return { text: "Absorb changes into commit", icon: "commit-absorb" };
+			case "AutoCommit":
+				return { text: "Auto commit changes", icon: "commit-ai" };
+
+			// FILE
+			case "MoveHunk":
+				return { text: `Move hunk to "${entryTrailer("name")}"`, icon: "file" };
+			case "FileChanges":
+				return { text: "File changes", icon: "file" };
+
+			// OTHER
+			case "MergeUpstream":
+				return { text: "Merge upstream", icon: "pr-tick" };
+			case "UpdateWorkspaceBase":
+				return { text: "Update workspace base", icon: "refresh" };
 			case "RestoreFromSnapshot":
 				return { text: "Revert snapshot" };
-			case "SplitBranch":
-				return { text: "Split branch", icon: "branch-local" };
 			case "OnDemandSnapshot":
 				return {
 					text: snapshotDetails.body
@@ -213,7 +205,7 @@
 		{#if isRestoreSnapshot}
 			<img src="/images/history/restore-icon.svg" alt="" />
 		{:else if operation.icon}
-			<Icon name={operation.icon} />
+			<NewIcon name={operation.icon} />
 		{/if}
 	</div>
 
@@ -264,7 +256,7 @@
 		{#if isRestoreSnapshot}
 			<SnapshotAttachment>
 				<div class="restored-attacment">
-					<Icon name="commit" />
+					<NewIcon name="commit" />
 					<div class="restored-attacment__content">
 						<h4 class="text-13 text-semibold">
 							{camelToTitleCase(

@@ -4,33 +4,31 @@
 
 <script lang="ts">
 	import Button from "$components/Button.svelte";
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { copyToClipboard } from "$lib/utils/clipboard";
-
-	import type iconsJson from "$lib/data/icons.json";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
 	type IconColor = ComponentColorType | undefined;
-	type IconName = keyof typeof iconsJson;
 
 	interface Props {
-		icon?: IconName | undefined;
+		icon?: NewIconName;
 		style?: MessageStyle;
 		outlined?: boolean;
 		filled?: boolean;
 		class?: string;
-		primaryLabel?: string | undefined;
-		primaryIcon?: IconName | undefined;
-		primaryTestId?: string | undefined;
+		primaryLabel?: string;
+		primaryIcon?: NewIconName;
+		primaryTestId?: string;
 		primaryAction?: () => void;
-		secondaryLabel?: string | undefined;
-		secondaryIcon?: IconName | undefined;
-		secondaryTestId?: string | undefined;
+		secondaryLabel?: string;
+		secondaryIcon?: NewIconName;
+		secondaryTestId?: string;
 		secondaryAction?: () => void;
-		tertiaryLabel?: string | undefined;
-		tertiaryTestId?: string | undefined;
-		tertiaryIcon?: IconName | undefined;
+		tertiaryLabel?: string;
+		tertiaryTestId?: string;
+		tertiaryIcon?: NewIconName;
 		tertiaryAction?: () => void;
 		shadow?: boolean;
 		error?: string | undefined;
@@ -64,11 +62,11 @@
 		testId,
 	}: Props = $props();
 
-	const iconMap: { [Key in MessageStyle]: IconName } = {
+	const iconMap: { [Key in MessageStyle]: NewIconName } = {
 		info: "info",
 		warning: "warning",
-		danger: "error",
-		success: "success",
+		danger: "danger",
+		success: "tick-circle",
 	};
 
 	const iconColorMap: { [Key in MessageStyle]: IconColor } = {
@@ -85,7 +83,7 @@
 		success: "pop",
 	};
 
-	const resolvedIconName = $derived(iconName ?? (iconMap[style] as IconName));
+	const resolvedIconName = $derived(iconName ?? (iconMap[style] as NewIconName));
 </script>
 
 <div
@@ -96,7 +94,7 @@
 	class:shadow
 >
 	<div class="info-message__icon">
-		<Icon name={resolvedIconName} color={iconColorMap[style]} />
+		<NewIcon name={resolvedIconName} color={iconColorMap[style]} />
 	</div>
 	<div class="info-message__inner">
 		<div class="info-message__content">
@@ -122,7 +120,7 @@
 		{#if primaryLabel || secondaryLabel}
 			<div class="info-message__actions">
 				{#if error}
-					<Button kind="ghost" onclick={() => copyToClipboard(error)} icon="copy-small">
+					<Button kind="ghost" onclick={() => copyToClipboard(error)} icon="copy">
 						Copy error message
 					</Button>
 				{/if}

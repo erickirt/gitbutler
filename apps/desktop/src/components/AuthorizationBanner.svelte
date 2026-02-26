@@ -1,6 +1,6 @@
 <script lang="ts">
 	import LoginButtons from "$components/LoginButtons.svelte";
-	import { CardGroup, Icon } from "@gitbutler/ui";
+	import { CardGroup, NewIcon } from "@gitbutler/ui";
 
 	interface Props {
 		title?: string;
@@ -16,7 +16,7 @@
 <CardGroup>
 	<CardGroup.Item>
 		{#snippet iconSide()}
-			<Icon name="warning" color="warning" />
+			<NewIcon name="warning" color="var(--clr-theme-warn-element)" />
 		{/snippet}
 		{#snippet title()}
 			{titleLabel}

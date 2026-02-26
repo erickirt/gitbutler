@@ -2,7 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { inject } from "@gitbutler/core/context";
 	import { WEB_ROUTES_SERVICE } from "@gitbutler/shared/routing/webRoutes.svelte";
-	import { Icon, Tooltip } from "@gitbutler/ui";
+	import { NewIcon, Tooltip } from "@gitbutler/ui";
 	import type { User } from "$lib/user/userService";
 
 	interface Props {
@@ -24,7 +24,7 @@
 		{#if user?.picture}
 			<img class="user-icon__image" src={user.picture} alt="" referrerpolicy="no-referrer" />
 		{:else}
-			<Icon name="profile" />
+			<NewIcon name="user" />
 		{/if}
 	</button>
 </Tooltip>

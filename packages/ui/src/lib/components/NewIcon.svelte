@@ -1,44 +1,45 @@
 <script lang="ts" module>
+	import { newIconNames, type NewIconName } from "$lib/data/newIconNames";
+	import { pxToRem } from "$lib/utils/pxToRem";
+
 	const modules = import.meta.glob<string>("../icons/*.svg", {
 		query: "?raw",
 		import: "default",
 		eager: true,
 	});
 
-	const icons: Record<string, string> = Object.fromEntries(
-		Object.entries(modules).map(([path, svg]) => [
-			path.replace("../icons/", "").replace(".svg", ""),
-			svg,
-		]),
-	);
+	const icons: Record<string, string> = {};
 
-	export type IconName = keyof typeof icons;
+	for (const [path, svg] of Object.entries(modules)) {
+		const name = path.replace("../icons/", "").replace(".svg", "");
+		icons[name] = svg;
+	}
+
+	export const allIconNames = newIconNames;
+	export type IconName = NewIconName;
 </script>
 
 <script lang="ts">
 	interface Props {
 		name: IconName;
 		size?: number;
-		sizeUnit?: string;
 		color?: string;
-		class?: string;
+		rotate?: number;
 	}
 
-	const {
-		name,
-		size = 1,
-		sizeUnit = "rem",
-		color = "currentColor",
-		class: className = "",
-	}: Props = $props();
+	const { name, size = 16, color, rotate }: Props = $props();
 
 	const svg = $derived(icons[name]);
 </script>
 
 <span
-	style="width: {size}{sizeUnit}; height: {size}{sizeUnit}; color: {color};"
+	style:width="{pxToRem(size)}rem"
+	style:height="{pxToRem(size)}rem"
+	style:color
 	class="icon"
-	class:className
+	class:spinner={name === "spinner"}
+	style:transform={rotate ? `rotate(${rotate}deg)` : undefined}
+	aria-hidden="true"
 >
 	{@html svg}
 </span>
@@ -49,9 +50,21 @@
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
+		pointer-events: none;
 	}
 
 	.icon :global(svg *) {
 		vector-effect: non-scaling-stroke;
+	}
+
+	.spinner {
+		animation: spinning 0.75s infinite linear;
+		will-change: transform;
+	}
+
+	@keyframes spinning {
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 </style>

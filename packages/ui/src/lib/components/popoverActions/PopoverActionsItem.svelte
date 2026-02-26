@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		el?: HTMLButtonElement;
-		icon?: keyof typeof iconsJson;
+		icon?: NewIconName;
 		tooltip: string;
 		thin?: boolean;
 		activated?: boolean;
@@ -53,7 +53,7 @@
 	>
 		{#if icon}
 			<div class="overflow-actions-btn__icon">
-				<Icon name={icon} />
+				<NewIcon name={icon} />
 			</div>
 		{/if}
 		{#if children}

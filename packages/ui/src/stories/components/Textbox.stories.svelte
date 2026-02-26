@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Textbox from "$components/Textbox.svelte";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
 
@@ -156,8 +156,8 @@
 				<Textbox
 					bind:value={textValue}
 					type="text"
-					iconLeft="profile"
-					iconRight="success"
+					iconLeft="user"
+					iconRight="tick-circle"
 					placeholder="Username with validation"
 					label="Username"
 				/>
@@ -192,7 +192,7 @@
 					type="text"
 					placeholder="Custom left, regular right"
 					label="Mixed Example"
-					iconRight="success"
+					iconRight="tick-circle"
 				>
 					{#snippet customIconLeft()}
 						<span style="font-size: 16px;">🎯</span>
@@ -208,7 +208,7 @@
 					label="Action Example"
 				>
 					{#snippet customIconRight()}
-						<Icon name="plus" />
+						<NewIcon name="plus" />
 					{/snippet}
 				</Textbox>
 			</div>
@@ -224,7 +224,7 @@
 				<Textbox
 					bind:value={passwordValue}
 					type="password"
-					iconLeft="locked"
+					iconLeft="lock"
 					placeholder="Enter password"
 					label="Password"
 					helperText="Password must be at least 8 characters"
@@ -235,7 +235,7 @@
 				<Textbox
 					value="disabled-password"
 					type="password"
-					iconLeft="locked"
+					iconLeft="lock"
 					placeholder="Enter password"
 					label="Disabled Password"
 					disabled={true}
@@ -247,7 +247,7 @@
 				<Textbox
 					value="readonly-password"
 					type="password"
-					iconLeft="locked"
+					iconLeft="lock"
 					placeholder="Enter password"
 					label="Readonly Password"
 					readonly={true}
@@ -359,7 +359,7 @@
 			</div>
 			<div class="story-group">
 				<h4>Disabled</h4>
-				<Textbox value="Disabled state" disabled={true} iconLeft="locked" label="Disabled" />
+				<Textbox value="Disabled state" disabled={true} iconLeft="lock" label="Disabled" />
 			</div>
 			<div class="story-group">
 				<h4>Readonly</h4>
@@ -411,7 +411,7 @@
 				<Textbox
 					value="https://example.com"
 					type="url"
-					iconLeft="open-link"
+					iconLeft="arrow-up-righ"
 					placeholder="https://example.com"
 					label="Website URL"
 				/>
@@ -498,7 +498,7 @@
 				<Textbox
 					bind:value={passwordErrorValue}
 					type="password"
-					iconLeft="locked"
+					iconLeft="lock"
 					placeholder="Enter password"
 					label="Password"
 					error={passwordError}

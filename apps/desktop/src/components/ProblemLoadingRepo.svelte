@@ -11,7 +11,7 @@
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { inject } from "@gitbutler/core/context";
 
-	import { Icon, Spacer, chipToasts } from "@gitbutler/ui";
+	import { NewIcon, Spacer, chipToasts } from "@gitbutler/ui";
 	import { isDefined } from "@gitbutler/ui/utils/typeguards";
 	import { onMount } from "svelte";
 
@@ -60,7 +60,7 @@
 			</h2>
 
 			<div class="problem__error text-12 text-body">
-				<Icon name="error" color="danger" />
+				<NewIcon name="danger" color="var(--clr-theme-danger-element)" />
 				{#if !isDefined(error)}
 					'An unknown error occured'
 				{:else if error instanceof Object && "message" in error}

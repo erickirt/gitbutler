@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { URL_SERVICE } from "$lib/utils/url";
 	import { inject } from "@gitbutler/core/context";
-	import { Icon } from "@gitbutler/ui";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
+	import { NewIcon, type NewIconName } from "@gitbutler/ui";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		href: string;
-		icon: keyof typeof iconsJson;
+		icon: NewIconName;
 		children: Snippet;
 	}
 
@@ -16,7 +15,7 @@
 </script>
 
 <button type="button" class="link" onclick={async () => await urlService.openExternalUrl(href)}>
-	<Icon name={icon} />
+	<NewIcon name={icon} />
 	<span class="text-12">
 		{@render children()}
 	</span>

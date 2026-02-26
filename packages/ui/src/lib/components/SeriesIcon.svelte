@@ -1,6 +1,7 @@
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 
 	interface Props {
 		single: boolean;
@@ -10,22 +11,22 @@
 
 	const { single, origin, outlined }: Props = $props();
 
-	function getIcon() {
+	function getIcon(): NewIconName {
 		if (origin) {
-			return "home-small";
+			return "home";
 		}
 
 		if (single) {
-			return "branch-small";
+			return "branch";
 		}
 
-		return "link-small";
+		return "link";
 	}
 </script>
 
 <Tooltip text={single ? "Single branch" : "Multiple branches"}>
 	<div class="stack-icon" class:outlined>
-		<Icon name={getIcon()} />
+		<NewIcon name={getIcon()} />
 	</div>
 </Tooltip>
 

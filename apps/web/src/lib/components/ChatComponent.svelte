@@ -97,12 +97,7 @@
 		<div class="chat-header">
 			<h3 class="text-13 text-bold">Discussion</h3>
 			<div class="chat-header-actions">
-				<Button
-					icon="minus-small"
-					kind="ghost"
-					tooltip="Hide discussion"
-					onclick={onMinimizeToggle}
-				/>
+				<Button icon="minus" kind="ghost" tooltip="Hide discussion" onclick={onMinimizeToggle} />
 			</div>
 		</div>
 

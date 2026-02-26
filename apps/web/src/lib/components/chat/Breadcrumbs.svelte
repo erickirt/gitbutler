@@ -3,7 +3,7 @@
 	import { USER_SERVICE } from "$lib/user/userService";
 	import { inject } from "@gitbutler/core/context";
 	import { WEB_ROUTES_SERVICE } from "@gitbutler/shared/routing/webRoutes.svelte";
-	import { Button, Icon } from "@gitbutler/ui";
+	import { Button, NewIcon } from "@gitbutler/ui";
 
 	const routes = inject(WEB_ROUTES_SERVICE);
 	// get user's project page params
@@ -22,7 +22,7 @@
 {#snippet backButton({ href, label = "Back" }: { href: string; label: string })}
 	<a {href} class="breadcrumbs__back-btn">
 		<div class="breadcrumbs__back-btn__icon">
-			<Icon name="chevron-left" />
+			<NewIcon name="chevron-left" />
 		</div>
 		<span class="text-12 text-semibold">
 			{label}

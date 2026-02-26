@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import Button from "$components/Button.svelte";
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Select from "$components/select/Select.svelte";
 	import SelectItem from "$components/select/SelectItem.svelte";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
@@ -124,7 +124,7 @@
 				popupAlign="center"
 			>
 				{#snippet customSelectButton()}
-					<Button kind="outline" icon="select-chevron" size="tag">
+					<Button kind="outline" icon="chevron-select" size="tag">
 						{args.options.find(
 							(option: { value: string; label: string }) => option.value === selectedItem,
 						)?.label}
@@ -154,7 +154,7 @@
 				{#snippet itemSnippet({ item, highlighted })}
 					<SelectItem selected={item.value === selectedWithIcon} {highlighted}>
 						{#snippet iconSnippet()}
-							<Icon name={item.icon} />
+							<NewIcon name={item.icon} />
 						{/snippet}
 						{item.label}
 					</SelectItem>
@@ -219,8 +219,8 @@
 						<SelectItem selected={item.value === selectedWithIcon} {highlighted}>
 							{#snippet iconSnippet()}
 								<div class="custom-component">
-									<Icon name="plus-small" />
-									<Icon name="minus-small" />
+									<NewIcon name="plus" />
+									<NewIcon name="minus" />
 								</div>
 							{/snippet}
 							{item.label}

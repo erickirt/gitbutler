@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
 	import type { FileStatus } from "$components/file/types";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
@@ -58,13 +58,13 @@
 			class:renamed={status === "rename"}
 		>
 			{#if status === "addition"}
-				<Icon name="file-added" />
+				<NewIcon name="change-addition" />
 			{:else if status === "modification"}
-				<Icon name="file-modified" />
+				<NewIcon name="change-modification" />
 			{:else if status === "deletion"}
-				<Icon name="file-deleted" />
+				<NewIcon name="change-deletion" />
 			{:else if status === "rename"}
-				<Icon name="file-moved" />
+				<NewIcon name="change-rename" />
 			{/if}
 		</div>
 	</Tooltip>

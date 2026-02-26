@@ -6,7 +6,7 @@
 	import ReduxResult from "$components/ReduxResult.svelte";
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { Icon, TestId, Tooltip } from "@gitbutler/ui";
+	import { NewIcon, TestId, Tooltip } from "@gitbutler/ui";
 
 	interface Props {
 		projectId: string;
@@ -42,9 +42,7 @@
 							? `Remote tracking branch:\n${remoteTrackingBranch}`
 							: "No remote tracking branch"}
 					>
-						<Icon
-							name={remoteTrackingBranch ? "remote-target-branch" : "no-remote-target-branch"}
-						/>
+						<NewIcon name={remoteTrackingBranch ? "target-branch" : "target-cross"} />
 					</Tooltip>
 				{/if}
 				<span class="text-15 text-bold truncate">{branch.name}</span>

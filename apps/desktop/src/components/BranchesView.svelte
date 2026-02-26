@@ -303,7 +303,7 @@
 											<Button
 												testId={TestId.BranchesViewDeleteLocalBranchButton}
 												kind="outline"
-												icon="bin-small"
+												icon="bin"
 												onclick={() => {
 													if (branchName) {
 														handleDeleteLocalBranch(branchName);

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CollapseStackButton from "$components/CollapseStackButton.svelte";
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 
 	type Props = {
 		stackId?: string;
@@ -30,7 +30,7 @@
 	<CollapseStackButton {stackId} {projectId} isFolded onToggle={(fn) => (toggleFold = fn)} />
 
 	<div class="drag-handle-icon">
-		<Icon name="draggable-wide" />
+		<NewIcon name="drag-horizontal" />
 	</div>
 
 	<div class="text-14 text-semibold stack-names">
@@ -39,7 +39,7 @@
 				<span class="branch-name">{branchName}</span>
 
 				{#if branchName !== branchNames[branchNames.length - 1]}
-					<Icon name="text-link" color="var(--clr-text-3)" rotate={90} />
+					<NewIcon name="link" color="var(--clr-text-3)" rotate={90} />
 				{/if}
 			{/each}
 		{:else}

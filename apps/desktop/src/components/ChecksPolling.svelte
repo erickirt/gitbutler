@@ -4,8 +4,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 
-	import { Badge, TestId, type MessageStyle } from "@gitbutler/ui";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
+	import { Badge, TestId, type MessageStyle, type NewIconName } from "@gitbutler/ui";
 	import type { ComponentColorType } from "@gitbutler/ui/utils/colorTypes";
 
 	type Props = {
@@ -19,7 +18,7 @@
 	type StatusInfo = {
 		text: string;
 		reducedText: string;
-		icon: keyof typeof iconsJson | undefined;
+		icon?: NewIconName;
 		style?: ComponentColorType;
 		messageStyle?: MessageStyle;
 		tooltip?: string;
@@ -68,7 +67,7 @@
 		if (checksQuery?.result.error) {
 			return {
 				style: "danger",
-				icon: "warning-small",
+				icon: "warning",
 				text: "Failed to load checks",
 				reducedText: "Error",
 				tooltip: "Failed to load checks. Click to retry.",
@@ -78,11 +77,7 @@
 		if (checks) {
 			const style = checks.completed ? (checks.success ? "safe" : "danger") : "warning";
 			// Keep the terminal icon stable during background re-fetches
-			const icon = checks.completed
-				? checks.success
-					? "success-small"
-					: "error-small"
-				: "spinner";
+			const icon = checks.completed ? (checks.success ? "tick" : "danger") : "spinner";
 			const text = checks.completed
 				? checks.success
 					? "Checks passed"
@@ -164,7 +159,7 @@
 	size="icon"
 	icon={checksTagInfo.icon}
 	style={checksTagInfo.style}
-	kind={checksTagInfo.icon === "success-small" ? "solid" : "soft"}
+	kind={checksTagInfo.icon === "tick" ? "solid" : "soft"}
 	tooltip={checksTagInfo.tooltip}
 	reversedDirection
 	onclick={(e) => {

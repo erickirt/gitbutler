@@ -314,7 +314,7 @@
 					kind="outline"
 					size="tag"
 					tooltip="Squash these commits into below"
-					icon="squash-commit"
+					icon="commit-squash"
 					onclick={() => squashStepById(stepId, squashCommits)}
 					disabled={isSkipStep}
 				>
@@ -327,7 +327,7 @@
 					kind="outline"
 					size="tag"
 					tooltip="Pick this commit"
-					icon="eye-shown"
+					icon="eye"
 					onclick={() => pickStepById(stepId, commitId)}
 					disabled={false}
 				>
@@ -452,7 +452,7 @@
 		<Button
 			kind="outline"
 			size="tag"
-			icon="eye-hidden"
+			icon="eye-closed"
 			tooltip="Don't pick this commit"
 			onclick={() => skipStepById(stepId, commitId)}
 			{disabled}
@@ -463,7 +463,7 @@
 	<Button
 		kind="outline"
 		size="tag"
-		icon="squash-commit"
+		icon="commit-squash"
 		tooltip="Squash this commit into the one below"
 		onclick={() => squashStepById(stepId, [commitId])}
 		{disabled}

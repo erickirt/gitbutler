@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 	interface Props {
 		projectName?: string;
 	}
@@ -8,7 +8,7 @@
 </script>
 
 <div class="project-name">
-	<Icon name="repo-book-small" />
+	<NewIcon name="repo" />
 	<span class="text-13 text-semibold">
 		{projectName}
 	</span>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import AttachmentList from "$components/codegen/AttachmentList.svelte";
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 
 	type Props = {
 		addedDirs: string[];
@@ -14,7 +14,7 @@
 	<div class="added-dirs-container">
 		<div class="flex gap-16">
 			<div class="flex items-center gap-8 flex-1">
-				<Icon name="folder" color="var(--clr-text-3)" />
+				<NewIcon name="folder" color="var(--clr-text-3)" />
 				<span class="text-12 clr-text-2">Added Directories</span>
 			</div>
 

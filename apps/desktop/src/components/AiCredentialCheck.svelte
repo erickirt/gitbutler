@@ -191,7 +191,7 @@
 		<div transition:slide={{ duration: 250 }}>
 			<InfoMessage
 				style={error ? "danger" : "success"}
-				icon={error ? "error" : isStreaming ? "robot" : "success"}
+				icon={error ? "danger" : isStreaming ? "robot" : "tick"}
 				filled
 				outlined={false}
 			>
@@ -244,13 +244,7 @@
 			</InfoMessage>
 		</div>
 	{/if}
-	<Button
-		style="pop"
-		wide
-		icon="ai-small"
-		disabled={testing || isStreaming}
-		onclick={testAiCredentials}
-	>
+	<Button style="pop" wide icon="ai" disabled={testing || isStreaming} onclick={testAiCredentials}>
 		{#if testing || isStreaming}
 			{isStreaming ? "AI is responding..." : "Testing AI connection..."}
 		{:else if error}

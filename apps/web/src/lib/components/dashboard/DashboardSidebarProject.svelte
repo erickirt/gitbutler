@@ -8,7 +8,7 @@
 		getRecentlyPushedProjects,
 	} from "@gitbutler/shared/organizations/projectsPreview.svelte";
 	import { WEB_ROUTES_SERVICE } from "@gitbutler/shared/routing/webRoutes.svelte";
-	import { Icon } from "@gitbutler/ui";
+	import { NewIcon } from "@gitbutler/ui";
 
 	type Props = {
 		showOwner?: boolean;
@@ -55,7 +55,7 @@
 			<div class="link-container">
 				<p class="text-13">{showOwner ? `${project.owner}/${project.slug}` : `${project.slug}`}</p>
 				<div class="icon">
-					<Icon name="chevron-right"></Icon>
+					<NewIcon name="chevron-right"></NewIcon>
 				</div>
 			</div>
 		</button>

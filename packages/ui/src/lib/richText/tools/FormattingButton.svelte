@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type NewIconName } from "$lib/data/newIconNames";
 
 	interface Props {
-		icon: keyof typeof iconsJson;
+		icon: NewIconName;
 		activated?: boolean;
 		tooltip: string;
 		onclick: (e: MouseEvent) => void;

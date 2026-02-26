@@ -1,24 +1,15 @@
 <script module lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import NewIcon, { allIconNames } from "$components/NewIcon.svelte";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
-	import type { IconName } from "$components/NewIcon.svelte";
 
-	const iconModules = import.meta.glob<string>("../../lib/icons/*.svg", {
-		query: "?raw",
-		import: "default",
-		eager: true,
-	});
-	let allIconNames = Object.keys(iconModules).map((p) =>
-		p.replace("../../lib/icons/", "").replace(".svg", ""),
-	) as IconName[];
+	import type { IconName } from "$components/NewIcon.svelte";
 
 	const { Story } = defineMeta({
 		title: "Basic / NewIcon",
 		component: NewIcon,
 		args: {
 			name: "pr" as IconName,
-			size: 1,
-			sizeUnit: "rem",
+			size: 16,
 			color: "currentColor",
 		},
 		argTypes: {
@@ -28,10 +19,6 @@
 			},
 			size: {
 				control: { type: "number" },
-			},
-			sizeUnit: {
-				options: ["rem", "px", "%", "em"],
-				control: { type: "select" },
 			},
 			color: {
 				control: { type: "color" },

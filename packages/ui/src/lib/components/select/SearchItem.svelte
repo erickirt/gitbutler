@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 
 	interface Props {
 		searchValue: string;
@@ -39,11 +39,11 @@
 <div class="container">
 	{#if !searchValue}
 		<i class="icon search-icon">
-			<Icon name="search" />
+			<NewIcon name="search" />
 		</i>
 	{:else}
 		<button type="button" class="icon" onclick={resetFilter}>
-			<Icon name="cross-in-circle" />
+			<NewIcon name="cross-circle" />
 		</button>
 	{/if}
 

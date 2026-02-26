@@ -9,7 +9,8 @@
 </script>
 
 <script lang="ts">
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 
 	type Props = {
 		status: CommitStatusType;
@@ -25,17 +26,17 @@
 		lineBottom = false,
 	}: Props = $props();
 
-	function getIconName() {
+	function getIconName(): NewIconName {
 		if (status === "approved") {
-			return "tick-small";
+			return "tick";
 		} else if (status === "changes-requested") {
-			return "refresh-small";
+			return "refresh";
 		} else if (status === "in-discussion") {
-			return "dialog-small";
+			return "chat";
 		} else if (status === "closed") {
-			return "cross-small";
+			return "cross";
 		} else {
-			return "dotted-circle";
+			return "clock";
 		}
 	}
 
@@ -55,7 +56,7 @@
 
 {#snippet icon()}
 	<div class={statusClasses("icon")}>
-		<Icon name={getIconName()} />
+		<NewIcon name={getIconName()} size={14} />
 	</div>
 {/snippet}
 

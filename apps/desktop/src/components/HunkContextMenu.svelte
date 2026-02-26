@@ -142,7 +142,7 @@
 						<ContextMenuItem
 							testId={TestId.HunkContextMenu_DiscardLines}
 							label={getDiscardLineLabel(item)}
-							icon="discard-selected"
+							icon="checklist-remove"
 							onclick={() => {
 								discardHunkLines(item);
 								contextMenu?.close();
@@ -155,7 +155,7 @@
 				<ContextMenuItem
 					testId={TestId.HunkContextMenu_OpenInEditor}
 					label="Open in {$userSettings.defaultCodeEditor.displayName}"
-					icon="open-editor"
+					icon="open-in-ide"
 					onclick={async () => {
 						const project = await projectService.fetchProject(projectId);
 						if (project?.path) {
@@ -215,7 +215,7 @@
 					<ContextMenuItem
 						testId={TestId.HunkContextMenu_UnselectAll}
 						label="Unselect all"
-						icon="unselect-all"
+						icon="select-all-remove"
 						onclick={() => {
 							unselectAllHunkLines(item.hunk);
 							contextMenu?.close();
@@ -224,7 +224,7 @@
 					<ContextMenuItem
 						testId={TestId.HunkContextMenu_InvertSelection}
 						label="Invert selection"
-						icon="invert-selection"
+						icon="select-all-inverse"
 						onclick={() => {
 							invertHunkSelection(item.hunk);
 							contextMenu?.close();

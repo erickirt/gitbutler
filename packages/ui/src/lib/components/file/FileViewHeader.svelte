@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
 	import Button from "$components/Button.svelte";
-	import Icon from "$components/Icon.svelte";
 	import LineStats from "$components/LineStats.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
 	import ExecutableLabel from "$components/file/ExecutableLabel.svelte";
 	import FileName from "$components/file/FileName.svelte";
 	import FileStatusBadge from "$components/file/FileStatusBadge.svelte";
@@ -59,7 +59,7 @@
 >
 	{#if draggable}
 		<div class="file-header__drag-handle">
-			<Icon name="draggable-narrow" />
+			<NewIcon name="drag-vertical" />
 		</div>
 	{/if}
 

@@ -1,16 +1,16 @@
 <script lang="ts">
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import ContextMenuItem from "$components/ContextMenuItem.svelte";
-	import Icon from "$components/Icon.svelte";
+	import NewIcon from "$components/NewIcon.svelte";
+	import { type NewIconName } from "$lib/data/newIconNames";
 	import { getContext, onDestroy } from "svelte";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	// Context key for submenu coordination
 	const SUBMENU_CONTEXT_KEY = "contextmenu-submenu-coordination";
 
 	interface Props {
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: NewIconName;
 		label: string;
 		disabled?: boolean;
 		keyboardShortcut?: string;
@@ -158,7 +158,7 @@
 	<ContextMenuItem {icon} {label} {disabled} {keyboardShortcut} {testId} onclick={handleClick}>
 		{#snippet control()}
 			<div class="submenu-chevron">
-				<Icon name="chevron-right-small" />
+				<NewIcon name="chevron-right" size={14} />
 			</div>
 		{/snippet}
 	</ContextMenuItem>

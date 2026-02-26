@@ -77,12 +77,8 @@
 		</div>
 
 		<div class="forge-user-card__actions">
-			<Button
-				kind="outline"
-				style="danger"
-				icon="bin-small"
-				onclick={onForget}
-				loading={isForgetLoading}>Forget</Button
+			<Button kind="outline" style="danger" icon="bin" onclick={onForget} loading={isForgetLoading}
+				>Forget</Button
 			>
 		</div>
 	</div>
