@@ -5,7 +5,7 @@
 #[cfg(feature = "legacy")]
 mod legacy;
 #[cfg(feature = "legacy")]
-pub use legacy::VirtualBranchesTomlMetadata;
+pub use legacy::{VirtualBranchesTomlMetadata, storage as legacy_storage};
 
 #[cfg(feature = "legacy")]
 pub mod virtual_branches_legacy_types;
