@@ -312,7 +312,8 @@
 							runHooks: $runHooks,
 							okWithForce: true,
 							onCommitIdChange: (newId) => {
-								if (stackId) {
+								const wasSelected = laneState.selection.current?.commitId === commitId;
+								if (stackId && wasSelected) {
 									const previewOpen = selection.current?.previewOpen ?? false;
 									uiState.lane(stackId).selection.set({ branchName, commitId: newId, previewOpen });
 								}
