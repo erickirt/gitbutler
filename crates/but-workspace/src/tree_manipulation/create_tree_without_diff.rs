@@ -3,6 +3,7 @@
 use anyhow::Context as _;
 use bstr::ByteSlice as _;
 use but_core::{ChangeState, DiffSpec, HunkHeader};
+use gix::prelude::ObjectIdExt;
 
 use crate::tree_manipulation::hunk::{HunkSubstraction, subtract_hunks};
 
@@ -29,8 +30,8 @@ impl ChangesSource {
             ChangesSource::Commit { id } => {
                 let commit = repository.find_commit(*id)?;
                 if let Some(parent_id) = commit.parent_ids().next() {
-                    let parent = repository.find_commit(parent_id)?;
-                    Ok(parent.tree()?)
+                    let parent = but_core::Commit::from_id(parent_id)?;
+                    Ok(parent.tree_id_or_auto_resolution()?.object()?.into_tree())
                 } else {
                     Ok(repository.empty_tree())
                 }
@@ -41,7 +42,13 @@ impl ChangesSource {
 
     fn after<'a>(&self, repository: &'a gix::Repository) -> anyhow::Result<gix::Tree<'a>> {
         match self {
-            ChangesSource::Commit { id } => Ok(repository.find_commit(*id)?.tree()?),
+            ChangesSource::Commit { id } => {
+                let commit = but_core::Commit::from_id(id.attach(repository))?;
+                if commit.is_conflicted() {
+                    anyhow::bail!("The source of changes cannot have a conflicted 'after' side.");
+                }
+                Ok(repository.find_tree(commit.tree)?)
+            }
             ChangesSource::Tree { after_id, .. } => Ok(repository.find_tree(*after_id)?),
         }
     }
