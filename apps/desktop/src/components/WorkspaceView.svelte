@@ -42,9 +42,9 @@
 	let multiDiffView = $state<MultiDiffView>();
 	let startIndex = $state(0);
 
-	let visibleRange = $state({ start: 0, end: 0 });
+	let visibleRange = $state<{ start: number; end: number } | undefined>();
 
-	function onVisibleChange(change: { start: number; end: number }) {
+	function onVisibleChange(change: { start: number; end: number } | undefined) {
 		visibleRange = change;
 	}
 </script>

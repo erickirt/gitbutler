@@ -33,7 +33,7 @@
 		startIndex?: number;
 		selectionId: SelectionId;
 		onclose?: () => void;
-		onVisibleChange?: (change: { start: number; end: number }) => void;
+		onVisibleChange?: (change: { start: number; end: number } | undefined) => void;
 	};
 
 	let {
