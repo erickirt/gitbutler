@@ -64,6 +64,10 @@ pub fn show_graph_svg(ctx: &Context) -> Result<()> {
             ..but_graph::init::Options::limited()
         },
     )?;
+    let lower_bound_segment_id = graph.clone().into_workspace()?.lower_bound_segment_id;
+    if let Some(lower_bound_segment_id) = lower_bound_segment_id {
+        remove_in_workspace_flag_below_lower_bound(&mut graph, lower_bound_segment_id);
+    }
     // It's OK if it takes a while, prefer complete graphs.
     const LIMIT: usize = 5000;
     let mut to_remove = graph.num_segments().saturating_sub(LIMIT);
@@ -78,12 +82,19 @@ pub fn show_graph_svg(ctx: &Context) -> Result<()> {
             if to_remove == 0 {
                 break;
             }
-            if let Some(s) = graph.node_weight(sidx)
-                && (s.metadata.is_some()
+            if let Some(s) = graph.node_weight(sidx) {
+                if lower_bound_segment_id.is_some()
+                    && s.non_empty_flags_of_first_commit()
+                        .is_some_and(|flags| flags.contains(but_graph::CommitFlags::InWorkspace))
+                {
+                    continue;
+                }
+                if s.metadata.is_some()
                     || s.sibling_segment_id.is_some()
-                    || s.remote_tracking_branch_segment_id.is_some())
-            {
-                continue;
+                    || s.remote_tracking_branch_segment_id.is_some()
+                {
+                    continue;
+                }
             }
             next.extend(
                 graph
@@ -100,6 +111,31 @@ pub fn show_graph_svg(ctx: &Context) -> Result<()> {
     }
     graph.open_as_svg();
     Ok(())
+}
+
+#[cfg(unix)]
+fn remove_in_workspace_flag_below_lower_bound(
+    graph: &mut but_graph::Graph,
+    lower_bound_segment_id: but_graph::SegmentIndex,
+) {
+    let mut seen = std::collections::BTreeSet::from([lower_bound_segment_id]);
+    let mut queue = std::collections::VecDeque::from([lower_bound_segment_id]);
+    while let Some(sidx) = queue.pop_front() {
+        let below_segments: Vec<_> = graph
+            .neighbors_directed(sidx, but_graph::petgraph::Direction::Outgoing)
+            .filter(|n| seen.insert(*n))
+            .collect();
+        for below_sidx in below_segments {
+            if let Some(segment) = graph.node_weight_mut(below_sidx)
+                && let Some(first_commit) = segment.commits.first_mut()
+            {
+                first_commit
+                    .flags
+                    .remove(but_graph::CommitFlags::InWorkspace);
+            }
+            queue.push_back(below_sidx);
+        }
+    }
 }
 
 #[but_api(napi)]
