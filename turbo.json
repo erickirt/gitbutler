@@ -25,9 +25,10 @@
 		"check": {
 			"dependsOn": ["package"]
 		},
-		"playwright:install": {},
+		"playwright:install:unit": {},
+		"playwright:install:ct": {},
 		"test": {
-			"dependsOn": ["package", "playwright:install"]
+			"dependsOn": ["package", "playwright:install:unit"]
 		},
 		"test:e2e:playwright": {
 			"env": ["PLAYWRIGHT_BROWSERS_PATH"],
@@ -35,7 +36,7 @@
 		},
 		"test:ct": {
 			"env": ["PLAYWRIGHT_BROWSERS_PATH"],
-			"dependsOn": ["package"]
+			"dependsOn": ["package", "playwright:install:ct"]
 		},
 		"//#globallint": {
 			"dependsOn": [
