@@ -161,5 +161,16 @@ fn install(out: &mut OutputChannel, target: Option<String>) -> Result<()> {
         writeln!(writer)?;
     }
 
+    let mut cache = but_ctx::Context::app_cache();
+    if let Err(err) = cache.update_check_mut().and_then(|handle| handle.delete()) {
+        tracing::warn!(?err, "Failed to invalidate update check cache");
+        if let Some(writer) = out.for_human() {
+            writeln!(
+                writer,
+                "Failed to invalidate update check cache - skipping invalidation: {err:?}",
+            )?;
+        }
+    }
+
     Ok(())
 }
