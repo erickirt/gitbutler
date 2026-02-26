@@ -7,7 +7,7 @@ use crate::utils::{CONTEXT_LINES, read_only_in_memory_scenario};
 
 #[test]
 fn two_regular_commits_should_succeed() -> anyhow::Result<()> {
-    let repo = read_only_in_memory_scenario("create-tree-without-diff-commit-sources")?;
+    let repo = read_only_in_memory_scenario("create_tree_without_diff-commit-sources")?;
 
     let changed_file = "regular-change.txt";
     let commit_id = repo.rev_parse_single("regular-source")?.detach();
@@ -38,7 +38,7 @@ fn two_regular_commits_should_succeed() -> anyhow::Result<()> {
 
 #[test]
 fn conflicted_then_regular_should_succeed() -> anyhow::Result<()> {
-    let repo = read_only_in_memory_scenario("create-tree-without-diff-commit-sources")?;
+    let repo = read_only_in_memory_scenario("create_tree_without_diff-commit-sources")?;
 
     let changed_file = "file";
     let commit_id = repo
@@ -72,7 +72,7 @@ fn conflicted_then_regular_should_succeed() -> anyhow::Result<()> {
 
 #[test]
 fn regular_then_conflicted_should_bail() -> anyhow::Result<()> {
-    let repo = read_only_in_memory_scenario("create-tree-without-diff-commit-sources")?;
+    let repo = read_only_in_memory_scenario("create_tree_without_diff-commit-sources")?;
 
     let commit_id = repo
         .rev_parse_single("regular-then-conflicted-source")?
@@ -86,7 +86,7 @@ fn regular_then_conflicted_should_bail() -> anyhow::Result<()> {
         CONTEXT_LINES,
     )
     .unwrap_err();
-    insta::assert_snapshot!(err.to_string(), @"A changes source cannot have a conflicted after side.");
+    insta::assert_snapshot!(err.to_string(), @"The source of changes cannot have a conflicted 'after' side.");
 
     Ok(())
 }

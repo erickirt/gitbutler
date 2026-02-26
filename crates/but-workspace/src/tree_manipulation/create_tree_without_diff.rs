@@ -1,6 +1,6 @@
 //! Utility for creating a tree with specific changes removed.
 
-use anyhow::{Context as _, bail};
+use anyhow::Context as _;
 use bstr::ByteSlice as _;
 use but_core::{ChangeState, DiffSpec, HunkHeader};
 use gix::prelude::ObjectIdExt;
@@ -45,7 +45,7 @@ impl ChangesSource {
             ChangesSource::Commit { id } => {
                 let commit = but_core::Commit::from_id(id.attach(repository))?;
                 if commit.is_conflicted() {
-                    bail!("A changes source cannot have a conflicted after side.");
+                    anyhow::bail!("The source of changes cannot have a conflicted 'after' side.");
                 }
                 Ok(repository.find_tree(commit.tree)?)
             }
