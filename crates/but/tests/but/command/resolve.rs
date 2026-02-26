@@ -120,27 +120,22 @@ fn resolve_cancel_requires_force_when_changes_were_made() -> anyhow::Result<()> 
 
     env.file("test-file.txt", "resolved content with additional edits\n");
 
-    let cancel_output = env.but("resolve cancel").output()?;
-    let cancel_stderr = String::from_utf8_lossy(&cancel_output.stderr);
-    anyhow::ensure!(
-        !cancel_output.status.success(),
-        "resolve cancel should fail without force"
-    );
-    anyhow::ensure!(
-        cancel_stderr.contains("--force"),
-        "resolve cancel without force should explain how to proceed; stderr was: {cancel_stderr}"
-    );
+    env.but("resolve cancel")
+        .assert()
+        .failure()
+        .stderr_eq(str![[r#"
+Failed to handle conflict resolution. There are changes that differ from the original commit you were editing. Canceling will drop those changes.
 
-    let force_cancel_output = env.but("resolve cancel --force").output()?;
-    let force_cancel_stderr = String::from_utf8_lossy(&force_cancel_output.stderr);
-    anyhow::ensure!(
-        force_cancel_output.status.success(),
-        "resolve cancel --force should succeed"
-    );
-    anyhow::ensure!(
-        !force_cancel_stderr.contains("Setup required:"),
-        "resolve cancel --force should not fail setup checks"
-    );
+If you want to go through with this, please re-run with `--force`.
+
+If you want to keep the changes you have made, consider finishing the resolution and then moving the changes with the rub command.
+
+"#]]);
+
+    env.but("resolve cancel --force")
+        .assert()
+        .success()
+        .stderr_eq(str![""]);
 
     assert_eq!(current_branch_name(&env)?, "gitbutler/workspace");
     Ok(())

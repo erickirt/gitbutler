@@ -39,7 +39,10 @@ Usable output goes to `out: &mut OutputChannel`
 * When color is involved, use with `.stdout_eq(snapbox::file!["snapshots/<test-name>/<invocation>.stdout.term.svg"])`, and update it 
   with `SNAPSHOT=overwrite cargo test -p but`.
 * In `crates/but/tests/`, prefer `env.but(...).assert().success()/failure().stdout_eq(str![...]).stderr_eq(str![...])` for CLI output checks.
-* In `crates/but/tests/`, avoid `std::process::Command::new("git")`; prefer `env.invoke_git("...")` when a shell `git` call is needed.
+* In `crates/but/tests/`, avoid `std::process::Command::new("git")`; use sandbox helpers instead.
+* Do not replace existing `env.invoke_bash(...)` usages with `env.invoke_git(...)`.
+* For multi-line command sequences in tests, use `env.invoke_bash(...)` (this is the preferred form).
+* Use `env.invoke_git("...")` only for single git commands, particularly if their output is asserted on.
 * Avoid `env.but(...).output()` followed by direct `stdout`/`stderr` assertions (for example, `String::from_utf8_lossy(&output.stdout)` with `assert_*`).
 * If only part of output matters, use `snapbox::str!` wildcards (`..`) to ignore unstable sections.
 * Do not use `anyhow::ensure!` in tests; use panicking assertions (`assert!`, `assert_eq!`, `assert_ne!`) so failures are test panics.
