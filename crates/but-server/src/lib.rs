@@ -658,6 +658,10 @@ pub async fn run() {
             post(json_response(legacy::forge::pr_template_cmd)),
         )
         .route(
+            "/forge_provider",
+            post(json_response(legacy::forge::forge_provider_cmd)),
+        )
+        .route(
             "/install_cli",
             post(json_response(legacy::cli::install_cli_cmd)),
         )
