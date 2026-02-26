@@ -10,7 +10,7 @@
 		startIndex?: number;
 		onloadmore?: () => Promise<void>;
 		showBottomButton?: boolean;
-		onVisibleChange?: (change: { start: number; end: number }) => void;
+		onVisibleChange?: (change: { start: number; end: number } | undefined) => void;
 		renderDistance?: number;
 		/**
 		 * When set, onloadmore will automatically prepend this many items.
@@ -62,9 +62,9 @@
 	let visibleStart = $state(-1);
 	let visibleEnd = $state(-1);
 
-	function handleVisibleChange(change: { start: number; end: number }) {
-		visibleStart = change.start;
-		visibleEnd = change.end;
+	function handleVisibleChange(change: { start: number; end: number } | undefined) {
+		visibleStart = change?.start ?? -1;
+		visibleEnd = change?.end ?? -1;
 		onVisibleChange?.(change);
 	}
 

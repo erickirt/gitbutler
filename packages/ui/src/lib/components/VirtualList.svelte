@@ -32,7 +32,7 @@
 	import { debounce } from "$lib/utils/debounce";
 
 	import { resizeObserver } from "$lib/utils/resizeObserver";
-	import { tick, untrack, type Snippet } from "svelte";
+	import { onDestroy, tick, untrack, type Snippet } from "svelte";
 	import { fade } from "svelte/transition";
 	import type { ScrollbarVisilitySettings } from "$components/scroll/Scrollbar.svelte";
 
@@ -101,9 +101,11 @@
 		/**
 		 * Callback for when the visible items change. Note that this is not necessarily the
 		 * same as the rendered range when `renderDistance !== 0`.
-		 * @param change
+		 *
+		 * Called with `undefined` when the component is destroyed, allowing consumers
+		 * to clear any visible-range highlighting.
 		 */
-		onVisibleChange?: (change: { start: number; end: number }) => void;
+		onVisibleChange?: (change: { start: number; end: number } | undefined) => void;
 
 		getId: (item: T) => string | undefined;
 	};
@@ -605,6 +607,10 @@
 		if (visibleRange.end !== 0) {
 			onVisibleChange?.(visibleRange);
 		}
+	});
+
+	onDestroy(() => {
+		onVisibleChange?.(undefined);
 	});
 </script>
 

@@ -45,7 +45,7 @@
 		active: boolean;
 		onclick?: () => void;
 		onFileClick?: (index: number) => void;
-		visibleRange: { start: number; end: number };
+		visibleRange?: { start: number; end: number };
 	};
 
 	const {
