@@ -125,7 +125,7 @@ fn find_or_create_base_commit<'a>(
         None,
         &author_signature,
         &committer_signature,
-        "Conflict base",
+        &parent.message_bstr().to_str_lossy(),
         &base_tree,
         &[],
     )?;
@@ -161,13 +161,30 @@ fn checkout_edit_branch(ctx: &Context, commit: git2::Commit) -> Result<()> {
     // Checkout the commit as unstaged changes
     let mut index = get_commit_index(ctx, &commit)?;
 
+    let their_commit_msg = commit
+        .message()
+        .and_then(|m| m.lines().next())
+        .map(|l| l.chars().take(80).collect::<String>())
+        .unwrap_or("".into());
+    let their_label = format!("Current commit: {their_commit_msg}");
+
+    let our_commit_msg = commit_parent
+        .message()
+        .and_then(|m| m.lines().next())
+        .map(|l| l.chars().take(80).collect::<String>())
+        .unwrap_or("".into());
+    let our_label = format!("New base: {our_commit_msg}");
+
     repo.checkout_index(
         Some(&mut index),
         Some(
             CheckoutBuilder::new()
                 .force()
                 .remove_untracked(true)
-                .conflict_style_diff3(true),
+                .conflict_style_diff3(true)
+                .ancestor_label("Common ancestor")
+                .our_label(&our_label)
+                .their_label(&their_label),
         ),
     )?;
 

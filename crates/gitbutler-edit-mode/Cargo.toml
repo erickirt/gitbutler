@@ -34,6 +34,8 @@ tracing.workspace = true
 
 [dev-dependencies]
 gitbutler-testsupport.workspace = true
+but-testsupport.workspace = true
+insta.workspace = true
 
 tempfile.workspace = true
 
