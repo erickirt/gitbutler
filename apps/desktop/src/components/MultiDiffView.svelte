@@ -198,6 +198,7 @@
 				visibility="scroll"
 				renderDistance={100}
 				{onVisibleChange}
+				getId={(change) => change.path}
 			>
 				{#snippet template(change, index)}
 					{@render changeItem(change, index, true)}

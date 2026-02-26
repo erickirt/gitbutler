@@ -511,6 +511,7 @@
 						visibility={$userSettings.scrollbarVisibilityState}
 						padding={{ left: 20, right: 20, top: 12, bottom: 12 }}
 						defaultHeight={65}
+						getId={(item) => item.createdAt}
 					>
 						{#snippet template(message)}
 							<CodegenClaudeMessage
