@@ -1,10 +1,10 @@
 <script lang="ts">
-	import ImagineCanvas from '$home/sections/ImagineCanvas.svelte';
-	import jsonLinks from '$lib/data/links.json';
-	import osIcons from '$lib/data/os-icons.json';
-	import { latestClientVersion } from '$lib/store';
-	import { getOS, type OS } from '$lib/utils/getOS';
-	import { onMount } from 'svelte';
+	import ImagineCanvas from "$home/sections/ImagineCanvas.svelte";
+	import jsonLinks from "$lib/data/links.json";
+	import osIcons from "$lib/data/os-icons.json";
+	import { latestClientVersion } from "$lib/store";
+	import { getOS, type OS } from "$lib/utils/getOS";
+	import { onMount } from "svelte";
 
 	let detectedOS = $state("");
 	let selectedDownload = $state(jsonLinks.downloads.appleSilicon);
@@ -19,10 +19,10 @@
 	> = {
 		// There is no good way of determining the arminess of a mac, so we
 		// should just assume appleSilicon.
-		macOS: { os: 'macOS', download: jsonLinks.downloads.appleSilicon },
-		Windows: { os: 'Windows', download: jsonLinks.downloads.windowsMsi },
-		Linux: { os: 'Linux', download: jsonLinks.downloads.linuxDeb },
-		unknown: { os: 'macOS', download: jsonLinks.downloads.appleSilicon }
+		macOS: { os: "macOS", download: jsonLinks.downloads.appleSilicon },
+		Windows: { os: "Windows", download: jsonLinks.downloads.windowsMsi },
+		Linux: { os: "Linux", download: jsonLinks.downloads.linuxDeb },
+		unknown: { os: "macOS", download: jsonLinks.downloads.appleSilicon },
 	};
 
 	function detectOS() {

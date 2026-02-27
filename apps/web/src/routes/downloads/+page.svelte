@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Footer from '$lib/components/marketing/Footer.svelte';
-	import Header from '$lib/components/marketing/Header.svelte';
-	import ReleaseCard from '$lib/components/marketing/ReleaseCard.svelte';
-	import Markdown from 'svelte-exmarkdown';
-	import type { Release } from '$lib/types/releases';
-	import type { LatestReleaseBuilds } from '$lib/utils/releaseUtils';
+	import Footer from "$lib/components/marketing/Footer.svelte";
+	import Header from "$lib/components/marketing/Header.svelte";
+	import ReleaseCard from "$lib/components/marketing/ReleaseCard.svelte";
+	import Markdown from "svelte-exmarkdown";
+	import type { Release } from "$lib/types/releases";
+	import type { LatestReleaseBuilds } from "$lib/utils/releaseUtils";
 
 	interface Props {
 		data: {
@@ -19,7 +19,7 @@
 
 	const { latestRelease, latestReleaseBuilds } = data;
 
-	let linuxArch = $state<'x86-64' | 'ARM64'>('x86-64');
+	let linuxArch = $state<"x86-64" | "ARM64">("x86-64");
 </script>
 
 <svelte:head>
@@ -75,10 +75,10 @@
 				<div class="stack-v gap-6">
 					<a
 						class="download-card-title download-card-link"
-						href={latestReleaseBuilds.darwin_aarch64?.url ?? ''}>Apple Silicon</a
+						href={latestReleaseBuilds.darwin_aarch64?.url ?? ""}>Apple Silicon</a
 					>
 					<span class="download-card-subtile"
-						>or <a class="download-card-link" href={latestReleaseBuilds.darwin_x86_64?.url ?? ''}
+						>or <a class="download-card-link" href={latestReleaseBuilds.darwin_x86_64?.url ?? ""}
 							>intel-based</a
 						></span
 					>
@@ -109,15 +109,15 @@
 					<div class="flex gap-16">
 						<a
 							class="download-card-title download-card-link"
-							href={linuxArch === 'x86-64'
-								? (latestReleaseBuilds.linux_deb_x86_64?.url ?? '')
-								: (latestReleaseBuilds.linux_deb_aarch64?.url ?? '')}>.DEB</a
+							href={linuxArch === "x86-64"
+								? (latestReleaseBuilds.linux_deb_x86_64?.url ?? "")
+								: (latestReleaseBuilds.linux_deb_aarch64?.url ?? "")}>.DEB</a
 						>
 						<a
 							class="download-card-title download-card-link"
-							href={linuxArch === 'x86-64'
-								? (latestReleaseBuilds.linux_rpm_x86_64?.url ?? '')
-								: (latestReleaseBuilds.linux_rpm_aarch64?.url ?? '')}>.RPM</a
+							href={linuxArch === "x86-64"
+								? (latestReleaseBuilds.linux_rpm_x86_64?.url ?? "")
+								: (latestReleaseBuilds.linux_rpm_aarch64?.url ?? "")}>.RPM</a
 						>
 					</div>
 
@@ -159,7 +159,7 @@
 				<div class="stack-v gap-8">
 					<a
 						class="download-card-title download-card-link"
-						href={latestReleaseBuilds.windows_x86_64?.url ?? ''}>Windows (MSI)</a
+						href={latestReleaseBuilds.windows_x86_64?.url ?? ""}>Windows (MSI)</a
 					>
 				</div>
 			</div>
@@ -401,7 +401,6 @@
 			pointer-events: none;
 		}
 	}
-
 
 	.releases {
 		display: flex;

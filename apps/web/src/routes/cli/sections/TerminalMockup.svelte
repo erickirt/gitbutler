@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { getOS } from '$lib/utils/getOS';
-	import { untrack } from 'svelte';
-	import type { ScriptStep } from './terminal-types';
+	import { getOS } from "$lib/utils/getOS";
+	import { untrack } from "svelte";
+	import type { ScriptStep } from "./terminal-types";
 
 	interface Props {
 		height: string;
@@ -26,7 +26,7 @@
 	const INPUT_PAUSE_MS = 400; // Pause after completing input step
 	const OUTPUT_PAUSE_MS = 1000; // Pause after output to let users read
 
-	const os = getOS() === 'unknown' ? 'Linux' : getOS();
+	const os = getOS() === "unknown" ? "Linux" : getOS();
 
 	let displayedLines = $state<Array<{ text: string; type: "input" | "output" }>>([]);
 	let currentStepIndex = 0;

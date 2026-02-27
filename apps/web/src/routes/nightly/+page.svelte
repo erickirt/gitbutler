@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Footer from '$lib/components/marketing/Footer.svelte';
-	import Header from '$lib/components/marketing/Header.svelte';
-	import { Icon } from '@gitbutler/ui';
-	import type { Release } from '$lib/types/releases';
-	import type { LatestReleaseBuilds } from '$lib/utils/releaseUtils';
+	import Footer from "$lib/components/marketing/Footer.svelte";
+	import Header from "$lib/components/marketing/Header.svelte";
+	import { Icon } from "@gitbutler/ui";
+	import type { Release } from "$lib/types/releases";
+	import type { LatestReleaseBuilds } from "$lib/utils/releaseUtils";
 
 	interface Props {
 		data: {
@@ -17,7 +17,7 @@
 
 	const { latestNightly, latestNightlyBuilds } = data;
 
-	let linuxArch = $state<'x86-64' | 'ARM64'>('x86-64');
+	let linuxArch = $state<"x86-64" | "ARM64">("x86-64");
 	let expandedRelease: string | null = $state(null);
 
 	function toggleRelease(version: string) {
@@ -91,10 +91,10 @@
 					<div class="stack-v gap-6">
 						<a
 							class="download-card-title download-card-link"
-							href={latestNightlyBuilds.darwin_aarch64?.url ?? ''}>Apple Silicon</a
+							href={latestNightlyBuilds.darwin_aarch64?.url ?? ""}>Apple Silicon</a
 						>
 						<span class="download-card-subtile"
-							>or <a class="download-card-link" href={latestNightlyBuilds.darwin_x86_64?.url ?? ''}
+							>or <a class="download-card-link" href={latestNightlyBuilds.darwin_x86_64?.url ?? ""}
 								>intel-based</a
 							></span
 						>
@@ -125,15 +125,15 @@
 						<div class="flex gap-16">
 							<a
 								class="download-card-title download-card-link"
-								href={linuxArch === 'x86-64'
-									? (latestNightlyBuilds.linux_deb_x86_64?.url ?? '')
-									: (latestNightlyBuilds.linux_deb_aarch64?.url ?? '')}>.DEB</a
+								href={linuxArch === "x86-64"
+									? (latestNightlyBuilds.linux_deb_x86_64?.url ?? "")
+									: (latestNightlyBuilds.linux_deb_aarch64?.url ?? "")}>.DEB</a
 							>
 							<a
 								class="download-card-title download-card-link"
-								href={linuxArch === 'x86-64'
-									? (latestNightlyBuilds.linux_rpm_x86_64?.url ?? '')
-									: (latestNightlyBuilds.linux_rpm_aarch64?.url ?? '')}>.RPM</a
+								href={linuxArch === "x86-64"
+									? (latestNightlyBuilds.linux_rpm_x86_64?.url ?? "")
+									: (latestNightlyBuilds.linux_rpm_aarch64?.url ?? "")}>.RPM</a
 							>
 						</div>
 
@@ -175,7 +175,7 @@
 					<div class="stack-v gap-8">
 						<a
 							class="download-card-title download-card-link"
-							href={latestNightlyBuilds.windows_x86_64?.url ?? ''}>Windows (MSI)</a
+							href={latestNightlyBuilds.windows_x86_64?.url ?? ""}>Windows (MSI)</a
 						>
 					</div>
 				</div>

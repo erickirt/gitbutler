@@ -1,23 +1,23 @@
 <script lang="ts">
-	import ExperimentalSettings from './components/ExperimentalSettings.svelte';
-	import NotificationSettings from './components/NotificationSettings.svelte';
-	import ProfileHeader from './components/ProfileHeader.svelte';
-	import SshKeysSection from './components/SshKeysSection.svelte';
-	import SupporterCard from './components/SupporterCard.svelte';
-	import linksJson from '$lib/data/links.json';
-	import { SSH_KEY_SERVICE } from '$lib/sshKeyService';
-	import { USER_SERVICE } from '$lib/user/userService';
-	import { getOS } from '$lib/utils/getOS';
-	import { inject } from '@gitbutler/core/context';
-	import { LOGIN_SERVICE } from '@gitbutler/shared/login/loginService';
-	import Loading from '@gitbutler/shared/network/Loading.svelte';
-	import { getRecentlyPushedProjects } from '@gitbutler/shared/organizations/projectsPreview.svelte';
-	import { APP_STATE } from '@gitbutler/shared/redux/store.svelte';
-	import { NOTIFICATION_SETTINGS_SERVICE } from '@gitbutler/shared/settings/notificationSettingsService';
-	import { getNotificationSettingsInterest } from '@gitbutler/shared/settings/notificationSetttingsPreview.svelte';
-	import { Button, CardGroup, chipToasts, Icon, Modal, Spacer } from '@gitbutler/ui';
-	import { copyToClipboard } from '@gitbutler/ui/utils/clipboard';
-	import { env } from '$env/dynamic/public';
+	import ExperimentalSettings from "./components/ExperimentalSettings.svelte";
+	import NotificationSettings from "./components/NotificationSettings.svelte";
+	import ProfileHeader from "./components/ProfileHeader.svelte";
+	import SshKeysSection from "./components/SshKeysSection.svelte";
+	import SupporterCard from "./components/SupporterCard.svelte";
+	import linksJson from "$lib/data/links.json";
+	import { SSH_KEY_SERVICE } from "$lib/sshKeyService";
+	import { USER_SERVICE } from "$lib/user/userService";
+	import { getOS } from "$lib/utils/getOS";
+	import { inject } from "@gitbutler/core/context";
+	import { LOGIN_SERVICE } from "@gitbutler/shared/login/loginService";
+	import Loading from "@gitbutler/shared/network/Loading.svelte";
+	import { getRecentlyPushedProjects } from "@gitbutler/shared/organizations/projectsPreview.svelte";
+	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
+	import { NOTIFICATION_SETTINGS_SERVICE } from "@gitbutler/shared/settings/notificationSettingsService";
+	import { getNotificationSettingsInterest } from "@gitbutler/shared/settings/notificationSetttingsPreview.svelte";
+	import { Button, CardGroup, chipToasts, Icon, Modal, Spacer } from "@gitbutler/ui";
+	import { copyToClipboard } from "@gitbutler/ui/utils/clipboard";
+	import { env } from "$env/dynamic/public";
 
 	const userService = inject(USER_SERVICE);
 	const appState = inject(APP_STATE);
@@ -35,7 +35,7 @@
 
 	const detectedOS = $derived.by(() => {
 		const os = getOS();
-		return os === 'unknown' ? 'macOS' : os;
+		return os === "unknown" ? "macOS" : os;
 	});
 
 	const downloadButtonText = $derived(`Download GitButler for ${detectedOS}`);
