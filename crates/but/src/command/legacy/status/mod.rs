@@ -13,10 +13,12 @@ use gitbutler_branch_actions::upstream_integration::BranchStatus as UpstreamBran
 use gitbutler_stack::StackId;
 use gix::date::time::CustomFormat;
 use serde::Serialize;
+use unicode_width::UnicodeWidthStr;
 
 use crate::{
     CLI_DATE,
     id::{SegmentWithId, StackWithId, TreeChangeWithId},
+    tui::text::{terminal_width, truncate_text},
     utils::time::format_relative_time_verbose,
 };
 
@@ -128,8 +130,7 @@ pub(crate) async fn worktree(
     // Store the count of stacks for hint logic later
     let has_branches = !stacks.is_empty();
 
-    let assignments_by_file: BTreeMap<BString, FileAssignment> =
-        FileAssignment::get_assignments_by_file(&id_map);
+    let assignments_by_file: BTreeMap<BString, FileAssignment> = FileAssignment::get_assignments_by_file(&id_map);
     let mut stack_details: Vec<StackEntry> = vec![];
 
     let unassigned = assignment::filter_by_stack_id(assignments_by_file.values(), &None);
@@ -151,10 +152,7 @@ pub(crate) async fn worktree(
         let base_commit = repo.find_commit(target.sha.to_gix())?;
         let base_commit_decoded = base_commit.decode()?;
         let full_message = base_commit_decoded.message.to_string();
-        let formatted_date = base_commit_decoded
-            .committer()?
-            .time()?
-            .format_or_unix(DATE_ONLY);
+        let formatted_date = base_commit_decoded.committer()?.time()?.format_or_unix(DATE_ONLY);
         let author = base_commit_decoded.author()?;
         let common_merge_base_data = CommonMergeBase {
             target_name: target_name.clone(),
@@ -177,42 +175,30 @@ pub(crate) async fn worktree(
                     let state = if base_branch.behind > 0 {
                         // Get the latest commit on the upstream branch (current_sha is the tip of the remote branch)
                         let commit_id = base_branch.current_sha;
-                        repo.find_commit(commit_id.to_gix())
-                            .ok()
-                            .and_then(|commit_obj| {
-                                let commit = commit_obj.decode().ok()?;
-                                let commit_message = commit
-                                    .message
-                                    .to_string()
-                                    .replace('\n', " ")
-                                    .chars()
-                                    .take(30)
-                                    .collect::<String>();
+                        repo.find_commit(commit_id.to_gix()).ok().and_then(|commit_obj| {
+                            let commit = commit_obj.decode().ok()?;
+                            let commit_message = {
+                                let raw = commit.message.to_string().replace('\n', " ");
+                                truncate_text(&raw, 30)
+                            };
 
-                                let formatted_date = commit
-                                    .committer()
-                                    .ok()?
-                                    .time()
-                                    .ok()?
-                                    .format_or_unix(DATE_ONLY);
+                            let formatted_date = commit.committer().ok()?.time().ok()?.format_or_unix(DATE_ONLY);
 
-                                let author = commit.author().ok()?;
+                            let author = commit.author().ok()?;
 
-                                Some(UpstreamState {
-                                    target_name: base_branch.branch_name.clone(),
-                                    behind_count: base_branch.behind,
-                                    latest_commit: commit_id.to_string()[..7].to_string(),
-                                    message: commit_message,
-                                    commit_date: formatted_date,
-                                    last_fetched_ms: last_fetched,
-                                    commit_id: commit_id.to_gix(),
-                                    created_at: commit.committer().ok()?.time().ok()?.seconds
-                                        as i128
-                                        * 1000,
-                                    author_name: author.name.to_string(),
-                                    author_email: author.email.to_string(),
-                                })
+                            Some(UpstreamState {
+                                target_name: base_branch.branch_name.clone(),
+                                behind_count: base_branch.behind,
+                                latest_commit: commit_id.to_string()[..7].to_string(),
+                                message: commit_message,
+                                commit_date: formatted_date,
+                                last_fetched_ms: last_fetched,
+                                commit_id: commit_id.to_gix(),
+                                created_at: commit.committer().ok()?.time().ok()?.seconds as i128 * 1000,
+                                author_name: author.name.to_string(),
+                                author_email: author.email.to_string(),
                             })
+                        })
                     } else {
                         None
                     };
@@ -221,12 +207,7 @@ pub(crate) async fn worktree(
                 .unwrap_or((None, None, None));
 
         // repo, base_commit, and base_commit_decoded are automatically dropped here at end of scope
-        (
-            common_merge_base_data,
-            upstream_state,
-            last_fetched_ms,
-            base_branch,
-        )
+        (common_merge_base_data, upstream_state, last_fetched_ms, base_branch)
     };
 
     // Compute upstream integration statuses if --upstream flag is set
@@ -342,27 +323,22 @@ pub(crate) async fn worktree(
             {
                 let commits = base_branch.upstream_commits.iter().take(8);
                 for commit in commits {
+                    // Measure prefix width using plain text (no ANSI codes)
+                    let prefix_width = format!("┊● {} ", &commit.id[..7]).width();
+                    let max_msg_width = terminal_width().saturating_sub(prefix_width);
                     writeln!(
                         out,
                         "┊{dot} {} {}",
                         commit.id[..7].yellow(),
-                        commit
-                            .description
-                            .to_string()
-                            .replace('\n', " ")
-                            .chars()
-                            .take(72)
-                            .collect::<String>()
-                            .dimmed()
+                        {
+                            let raw = commit.description.to_string().replace('\n', " ");
+                            truncate_text(&raw, max_msg_width).dimmed()
+                        }
                     )?;
                 }
                 let hidden_commits = base_branch.behind.saturating_sub(8);
                 if hidden_commits > 0 {
-                    writeln!(
-                        out,
-                        "┊    {}",
-                        format!("and {hidden_commits} more…").dimmed()
-                    )?;
+                    writeln!(out, "┊    {}", format!("and {hidden_commits} more…").dimmed())?;
                 }
             }
             writeln!(out, "┊┊")?;
@@ -378,33 +354,33 @@ pub(crate) async fn worktree(
         }
     }
 
-    let display_message = common_merge_base_data
-        .message
-        .lines()
-        .next()
-        .unwrap_or("")
-        .chars()
-        .take(40)
-        .collect::<String>();
+    let first_line = common_merge_base_data.message.lines().next().unwrap_or("");
+    let connector = if upstream_state.is_some() { "├╯" } else { "┴" };
+    // Build a plain-text prefix (no ANSI codes) to measure its exact display
+    // width. The output line applies styling (.dimmed(), .green(), etc.) but
+    // ANSI escape codes occupy zero display columns, so the plain-text
+    // measurement gives the correct visible width.
+    let prefix = format!(
+        "{} {} [{}] {} ",
+        connector,
+        common_merge_base_data.common_merge_base,
+        common_merge_base_data.target_name,
+        common_merge_base_data.commit_date,
+    );
+    let max_width = terminal_width().saturating_sub(prefix.width());
+    let display_message = truncate_text(first_line, max_width);
 
     writeln!(
         out,
         "{} {} [{}] {} {}",
-        if upstream_state.is_some() {
-            "├╯"
-        } else {
-            "┴"
-        },
+        connector,
         common_merge_base_data.common_merge_base.dimmed(),
         common_merge_base_data.target_name.green().bold(),
         common_merge_base_data.commit_date.dimmed(),
         display_message,
     )?;
 
-    let not_on_workspace = matches!(
-        mode,
-        gitbutler_operating_modes::OperatingMode::OutsideWorkspace(_)
-    );
+    let not_on_workspace = matches!(mode, gitbutler_operating_modes::OperatingMode::OutsideWorkspace(_));
 
     if not_on_workspace {
         writeln!(
@@ -593,9 +569,7 @@ pub fn print_group(
 
             let review = segment
                 .branch_name()
-                .and_then(|branch_name| {
-                    review::from_branch_details(review_map, branch_name, segment.pr_number())
-                })
+                .and_then(|branch_name| review::from_branch_details(review_map, branch_name, segment.pr_number()))
                 .map(|r| format!(" {} ", r.display_cli(verbose)))
                 .unwrap_or_default();
 
@@ -660,8 +634,7 @@ pub fn print_group(
                 )?;
             }
             for commit in &segment.remote_commits {
-                let details =
-                    but_api::diff::commit_details(ctx, commit.commit_id(), ComputeLineStats::No)?;
+                let details = but_api::diff::commit_details(ctx, commit.commit_id(), ComputeLineStats::No)?;
                 print_commit(
                     commit.short_id.clone(),
                     &commit.inner,
@@ -678,11 +651,8 @@ pub fn print_group(
                 writeln!(out, "┊-")?;
             }
             for commit in segment.workspace_commits.iter() {
-                let marked = crate::command::legacy::mark::commit_marked(
-                    ctx,
-                    commit.commit_id().to_string(),
-                )
-                .unwrap_or_default();
+                let marked = crate::command::legacy::mark::commit_marked(ctx, commit.commit_id().to_string())
+                    .unwrap_or_default();
                 let classification = match commit.relation() {
                     LocalCommitRelation::LocalOnly => CommitClassification::LocalOnly,
                     LocalCommitRelation::LocalAndRemote(object_id) => {
@@ -808,6 +778,27 @@ fn print_commit(
 
     let upstream_commit = matches!(commit_changes, CommitChanges::Remote(_));
 
+    // Build the plain-text equivalent of the trailing suffix that appears
+    // after details_string: "┊{dot}   {details} {review_url} {mark}".
+    // We intentionally omit ANSI styling — escape codes are invisible and
+    // occupy zero display columns, so plain text gives the correct width.
+    //
+    // The format string always emits two separator spaces (" {} {}") between
+    // the three slots, even when review_url or mark are empty, so we include
+    // them unconditionally.
+    let mut trailing_suffix = String::new();
+    trailing_suffix.push(' '); // unconditional separator before review_url slot
+    if let Some(r) = &review_url {
+        trailing_suffix.push('◖');
+        trailing_suffix.push_str(r);
+        trailing_suffix.push('◗');
+    }
+    trailing_suffix.push(' '); // unconditional separator before mark slot
+    if marked {
+        trailing_suffix.push_str("◀ Marked ▶");
+    }
+    let trailing_width = trailing_suffix.width();
+
     let details_string = display_cli_commit_details(
         short_id,
         commit,
@@ -816,6 +807,7 @@ fn print_commit(
             CommitChanges::Remote(tree_changes) => !tree_changes.is_empty(),
         },
         verbose,
+        trailing_width,
     );
     let details_string = if upstream_commit {
         details_string.dimmed().to_string()
@@ -834,11 +826,19 @@ fn print_commit(
                 .unwrap_or_default(),
             mark.unwrap_or_default()
         )?;
-        let message = CommitMessage(commit.message.clone()).display_cli(verbose);
-        let message = if upstream_commit {
-            message.dimmed().to_string()
-        } else {
-            message
+        let prefix = "┊│     ";
+        let max_width = terminal_width().saturating_sub(prefix.width());
+        let message = CommitMessage(commit.message.clone()).text(verbose);
+        let message = match message {
+            Some(text) => {
+                let truncated = truncate_text(&text, max_width);
+                if upstream_commit {
+                    truncated.dimmed().to_string()
+                } else {
+                    truncated
+                }
+            }
+            None => "(no commit message)".dimmed().italic().to_string(),
         };
         writeln!(out, "┊│     {message}")?;
     } else {
@@ -889,6 +889,7 @@ fn display_cli_commit_details(
     commit: &but_workspace::ref_info::Commit,
     has_changes: bool,
     verbose: bool,
+    extra_suffix_width: usize,
 ) -> String {
     let end_id = if short_id.len() >= 7 {
         "".to_string()
@@ -924,15 +925,33 @@ fn display_cli_commit_details(
             conflicted_str,
         )
     } else {
-        let message = CommitMessage(commit.message.clone()).display_cli(verbose);
+        // Measure the line prefix and suffixes so we know exactly how much
+        // space is left for the commit message.
+        // Use the actual displayed ID width: short_id may be longer than 7
+        // when disambiguation requires it, but is always padded to at least 7
+        // by the dimmed `end_id` suffix.
+        let displayed_id_len = short_id.len().max(7);
+        let prefix = format!("┊●   {} ", "x".repeat(displayed_id_len));
+        let suffix_width = if has_changes { 0 } else { " (no changes)".width() }
+            + if commit.has_conflicts { " {conflicted}".width() } else { 0 }
+            + extra_suffix_width;
+        let max_width = terminal_width().saturating_sub(prefix.width() + suffix_width);
+        let message = CommitMessage(commit.message.clone()).text(verbose);
+        let message = match message {
+            Some(text) => truncate_text(&text, max_width),
+            None => "(no commit message)".dimmed().italic().to_string(),
+        };
         format!("{start_id}{end_id} {message}{no_changes}{conflicted_str}",)
     }
 }
 
 struct CommitMessage(pub BString);
 
-impl CliDisplay for CommitMessage {
-    fn display_cli(&self, verbose: bool) -> String {
+impl CommitMessage {
+    /// Return the plain (uncolored, unstyled) message text.
+    /// First line only for inline mode, all lines joined for verbose.
+    /// Returns `None` when the commit has no message.
+    fn text(&self, verbose: bool) -> Option<String> {
         let message = self.0.to_string();
         let text = if verbose {
             message.replace('\n', " ")
@@ -940,13 +959,7 @@ impl CliDisplay for CommitMessage {
             message.lines().next().unwrap_or("").to_string()
         };
 
-        let truncated: String = text.chars().take(50).collect();
-
-        if truncated.is_empty() {
-            "(no commit message)".dimmed().italic().to_string()
-        } else {
-            truncated.normal().to_string()
-        }
+        if text.is_empty() { None } else { Some(text) }
     }
 }
 
@@ -959,15 +972,19 @@ impl CliDisplay for ForgeReview {
                 self.html_url.underline().blue(),
             )
         } else {
-            format!(
-                "#{}: {}",
-                self.number.to_string().bold(),
-                self.title
-                    .chars()
-                    .take(50)
-                    .collect::<String>()
-                    .trim_end_matches(|c: char| !c.is_ascii() && !c.is_alphanumeric())
-            )
+            // Trim trailing non-ASCII non-alphanumeric chars from the raw title
+            // *before* truncation, so the ellipsis added by truncate_text is kept.
+            let trimmed: String = self
+                .title
+                .trim_end_matches(|c: char| !c.is_ascii() && !c.is_alphanumeric())
+                .to_string();
+            // ForgeReview appears on branch header lines whose preceding content
+            // varies (branch name, CI status, merge status, etc.), so the exact
+            // available width is unknown here. Reserve ~25 columns for the prefix
+            // (branch name, PR number, etc.) and clamp to at least 1.
+            let budget = terminal_width().saturating_sub(25).max(1);
+            let title = truncate_text(&trimmed, budget);
+            format!("#{}: {}", self.number.to_string().bold(), title)
         }
     }
 }
@@ -1042,11 +1059,7 @@ impl CliDisplay for but_update::AvailableUpdate {
 
         if verbose {
             if let Some(url) = &self.url {
-                format!(
-                    "Update available: {} {}",
-                    version_info,
-                    url.underline().blue()
-                )
+                format!("Update available: {} {}", version_info, url.underline().blue())
             } else {
                 format!("Update available: {version_info}")
             }
@@ -1060,15 +1073,11 @@ impl CliDisplay for but_update::AvailableUpdate {
     }
 }
 
-async fn compute_branch_merge_statuses(
-    ctx: &Context,
-) -> anyhow::Result<BTreeMap<String, UpstreamBranchStatus>> {
+async fn compute_branch_merge_statuses(ctx: &Context) -> anyhow::Result<BTreeMap<String, UpstreamBranchStatus>> {
     use gitbutler_branch_actions::upstream_integration::StackStatuses;
 
     // Get upstream integration statuses using the public API
-    let statuses =
-        but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None)
-            .await?;
+    let statuses = but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None).await?;
 
     let mut result = BTreeMap::new();
 
@@ -1082,3 +1091,5 @@ async fn compute_branch_merge_statuses(
 
     Ok(result)
 }
+
+

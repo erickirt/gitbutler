@@ -1,6 +1,7 @@
 //! A generic table for displaying aligned rows.
-use terminal_size::Width;
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+use unicode_width::UnicodeWidthStr;
+
+use super::text::{strip_ansi_codes, terminal_width, truncate_text};
 
 /// Avoid paths like `table::Table` when importing.
 pub(super) mod types {
@@ -195,11 +196,7 @@ fn format_cell(content: &str, width: usize, align: Alignment) -> String {
     let content_width = stripped.width();
 
     if content_width >= width {
-        // Truncate with ellipsis if too long
-        if width <= 3 {
-            return truncate_string(content, width);
-        }
-        return truncate_string(content, width.saturating_sub(1)) + "…";
+        return truncate_text(content, width);
     }
 
     // Calculate padding
@@ -210,65 +207,4 @@ fn format_cell(content: &str, width: usize, align: Alignment) -> String {
     }
 }
 
-fn truncate_string(s: &str, max_width: usize) -> String {
-    // This is a simplified version that handles ANSI codes
-    let mut result = String::new();
-    let mut current_width = 0;
-    let mut in_ansi = false;
-    let mut ansi_buffer = String::new();
 
-    for ch in s.chars() {
-        if ch == '\x1b' {
-            in_ansi = true;
-            ansi_buffer.push(ch);
-            continue;
-        }
-
-        if in_ansi {
-            ansi_buffer.push(ch);
-            if ch == 'm' {
-                result.push_str(&ansi_buffer);
-                ansi_buffer.clear();
-                in_ansi = false;
-            }
-            continue;
-        }
-
-        let char_width = ch.width().unwrap_or(0);
-        if current_width + char_width > max_width {
-            break;
-        }
-
-        result.push(ch);
-        current_width += char_width;
-    }
-
-    result
-}
-
-fn strip_ansi_codes(s: &str) -> String {
-    let mut result = String::new();
-    let mut in_escape = false;
-
-    for ch in s.chars() {
-        if ch == '\x1b' {
-            in_escape = true;
-            continue;
-        }
-
-        if in_escape {
-            if ch == 'm' {
-                in_escape = false;
-            }
-            continue;
-        }
-
-        result.push(ch);
-    }
-
-    result
-}
-
-fn terminal_width() -> usize {
-    terminal_size::terminal_size().map_or(80, |(Width(w), _)| w as usize)
-}

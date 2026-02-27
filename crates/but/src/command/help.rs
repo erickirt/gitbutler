@@ -1,31 +1,14 @@
 use colored::Colorize;
 
 use crate::args::Args;
+use crate::tui::text::{terminal_width, truncate_text};
 
 pub fn print_grouped(out: &mut dyn std::fmt::Write) -> std::fmt::Result {
     use std::collections::HashSet;
 
     use clap::CommandFactory;
-    use terminal_size::{Width, terminal_size};
 
-    // Get terminal width, default to 80 if detection fails
-    let terminal_width = if let Some((Width(w), _)) = terminal_size() {
-        w as usize
-    } else {
-        80
-    };
-
-    // Helper function to truncate text to fit within available width
-    let truncate_text = |text: &str, available_width: usize| -> String {
-        const ELLIPSIS_LEN: usize = 1;
-        if text.len() <= available_width {
-            text.to_string()
-        } else if available_width > ELLIPSIS_LEN {
-            format!("{}…", &text[..available_width.saturating_sub(ELLIPSIS_LEN)])
-        } else {
-            text.chars().take(available_width).collect()
-        }
-    };
+    let terminal_width = terminal_width();
 
     let cmd = Args::command();
     let subcommands: Vec<_> = cmd.get_subcommands().collect();
