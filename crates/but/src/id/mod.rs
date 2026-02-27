@@ -765,7 +765,17 @@ impl IdMap {
             }
         }
 
-        Ok(cli_ids)
+        let mut deduped = Vec::new();
+        'next: for cli_id in cli_ids {
+            for existing in &deduped {
+                if cli_ids_refer_to_same_entity(existing, &cli_id) {
+                    continue 'next;
+                }
+            }
+            deduped.push(cli_id);
+        }
+
+        Ok(deduped)
     }
     /// Convenience for [IdMap::parse] if a [gix::Repository] is available.
     pub fn parse_using_repo<'a>(
@@ -807,6 +817,70 @@ impl IdMap {
     /// Returns all known stacks.
     pub fn stacks(&self) -> &Vec<StackWithId> {
         self.indexed_stacks.borrow_owner()
+    }
+}
+
+fn cli_ids_refer_to_same_entity(lhs: &CliId, rhs: &CliId) -> bool {
+    match (lhs, rhs) {
+        (CliId::Uncommitted(lhs_uncommitted), CliId::Uncommitted(rhs_uncommitted)) => {
+            lhs_uncommitted.hunk_assignments == rhs_uncommitted.hunk_assignments
+                && lhs_uncommitted.is_entire_file == rhs_uncommitted.is_entire_file
+        }
+        (
+            CliId::Commit {
+                commit_id: lhs_commit_id,
+                ..
+            },
+            CliId::Commit {
+                commit_id: rhs_commit_id,
+                ..
+            },
+        ) => lhs_commit_id == rhs_commit_id,
+        (
+            CliId::CommittedFile {
+                commit_id: lhs_commit_id,
+                path: lhs_path,
+                ..
+            },
+            CliId::CommittedFile {
+                commit_id: rhs_commit_id,
+                path: rhs_path,
+                ..
+            },
+        ) => lhs_commit_id == rhs_commit_id && lhs_path == rhs_path,
+        (
+            CliId::Branch {
+                name: lhs_name,
+                id: lhs_id,
+                stack_id: lhs_stack_id,
+                ..
+            },
+            CliId::Branch {
+                name: rhs_name,
+                id: rhs_id,
+                stack_id: rhs_stack_id,
+                ..
+            },
+        ) => match (lhs_stack_id, rhs_stack_id) {
+            // Managed stacks have stable stack IDs, so this is true entity identity.
+            (Some(lhs_stack_id), Some(rhs_stack_id)) => {
+                lhs_name == rhs_name && lhs_stack_id == rhs_stack_id
+            }
+            // Unmanaged stacks can have `None` IDs; keep branch matches distinct by their own CLI IDs.
+            _ => lhs_id == rhs_id,
+        },
+        (
+            CliId::Stack {
+                stack_id: lhs_stack_id,
+                ..
+            },
+            CliId::Stack {
+                stack_id: rhs_stack_id,
+                ..
+            },
+        ) => lhs_stack_id == rhs_stack_id,
+        (CliId::Unassigned { .. }, CliId::Unassigned { .. }) => true,
+        _ => false,
     }
 }
 
