@@ -582,6 +582,32 @@ impl IdMap {
         matches
     }
 
+    fn parse_uncommitted_path_prefix<'a>(
+        &'a self,
+        stack_id: Option<StackId>,
+        element: &str,
+    ) -> Vec<Box<dyn Node<'a> + 'a>> {
+        let mut hunk_assignments = Vec::new();
+        for (short_id, uncommitted_hunk) in self.uncommitted_hunks.iter() {
+            let hunk_assignment = &uncommitted_hunk.hunk_assignment;
+            if hunk_assignment.stack_id == stack_id
+                && hunk_assignment.path_bytes.starts_with(element.as_bytes())
+            {
+                hunk_assignments.push((short_id.to_owned(), hunk_assignment.to_owned()));
+            }
+        }
+        hunk_assignments.sort_by(|a, b| a.1.path_bytes.cmp(&b.1.path_bytes));
+        let Some(hunk_assignments) = NonEmpty::from_vec(hunk_assignments) else {
+            return vec![];
+        };
+        vec![Box::new(Leaf {
+            cli_id: CliId::PathPrefix {
+                id: element.to_string(),
+                hunk_assignments,
+            },
+        })]
+    }
+
     fn parse_element<'a>(&'a self, element: &str) -> anyhow::Result<Vec<Box<dyn Node<'a> + 'a>>> {
         // Parse known suffixes.
         if let Some(prefix) = element.strip_suffix("@{stack}") {
@@ -598,6 +624,9 @@ impl IdMap {
                 }
             }
             return Ok(matches);
+        }
+        if element.ends_with('/') {
+            return Ok(self.parse_uncommitted_path_prefix(None, element));
         }
 
         let mut matches = Vec::<Box<dyn Node<'a> + 'a>>::new();
@@ -931,6 +960,13 @@ impl UncommittedCliId {
 pub enum CliId {
     /// An uncommitted file or hunk in the worktree.
     Uncommitted(UncommittedCliId),
+    /// A path prefix, representing several uncommitted hunks.
+    PathPrefix {
+        /// The ID as given by the user
+        id: ShortId,
+        /// The hunk assignments with their associated short IDs
+        hunk_assignments: NonEmpty<(ShortId, HunkAssignment)>,
+    },
     /// A file that exists in a commit.
     CommittedFile {
         /// The object ID of the commit containing the change to the file
@@ -996,6 +1032,7 @@ impl CliId {
     pub fn kind_for_humans(&self) -> &'static str {
         match self {
             CliId::Uncommitted { .. } => "an uncommitted file or hunk",
+            CliId::PathPrefix { .. } => "a path prefix",
             CliId::CommittedFile { .. } => "a committed file",
             CliId::Branch { .. } => "a branch",
             CliId::Commit { .. } => "a commit",
@@ -1008,6 +1045,7 @@ impl CliId {
     pub fn to_short_string(&self) -> ShortId {
         match self {
             CliId::Uncommitted(UncommittedCliId { id, .. })
+            | CliId::PathPrefix { id, .. }
             | CliId::CommittedFile { id, .. }
             | CliId::Branch { id, .. }
             | CliId::Commit { id, .. }

@@ -23,7 +23,7 @@ pub(crate) fn worktree(
     out: &mut OutputChannel,
     filter: Option<Filter>,
 ) -> anyhow::Result<()> {
-    let mut short_id_assignment_pairs: Vec<(&str, &HunkAssignment)> = id_map
+    let short_id_assignment_pairs: Vec<(&str, &HunkAssignment)> = id_map
         .uncommitted_hunks
         .iter()
         .filter(|(_, uncommitted_hunk)| {
@@ -43,6 +43,24 @@ pub(crate) fn worktree(
         })
         .map(|(short_id, uncommitted_hunk)| (short_id.as_str(), &uncommitted_hunk.hunk_assignment))
         .collect();
+    print_short_id_assignment_pairs(short_id_assignment_pairs, out)
+}
+
+pub(crate) fn hunk_assignments<'a>(
+    hunk_assignments: impl IntoIterator<Item = &'a (String, HunkAssignment)>,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
+    let short_id_assignment_pairs: Vec<(&str, &HunkAssignment)> = hunk_assignments
+        .into_iter()
+        .map(|(short_id, hunk_assignment)| (short_id.as_str(), hunk_assignment))
+        .collect();
+    print_short_id_assignment_pairs(short_id_assignment_pairs, out)
+}
+
+fn print_short_id_assignment_pairs<'a>(
+    mut short_id_assignment_pairs: Vec<(&'a str, &'a HunkAssignment)>,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
     short_id_assignment_pairs.sort_by(|(_, a_assignment), (_, b_assignment)| {
         a_assignment
             .stack_id

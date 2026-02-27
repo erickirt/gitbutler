@@ -72,6 +72,24 @@ impl DiffFileEntry {
             }
         }
 
+        Self::from_hunk_assignments_by_path(by_path)
+    }
+
+    pub fn from_hunk_assignments<'a>(
+        hunk_assignments: impl IntoIterator<Item = &'a (String, but_hunk_assignment::HunkAssignment)>,
+    ) -> Vec<DiffFileEntry> {
+        let mut by_path: BTreeMap<String, Vec<&but_hunk_assignment::HunkAssignment>> =
+            BTreeMap::new();
+        for (_, a) in hunk_assignments {
+            by_path.entry(a.path.clone()).or_default().push(a);
+        }
+
+        Self::from_hunk_assignments_by_path(by_path)
+    }
+
+    fn from_hunk_assignments_by_path(
+        by_path: BTreeMap<String, Vec<&but_hunk_assignment::HunkAssignment>>,
+    ) -> Vec<DiffFileEntry> {
         by_path
             .into_iter()
             .map(|(path, assignments)| {

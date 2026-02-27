@@ -71,6 +71,7 @@ pub fn handle(ctx: &mut Context, out: &mut OutputChannel, id: &str) -> Result<()
                     });
                 }
             }
+            CliId::PathPrefix { .. } => todo!(),
             CliId::Unassigned { .. } => {
                 // Discard all uncommitted changes
                 let assignments = worktree_changes.assignments.clone();
