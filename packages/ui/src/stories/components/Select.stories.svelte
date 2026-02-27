@@ -124,7 +124,7 @@
 				popupAlign="center"
 			>
 				{#snippet customSelectButton()}
-					<Button kind="outline" icon="chevron-select" size="tag">
+					<Button kind="outline" icon="chevron-down" size="tag">
 						{args.options.find(
 							(option: { value: string; label: string }) => option.value === selectedItem,
 						)?.label}

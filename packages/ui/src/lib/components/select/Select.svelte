@@ -43,6 +43,7 @@
 </script>
 
 <script lang="ts" generics="T extends string">
+	import NewIcon from "$components/NewIcon.svelte";
 	import Textbox from "$components/Textbox.svelte";
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 	import OptionsGroup from "$components/select/OptionsGroup.svelte";
@@ -345,13 +346,18 @@
 				readonly
 				type="select"
 				iconLeft={icon}
-				iconRight="chevron-select"
 				value={options.find((item) => item.value === value)?.label}
 				disabled={disabled || loading}
 				{autofocus}
 				onmousedown={toggleList}
 				onkeydown={(ev: KeyboardEvent) => handleKeyDown(ev)}
-			/>
+			>
+				{#snippet customIconRight()}
+					<div class="select-chevron" class:open={listOpen}>
+						<NewIcon name="chevron-down" />
+					</div>
+				{/snippet}
+			</Textbox>
 		</div>
 	{/if}
 	{#if listOpen}
@@ -474,6 +480,15 @@
 		100% {
 			transform: translateY(0);
 			opacity: 1;
+		}
+	}
+
+	.select-chevron {
+		display: flex;
+		transition: transform 0.15s ease;
+
+		&.open {
+			transform: rotate(180deg);
 		}
 	}
 
