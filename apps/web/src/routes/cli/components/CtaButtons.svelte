@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { getOS } from '$lib/utils/getOS';
-	import { onMount } from 'svelte';
+	import { getOS } from "$lib/utils/getOS";
+	import { onMount } from "svelte";
 
 	interface Props {
 		darkMode?: boolean;
@@ -12,11 +12,11 @@
 	let isLinux = $state(false);
 
 	onMount(() => {
-		isLinux = getOS() === 'Linux';
+		isLinux = getOS() === "Linux";
 	});
 
 	function handleCopy() {
-		navigator.clipboard.writeText('curl -fsSL https://gitbutler.com/install.sh | sh');
+		navigator.clipboard.writeText("curl -fsSL https://gitbutler.com/install.sh | sh");
 		copied = true;
 		setTimeout(() => {
 			copied = false;
