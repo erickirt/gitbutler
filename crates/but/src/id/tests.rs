@@ -85,6 +85,33 @@ fn commit_id_works_with_two_or_more_characters() -> anyhow::Result<()> {
 }
 
 #[test]
+fn commit_id_appearing_multiple_times() -> anyhow::Result<()> {
+    let id1 = id(1);
+    let stacks = vec![
+        stack([segment("branch1", [id(2), id1], None, [])]),
+        stack([segment("branch2", [id(3), id1], None, [])]),
+    ];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    // The commit should only appear once with a short ID.
+    insta::assert_debug_snapshot!(
+        id_map.parse("01", Box::new(changed_paths_fn))?, @r#"
+    [
+        Commit {
+            commit_id: Sha1(0101010101010101010101010101010101010101),
+            id: "01",
+        },
+    ]
+    "#);
+    Ok(())
+}
+
+#[test]
 fn commit_ids_become_longer_if_ambiguous() -> anyhow::Result<()> {
     let id1 = hex_to_id("21aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     let id2 = hex_to_id("21bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
