@@ -22,7 +22,6 @@
 		flex-shrink: 0;
 		width: 20px;
 		height: 20px;
-		border-radius: var(--radius-m);
 
 		&:not(.active):hover {
 			--border-color: var(--clr-text-2);
