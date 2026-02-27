@@ -4,25 +4,24 @@ use but_hunk_assignment::HunkAssignment;
 use but_workspace::commit_engine::{self, CreateCommitOutcome};
 use colored::Colorize;
 use gix::ObjectId;
+use nonempty::NonEmpty;
 
 use super::assign::branch_name_to_stack_id;
-use crate::{id::UncommittedCliId, utils::OutputChannel};
+use crate::utils::OutputChannel;
 
 pub(crate) fn uncommitted_to_commit(
     ctx: &mut Context,
-    uncommitted_cli_id: UncommittedCliId,
+    hunk_assignments: NonEmpty<&HunkAssignment>,
+    description: String,
     oid: &ObjectId,
     out: &mut OutputChannel,
 ) -> anyhow::Result<()> {
-    let description = uncommitted_cli_id.describe();
-
-    let first_hunk_assignment = uncommitted_cli_id.hunk_assignments.first();
+    let first_hunk_assignment = hunk_assignments.first();
     let stack_id = first_hunk_assignment.stack_id;
 
-    let diff_specs: Vec<DiffSpec> = uncommitted_cli_id
-        .hunk_assignments
+    let diff_specs: Vec<DiffSpec> = hunk_assignments
         .into_iter()
-        .map(|assignment: HunkAssignment| assignment.into())
+        .map(|assignment| assignment.to_owned().into())
         .collect();
 
     let mut guard = ctx.exclusive_worktree_access();

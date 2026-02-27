@@ -1,23 +1,25 @@
 use bstr::BString;
 use but_core::{HunkHeader, ref_metadata::StackId};
 use but_ctx::Context;
-use but_hunk_assignment::HunkAssignmentRequest;
+use but_hunk_assignment::{HunkAssignment, HunkAssignmentRequest};
 use colored::Colorize;
+use nonempty::NonEmpty;
 
-use crate::{id::UncommittedCliId, utils::OutputChannel};
+use crate::utils::OutputChannel;
 
 pub(crate) fn assign_uncommitted_to_branch(
     ctx: &mut Context,
-    uncommitted_cli_id: UncommittedCliId,
+    hunk_assignments: NonEmpty<&HunkAssignment>,
+    description: String,
     branch_name: &str,
     out: &mut OutputChannel,
 ) -> anyhow::Result<()> {
-    let description = uncommitted_cli_id.describe();
-
-    let assignments = uncommitted_cli_id
-        .hunk_assignments
-        .into_iter()
-        .map(|hunk_assignment| (hunk_assignment.hunk_header, hunk_assignment.path_bytes));
+    let assignments = hunk_assignments.into_iter().map(|hunk_assignment| {
+        (
+            hunk_assignment.hunk_header,
+            hunk_assignment.path_bytes.to_owned(),
+        )
+    });
     let reqs = to_assignment_request(ctx, assignments, Some(branch_name))?;
     do_assignments(ctx, reqs, out)?;
     if let Some(out) = out.for_human() {
@@ -35,16 +37,17 @@ pub(crate) fn assign_uncommitted_to_branch(
 
 pub(crate) fn assign_uncommitted_to_stack(
     ctx: &mut Context,
-    uncommitted_cli_id: UncommittedCliId,
+    hunk_assignments: NonEmpty<&HunkAssignment>,
+    description: String,
     stack_id: &StackId,
     out: &mut OutputChannel,
 ) -> anyhow::Result<()> {
-    let description = uncommitted_cli_id.describe();
-
-    let assignments = uncommitted_cli_id
-        .hunk_assignments
-        .into_iter()
-        .map(|hunk_assignment| (hunk_assignment.hunk_header, hunk_assignment.path_bytes));
+    let assignments = hunk_assignments.into_iter().map(|hunk_assignment| {
+        (
+            hunk_assignment.hunk_header,
+            hunk_assignment.path_bytes.to_owned(),
+        )
+    });
     let reqs = to_assignment_request(ctx, assignments, None)?
         .into_iter()
         .map(|mut req| {
@@ -68,15 +71,16 @@ pub(crate) fn assign_uncommitted_to_stack(
 
 pub(crate) fn unassign_uncommitted(
     ctx: &mut Context,
-    uncommitted_cli_id: UncommittedCliId,
+    hunk_assignments: NonEmpty<&HunkAssignment>,
+    description: String,
     out: &mut OutputChannel,
 ) -> anyhow::Result<()> {
-    let description = uncommitted_cli_id.describe();
-
-    let assignments = uncommitted_cli_id
-        .hunk_assignments
-        .into_iter()
-        .map(|hunk_assignment| (hunk_assignment.hunk_header, hunk_assignment.path_bytes));
+    let assignments = hunk_assignments.into_iter().map(|hunk_assignment| {
+        (
+            hunk_assignment.hunk_header,
+            hunk_assignment.path_bytes.to_owned(),
+        )
+    });
     let reqs = to_assignment_request(ctx, assignments, None)?;
     do_assignments(ctx, reqs, out)?;
     if let Some(out) = out.for_human() {

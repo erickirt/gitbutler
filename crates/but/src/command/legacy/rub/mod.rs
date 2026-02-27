@@ -15,6 +15,7 @@ use gitbutler_oplog::{
     OplogExt,
     entry::{OperationKind, SnapshotDetails},
 };
+use nonempty::NonEmpty;
 
 use crate::{CliId, IdMap, utils::OutputChannel};
 
@@ -43,14 +44,32 @@ pub(crate) fn illegal_move_to_json(
     })
 }
 
+/// A description of a set of hunks.
+type Description = String;
+
 /// Represents the operation to perform for a given source and target combination.
 /// This enum serves as the single source of truth for valid rub operations.
 #[derive(Debug)]
 pub(crate) enum RubOperation<'a> {
-    UnassignUncommitted(&'a crate::id::UncommittedCliId),
-    UncommittedToCommit(&'a crate::id::UncommittedCliId, &'a gix::ObjectId),
-    UncommittedToBranch(&'a crate::id::UncommittedCliId, &'a str),
-    UncommittedToStack(&'a crate::id::UncommittedCliId, StackId),
+    UnassignUncommitted(
+        NonEmpty<&'a but_hunk_assignment::HunkAssignment>,
+        Description,
+    ),
+    UncommittedToCommit(
+        NonEmpty<&'a but_hunk_assignment::HunkAssignment>,
+        Description,
+        &'a gix::ObjectId,
+    ),
+    UncommittedToBranch(
+        NonEmpty<&'a but_hunk_assignment::HunkAssignment>,
+        Description,
+        &'a str,
+    ),
+    UncommittedToStack(
+        NonEmpty<&'a but_hunk_assignment::HunkAssignment>,
+        Description,
+        StackId,
+    ),
     StackToUnassigned(StackId),
     StackToStack {
         from: StackId,
@@ -88,21 +107,27 @@ impl<'a> RubOperation<'a> {
     /// Executes this operation, creating snapshots and performing the necessary actions.
     fn execute(self, ctx: &mut Context, out: &mut OutputChannel) -> anyhow::Result<()> {
         match self {
-            RubOperation::UnassignUncommitted(uncommitted) => {
+            RubOperation::UnassignUncommitted(hunk_assignments, description) => {
                 create_snapshot(ctx, OperationKind::MoveHunk);
-                assign::unassign_uncommitted(ctx, uncommitted.clone(), out)
+                assign::unassign_uncommitted(ctx, hunk_assignments, description, out)
             }
-            RubOperation::UncommittedToCommit(uncommitted, oid) => {
+            RubOperation::UncommittedToCommit(hunk_assignments, description, oid) => {
                 create_snapshot(ctx, OperationKind::AmendCommit);
-                amend::uncommitted_to_commit(ctx, uncommitted.clone(), oid, out)
+                amend::uncommitted_to_commit(ctx, hunk_assignments, description, oid, out)
             }
-            RubOperation::UncommittedToBranch(uncommitted, name) => {
+            RubOperation::UncommittedToBranch(hunk_assignments, description, name) => {
                 create_snapshot(ctx, OperationKind::MoveHunk);
-                assign::assign_uncommitted_to_branch(ctx, uncommitted.clone(), name, out)
+                assign::assign_uncommitted_to_branch(ctx, hunk_assignments, description, name, out)
             }
-            RubOperation::UncommittedToStack(uncommitted, stack_id) => {
+            RubOperation::UncommittedToStack(hunk_assignments, description, stack_id) => {
                 create_snapshot(ctx, OperationKind::MoveHunk);
-                assign::assign_uncommitted_to_stack(ctx, uncommitted.clone(), &stack_id, out)
+                assign::assign_uncommitted_to_stack(
+                    ctx,
+                    hunk_assignments,
+                    description,
+                    &stack_id,
+                    out,
+                )
             }
             RubOperation::StackToUnassigned(stack_id) => {
                 create_snapshot(ctx, OperationKind::MoveHunk);
@@ -210,16 +235,39 @@ pub(crate) fn route_operation<'a>(
     match (source, target) {
         // Uncommitted -> *
         (Uncommitted(uncommitted), Unassigned { .. }) => {
-            Some(RubOperation::UnassignUncommitted(uncommitted))
+            let hunk_assignments = uncommitted.hunk_assignments.as_ref();
+            let description = uncommitted.describe();
+            Some(RubOperation::UnassignUncommitted(
+                hunk_assignments,
+                description,
+            ))
         }
         (Uncommitted(uncommitted), Commit { commit_id, .. }) => {
-            Some(RubOperation::UncommittedToCommit(uncommitted, commit_id))
+            let hunk_assignments = uncommitted.hunk_assignments.as_ref();
+            let description = uncommitted.describe();
+            Some(RubOperation::UncommittedToCommit(
+                hunk_assignments,
+                description,
+                commit_id,
+            ))
         }
         (Uncommitted(uncommitted), Branch { name, .. }) => {
-            Some(RubOperation::UncommittedToBranch(uncommitted, name))
+            let hunk_assignments = uncommitted.hunk_assignments.as_ref();
+            let description = uncommitted.describe();
+            Some(RubOperation::UncommittedToBranch(
+                hunk_assignments,
+                description,
+                name,
+            ))
         }
         (Uncommitted(uncommitted), Stack { stack_id, .. }) => {
-            Some(RubOperation::UncommittedToStack(uncommitted, *stack_id))
+            let hunk_assignments = uncommitted.hunk_assignments.as_ref();
+            let description = uncommitted.describe();
+            Some(RubOperation::UncommittedToStack(
+                hunk_assignments,
+                description,
+                *stack_id,
+            ))
         }
         // Stack -> *
         (Stack { stack_id, .. }, Unassigned { .. }) => {
@@ -1297,13 +1345,13 @@ mod tests {
 
         // Uncommitted -> Unassigned should be UnassignUncommitted
         match route_operation(&uncommitted, &unassigned) {
-            Some(RubOperation::UnassignUncommitted(_)) => {}
+            Some(RubOperation::UnassignUncommitted(..)) => {}
             _ => panic!("Expected UnassignUncommitted variant"),
         }
 
         // Uncommitted -> Commit should be UncommittedToCommit
         match route_operation(&uncommitted, &commit) {
-            Some(RubOperation::UncommittedToCommit(_, _)) => {}
+            Some(RubOperation::UncommittedToCommit(..)) => {}
             _ => panic!("Expected UncommittedToCommit variant"),
         }
 
