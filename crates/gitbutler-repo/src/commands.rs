@@ -1,6 +1,6 @@
 use std::{path::Path, sync::Mutex};
 
-use anyhow::{Context as _, Result, bail};
+use anyhow::{Result, bail};
 use base64::engine::Engine as _;
 use but_ctx::Context;
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
@@ -243,11 +243,9 @@ impl RepoCommands for Context {
     }
 
     fn read_file_from_workspace(&self, probably_relative_path: &Path) -> Result<FileInfo> {
+        let workdir = self.workdir_or_fail()?;
+        let canonical_workdir = gix::path::realpath(&workdir)?;
         let repo = self.git2_repo.get()?;
-        let workdir = repo.workdir().context(
-            "BUG: can't yet handle bare repos and we shouldn't run into this until we do",
-        )?;
-        let canonical_workdir = gix::path::realpath(workdir)?;
         let (path_in_worktree, relative_path) = if probably_relative_path.is_relative() {
             (
                 // This keeps non-existing leaf components, which preserves deleted-file fallback
