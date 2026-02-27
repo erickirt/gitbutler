@@ -40,19 +40,17 @@ fn create_reverse_hex_id(
     path_bytes: &[u8],
     stack_id: Option<&StackId>,
 ) -> anyhow::Result<ChangeId> {
-    Ok(
-        if stack_id.is_none() && path_bytes.iter().all(|c| b'k' <= *c && *c <= b'z') {
-            ChangeId::from(BString::from(path_bytes))
-        } else {
-            let mut hasher = gix::hash::hasher(gix::hash::Kind::Sha1);
-            hasher.update(path_bytes);
-            if let Some(stack_id) = stack_id {
-                hasher.update(stack_id.0.as_bytes());
-            }
-            let object_id = hasher.try_finalize()?;
-            ChangeId::from_bytes(object_id.as_bytes())
-        },
-    )
+    let mut hasher = gix::hash::hasher(gix::hash::Kind::Sha1);
+    hasher.update(path_bytes);
+    if let Some(stack_id) = stack_id {
+        hasher.update(stack_id.0.as_bytes());
+    }
+    let object_id = hasher.try_finalize()?;
+    let mut change_id = ChangeId::from_bytes(object_id.as_bytes());
+    if stack_id.is_none() && path_bytes.iter().all(|c| b'k' <= *c && *c <= b'z') {
+        change_id.splice(0..0, path_bytes.to_owned());
+    }
+    Ok(change_id)
 }
 
 /// Assign short IDs to each `Some` entry such that they are unambiguous with
