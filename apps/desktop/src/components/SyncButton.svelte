@@ -3,7 +3,7 @@
 	import { BRANCH_SERVICE } from "$lib/branches/branchService.svelte";
 	import { DEFAULT_FORGE_FACTORY } from "$lib/forge/forgeFactory.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { Button, TimeAgo, NewIcon, TestId } from "@gitbutler/ui";
+	import { Button, TimeAgo, Icon, TestId } from "@gitbutler/ui";
 
 	interface Props {
 		projectId: string;
@@ -62,7 +62,7 @@
 	{#snippet custom()}
 		{#if baseBranch.response}
 			<div class="target-branch">
-				<NewIcon name="target-branch" color="var(--clr-text-2)" />
+				<Icon name="target-branch" color="var(--clr-text-2)" />
 				<span class="text-12 text-semibold">
 					{baseBranch.response.remoteName}/{baseBranch.response.shortName}
 				</span>

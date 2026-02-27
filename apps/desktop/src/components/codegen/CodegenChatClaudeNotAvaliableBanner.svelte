@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NewIcon, Button } from "@gitbutler/ui";
+	import { Icon, Button } from "@gitbutler/ui";
 
 	interface Props {
 		onSettingsBtnClick: () => void;
@@ -13,7 +13,7 @@
 		<div class="not-available-banner__content">
 			<h3 class="text-16 text-semibold">
 				<span class="not-available-banner__icon">
-					<NewIcon name="warning" />
+					<Icon name="warning" />
 				</span> Claude code can't be found
 			</h3>
 			<p class="text-13 text-body clr-text-2">

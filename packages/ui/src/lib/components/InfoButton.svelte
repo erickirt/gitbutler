@@ -1,6 +1,6 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { portal } from "$lib/utils/portal";
 	import { tooltip } from "$lib/utils/tooltipPosition";
 	import { flyScale } from "$lib/utils/transitions";
@@ -11,7 +11,7 @@
 		size?: "small" | "medium";
 		maxWidth?: string;
 		iconTopOffset?: string;
-		icon?: NewIconName;
+		icon?: IconName;
 		iconSize?: number;
 		inheritColor?: boolean;
 		children: Snippet;
@@ -76,7 +76,7 @@
 >
 	{#if icon}
 		<div class="info-custom-icon" class:inherit-color={inheritColor}>
-			<NewIcon name={icon} size={iconSize} />
+			<Icon name={icon} size={iconSize} />
 		</div>
 	{:else}
 		<div class="info-button" class:button-hovered={show}></div>

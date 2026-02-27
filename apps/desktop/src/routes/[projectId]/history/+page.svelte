@@ -14,7 +14,7 @@
 	import { FILE_SELECTION_MANAGER } from "$lib/selection/fileSelectionManager.svelte";
 	import { createSnapshotSelection, type SelectionId } from "$lib/selection/key";
 	import { inject } from "@gitbutler/core/context";
-	import { EmptyStatePlaceholder, NewIcon, Button } from "@gitbutler/ui";
+	import { EmptyStatePlaceholder, Icon, Button } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import type { Snapshot } from "$lib/history/types";
 
@@ -149,7 +149,7 @@
 				{#if (!$loading && $isAllLoaded) || $snapshots.length <= MIN_SNAPSHOTS_TO_LOAD}
 					<div class="welcome-point">
 						<div class="welcome-point__icon">
-							<NewIcon name="finish" />
+							<Icon name="finish" />
 						</div>
 						<div class="welcome-point__content">
 							<p class="text-13 text-semibold">Welcome to history!</p>

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { NewIcon, type NewIconName } from "@gitbutler/ui";
+	import { Icon, type IconName } from "@gitbutler/ui";
 	import type { Snippet } from "svelte";
 
 	type Props = {
 		label: string;
-		icon?: NewIconName;
+		icon?: IconName;
 		loading?: boolean;
 		summary?: Snippet;
 		content?: Snippet;
@@ -37,14 +37,14 @@
 	>
 		<div class="flex items-center gap-6">
 			<div class="section-header__arrow">
-				<NewIcon name="chevron-right" />
+				<Icon name="chevron-right" />
 			</div>
 
 			<div class="flex items-center gap-8">
 				{#if loading}
-					<NewIcon name="spinner" />
+					<Icon name="spinner" />
 				{:else if icon}
-					<NewIcon name={icon} color="var(--clr-text-3)" />
+					<Icon name={icon} color="var(--clr-text-3)" />
 				{/if}
 
 				<span class="section-label" class:text-semibold={root}>{label}</span>

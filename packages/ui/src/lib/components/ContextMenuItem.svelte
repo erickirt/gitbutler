@@ -1,6 +1,6 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { keysStringToArr } from "$lib/utils/hotkeys";
 	import { getContext } from "svelte";
 	import type { Snippet } from "svelte";
@@ -9,7 +9,7 @@
 	const SUBMENU_CONTEXT_KEY = "contextmenu-submenu-coordination";
 
 	interface Props {
-		icon?: NewIconName;
+		icon?: IconName;
 		emoji?: string;
 		label: string;
 		disabled?: boolean;
@@ -74,7 +74,7 @@
 			</div>
 		{:else if icon}
 			<div class="menu-item__icon">
-				<NewIcon name={icon} />
+				<Icon name={icon} />
 			</div>
 		{/if}
 
@@ -92,7 +92,7 @@
 			{@render control()}
 		{:else if selected}
 			<div class="menu-item__icon">
-				<NewIcon name="tick" />
+				<Icon name="tick" />
 			</div>
 		{/if}
 	</div>

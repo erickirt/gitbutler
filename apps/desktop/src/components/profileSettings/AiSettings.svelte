@@ -11,7 +11,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import {
 		CardGroup,
-		NewIcon,
+		Icon,
 		InfoMessage,
 		Link,
 		RadioButton,
@@ -198,7 +198,7 @@
 
 {#snippet shortNote(text: string)}
 	<div class="ai-settings__short-note">
-		<NewIcon name="info" size={14} />
+		<Icon name="info" size={14} />
 		<p class="text-12 text-body">{text}</p>
 	</div>
 {/snippet}

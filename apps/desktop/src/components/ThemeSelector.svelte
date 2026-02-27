@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 	import type { Settings } from "$lib/settings/userSettings";
 	import type { Writable } from "svelte/store";
 
@@ -45,7 +45,7 @@
 			/>
 			<div class="theme-card__preview">
 				<i class="theme-card__icon"
-					><NewIcon
+					><Icon
 						name="tick-circle"
 						color={theme.value === "light" ? "var(--clr-core-pop-50)" : "var(--clr-core-pop-60)"}
 					/></i

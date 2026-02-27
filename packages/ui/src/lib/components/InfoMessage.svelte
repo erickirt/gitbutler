@@ -4,29 +4,29 @@
 
 <script lang="ts">
 	import Button from "$components/Button.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { copyToClipboard } from "$lib/utils/clipboard";
 	import { type ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
 	interface Props {
-		icon?: NewIconName;
+		icon?: IconName;
 		style?: MessageStyle;
 		outlined?: boolean;
 		filled?: boolean;
 		class?: string;
 		primaryLabel?: string;
-		primaryIcon?: NewIconName;
+		primaryIcon?: IconName;
 		primaryTestId?: string;
 		primaryAction?: () => void;
 		secondaryLabel?: string;
-		secondaryIcon?: NewIconName;
+		secondaryIcon?: IconName;
 		secondaryTestId?: string;
 		secondaryAction?: () => void;
 		tertiaryLabel?: string;
 		tertiaryTestId?: string;
-		tertiaryIcon?: NewIconName;
+		tertiaryIcon?: IconName;
 		tertiaryAction?: () => void;
 		shadow?: boolean;
 		error?: string | undefined;
@@ -60,7 +60,7 @@
 		testId,
 	}: Props = $props();
 
-	const iconMap: { [Key in MessageStyle]: NewIconName } = {
+	const iconMap: { [Key in MessageStyle]: IconName } = {
 		info: "info",
 		warning: "warning",
 		danger: "danger",
@@ -81,7 +81,7 @@
 		success: "pop",
 	};
 
-	const resolvedIconName = $derived(iconName ?? (iconMap[style] as NewIconName));
+	const resolvedIconName = $derived(iconName ?? (iconMap[style] as IconName));
 </script>
 
 <div
@@ -92,7 +92,7 @@
 	class:shadow
 >
 	<div class="info-message__icon">
-		<NewIcon name={resolvedIconName} color={iconColorMap[style]} />
+		<Icon name={resolvedIconName} color={iconColorMap[style]} />
 	</div>
 	<div class="info-message__inner">
 		<div class="info-message__content">

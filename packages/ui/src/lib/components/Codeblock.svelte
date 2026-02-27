@@ -1,5 +1,5 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import { copyToClipboard } from "$lib/utils/clipboard";
 
 	interface Props {
@@ -23,7 +23,7 @@
 
 <div class="codeblock-wrapper" style="margin-bottom: {marginBottom}">
 	<button type="button" class="codeblock__copy-btn" onclick={handleCopy}>
-		<NewIcon name={copied ? "tick" : "copy"} />
+		<Icon name={copied ? "tick" : "copy"} />
 	</button>
 
 	<div class="codeblock scrollbar" style="max-height: {maxHeight}">

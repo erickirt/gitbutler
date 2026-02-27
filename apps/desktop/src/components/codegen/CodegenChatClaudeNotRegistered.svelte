@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { sleep } from "$lib/utils/sleep";
-	import { NewIcon, AsyncButton } from "@gitbutler/ui";
+	import { Icon, AsyncButton } from "@gitbutler/ui";
 
 	interface Props {
 		onRetryConfig?: () => Promise<void>;
@@ -14,7 +14,7 @@
 		<div class="not-available-banner__content">
 			<h3 class="text-16 text-semibold">
 				<span class="not-available-banner__icon">
-					<NewIcon name="warning" />
+					<Icon name="warning" />
 				</span> Project not setup
 			</h3>
 			<p class="text-13 text-body clr-text-2">

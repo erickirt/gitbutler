@@ -5,7 +5,7 @@
 	import { SETTINGS } from "$lib/settings/userSettings";
 	import { inject } from "@gitbutler/core/context";
 	import { persistWithExpiration } from "@gitbutler/shared/persisted";
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 	import { pxToRem } from "@gitbutler/ui/utils/pxToRem";
 	import { writable, type Writable } from "svelte/store";
 	import type { ComponentProps, Snippet } from "svelte";
@@ -144,7 +144,7 @@
 						toggleCollapsed();
 					}}
 				>
-					<NewIcon name="chevron-right" />
+					<Icon name="chevron-right" />
 				</button>
 			{/if}
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { fly, fade } from "svelte/transition";
 	import type { ChipToastType, ChipToastButtonConfig } from "$components/chipToast/chipToastTypes";
 
@@ -15,7 +15,7 @@
 	const { type, message, customButton, showDismiss, onDismiss }: Props = $props();
 
 	function getEmojiForType(type: ChipToastType): {
-		name: NewIconName;
+		name: IconName;
 		color: string;
 	} {
 		switch (type) {
@@ -46,7 +46,7 @@
 >
 	<div class="chip-toast__content">
 		<div class="chip-toast__icon" style:--icon-toast-color={icon.color}>
-			<NewIcon name={icon.name} />
+			<Icon name={icon.name} />
 		</div>
 		<span class="chip-toast__message">{message}</span>
 	</div>

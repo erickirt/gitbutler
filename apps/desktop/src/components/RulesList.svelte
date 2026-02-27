@@ -25,7 +25,7 @@
 		chipToasts,
 		Select,
 		SelectItem,
-		NewIcon,
+		Icon,
 		Badge,
 		Spacer,
 		SkeletonBone,
@@ -405,11 +405,11 @@
 									{#if item.value}
 										{@const target = decodeStackTarget(item.value)}
 										{#if target.type === "leftmost"}
-											<NewIcon name="leftmost-lane" />
+											<Icon name="leftmost-lane" />
 										{:else if target.type === "rightmost"}
-											<NewIcon name="rightmost-lane" />
+											<Icon name="rightmost-lane" />
 										{:else}
-											<NewIcon name="branch" />
+											<Icon name="branch" />
 										{/if}
 									{/if}
 								{/snippet}

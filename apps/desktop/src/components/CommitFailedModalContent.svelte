@@ -2,7 +2,7 @@
 	import CommitFailedFileEntry from "$components/CommitFailedFileEntry.svelte";
 	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
 	import { REJECTTION_REASONS, type RejectionReason } from "$lib/stacks/stackService.svelte";
-	import { NewIcon, ModalHeader, TestId, Tooltip } from "@gitbutler/ui";
+	import { Icon, ModalHeader, TestId, Tooltip } from "@gitbutler/ui";
 	import type { CommitFailedModalState } from "$lib/state/uiState.svelte";
 
 	type Props = {
@@ -83,7 +83,7 @@
 		<div class="commit-failed__content">
 			<div class="text-13 commit-failed__description">
 				{#if data.newCommitId}
-					Commit <i class="commit-failed__text-icon"><NewIcon name="commit" /></i>
+					Commit <i class="commit-failed__text-icon"><Icon name="commit" /></i>
 					<Tooltip text={data.commitTitle ? data.commitTitle : "No commit title provided"}
 						><span class="h-dotted-underline text-semibold">{data.newCommitId.substring(0, 7)}</span
 						></Tooltip

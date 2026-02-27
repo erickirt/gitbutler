@@ -12,7 +12,7 @@
 	import {
 		Button,
 		CardGroup,
-		NewIcon,
+		Icon,
 		Link,
 		Select,
 		SelectItem,
@@ -175,7 +175,7 @@
 		onclick={() => (showMoreInfo = !showMoreInfo)}
 	>
 		<div class="project-setup__fold-icon" class:rotate-icon={showMoreInfo}>
-			<NewIcon name="chevron-right" />
+			<Icon name="chevron-right" />
 		</div>
 
 		<div class="stack-v gap-6 full-width">

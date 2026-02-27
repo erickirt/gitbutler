@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 
 	interface Props {
 		iconName: BranchIconName;
@@ -21,7 +21,7 @@
 </script>
 
 <div class="stack__status--icon" style:--bg-color={color} class:small class:large>
-	<NewIcon name={iconName} />
+	<Icon name={iconName} />
 </div>
 
 <style>

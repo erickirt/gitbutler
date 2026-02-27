@@ -17,7 +17,7 @@
 	import { combineResults } from "$lib/state/helpers";
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { NewIcon, TestId, Tooltip } from "@gitbutler/ui";
+	import { Icon, TestId, Tooltip } from "@gitbutler/ui";
 
 	import type { ComponentProps } from "svelte";
 
@@ -112,7 +112,7 @@
 								: "No remote tracking branch"}
 						>
 							<div class="remote-tracking-branch-icon" class:disabled={!remoteTrackingBranch}>
-								<NewIcon name={remoteTrackingBranch ? "target-branch" : "target-cross"} />
+								<Icon name={remoteTrackingBranch ? "target-branch" : "target-cross"} />
 							</div>
 						</Tooltip>
 					{/if}

@@ -50,11 +50,11 @@ function main() {
  * Auto-generated icon name list from \`src/lib/icons/svg/*.svg\`.
  * Run \`pnpm update-icons\` to regenerate.
  */
-export const newIconNames = [
+export const iconNames = [
 ${iconEntries},
 ] as const;
 
-export type NewIconName = (typeof newIconNames)[number];
+export type IconName = (typeof iconNames)[number];
 `;
 
 	const existingContent = (() => {

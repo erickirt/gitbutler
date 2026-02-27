@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import ContextMenuItem from "$components/ContextMenuItem.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { getContext, onDestroy } from "svelte";
 	import type { Snippet } from "svelte";
 
@@ -10,7 +10,7 @@
 	const SUBMENU_CONTEXT_KEY = "contextmenu-submenu-coordination";
 
 	interface Props {
-		icon?: NewIconName;
+		icon?: IconName;
 		label: string;
 		disabled?: boolean;
 		keyboardShortcut?: string;
@@ -158,7 +158,7 @@
 	<ContextMenuItem {icon} {label} {disabled} {keyboardShortcut} {testId} onclick={handleClick}>
 		{#snippet control()}
 			<div class="submenu-chevron">
-				<NewIcon name="chevron-right" size={14} />
+				<Icon name="chevron-right" size={14} />
 			</div>
 		{/snippet}
 	</ContextMenuItem>

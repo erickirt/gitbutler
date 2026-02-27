@@ -4,7 +4,7 @@
 </script>
 
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import HunkDiffBody from "$components/hunkDiff/HunkDiffBody.svelte";
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 	import { focusable } from "$lib/focus/focusable";
@@ -110,7 +110,7 @@
 >
 	{#if !draggingDisabled}
 		<div class="table__drag-handle">
-			<NewIcon name="drag-square" />
+			<Icon name="drag-square" />
 		</div>
 	{/if}
 	<ScrollableContainer horz whenToShow="always" zIndex="0">
@@ -134,9 +134,9 @@
 					>
 						<div class="table__checkbox" class:staged>
 							{#if staged && !hideCheckboxes}
-								<NewIcon name="tick" />
+								<Icon name="tick" />
 							{:else if showingCheckboxes}
-								<NewIcon name="minus" />
+								<Icon name="minus" />
 							{/if}
 						</div>
 					</th>

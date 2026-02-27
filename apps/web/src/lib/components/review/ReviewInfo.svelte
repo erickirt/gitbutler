@@ -13,7 +13,7 @@
 	import ChangeStatus from "@gitbutler/shared/patches/ChangeStatus.svelte";
 	import { type PatchCommit } from "@gitbutler/shared/patches/types";
 	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
-	import { AvatarGroup, NewIcon } from "@gitbutler/ui";
+	import { AvatarGroup, Icon } from "@gitbutler/ui";
 	import { copyToClipboard } from "@gitbutler/ui/utils/clipboard";
 
 	const NO_REVIEWERS = "Not reviewed yet";
@@ -80,7 +80,7 @@
 				{commitShortSha}
 			</span>
 			<div class="factoid-icon">
-				<NewIcon name="copy" size={14} />
+				<Icon name="copy" size={14} />
 			</div>
 		</button>
 	</Factoid>

@@ -2,7 +2,7 @@
 	import FloatingModal from "$lib/floating/FloatingModal.svelte";
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 
 	import { type Snippet } from "svelte";
 	import type { SnapPositionName } from "$lib/floating/types";
@@ -43,7 +43,7 @@
 >
 	<div class="modal-header" bind:this={headerElRef}>
 		<div class="drag-handle">
-			<NewIcon name="drag-square" />
+			<Icon name="drag-square" />
 		</div>
 		<h4 class="text-14 text-semibold">
 			{title}

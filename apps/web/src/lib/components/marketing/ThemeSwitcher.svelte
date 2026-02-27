@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { setTheme, themeStore } from "$lib/utils/theme.svelte";
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 
 	// Get the current theme
 	const currentTheme = $derived($themeStore);
@@ -14,7 +14,7 @@
 		onclick={() => setTheme("light")}
 		aria-label="Light theme"
 	>
-		<NewIcon name="theme-light" />
+		<Icon name="theme-light" />
 	</button>
 	<button
 		type="button"
@@ -23,7 +23,7 @@
 		onclick={() => setTheme("system")}
 		aria-label="System theme"
 	>
-		<NewIcon name="theme-system" />
+		<Icon name="theme-system" />
 	</button>
 	<button
 		type="button"
@@ -32,7 +32,7 @@
 		onclick={() => setTheme("dark")}
 		aria-label="Dark theme"
 	>
-		<NewIcon name="theme-dark" />
+		<Icon name="theme-dark" />
 	</button>
 </div>
 

@@ -3,7 +3,7 @@
 	export type Page = {
 		id: string;
 		label: string;
-		icon: NewIconName;
+		icon: IconName;
 		adminOnly?: boolean;
 		[key: string]: any; // Allow additional properties for flexibility
 	};
@@ -11,7 +11,7 @@
 
 <script lang="ts" generics="T extends Page">
 	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
-	import { NewIcon, type NewIconName } from "@gitbutler/ui";
+	import { Icon, type IconName } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import { type Snippet } from "svelte";
 
@@ -59,7 +59,7 @@
 						onclick={() => selectPage(page.id)}
 					>
 						<div class="settings-sidebar__links-item__icon">
-							<NewIcon name={page.icon} />
+							<Icon name={page.icon} />
 						</div>
 						<span>{page.label}</span>
 					</button>

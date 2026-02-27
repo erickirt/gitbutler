@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Checkbox from "$components/Checkbox.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import FileIcon from "$components/file/FileIcon.svelte";
 	import FileIndent from "$components/file/FileIndent.svelte";
 
@@ -65,7 +65,7 @@
 >
 	{#if draggable && !showCheckbox}
 		<div class="draggable-handle">
-			<NewIcon name="drag-vertical" />
+			<Icon name="drag-vertical" />
 		</div>
 	{/if}
 

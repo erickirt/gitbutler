@@ -5,7 +5,7 @@
 	import { type RejectionReason } from "$lib/stacks/stackService.svelte";
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { FileName, HunkDiff, NewIcon, Tooltip } from "@gitbutler/ui";
+	import { FileName, HunkDiff, Icon, Tooltip } from "@gitbutler/ui";
 
 	type Props = {
 		path: string;
@@ -48,7 +48,7 @@
 					{/if})</span
 				>
 
-				<NewIcon name={isFolded ? "chevron-down" : "chevron-up"} />
+				<Icon name={isFolded ? "chevron-down" : "chevron-up"} />
 			</div>
 		</button>
 
@@ -72,7 +72,7 @@
 
 							<div class="text-12 commit-failed__file-entry__dependency-locks">
 								<div class="commit-failed__file-entry__dependency-locks__label">
-									<NewIcon name="lock" color="var(--clr-theme-warn-element)" />
+									<Icon name="lock" color="var(--clr-theme-warn-element)" />
 									<span class="clr-text-2">Depends on:</span>
 								</div>
 								<div class="commit-failed__file-entry__dependency-locks__content">
@@ -90,10 +90,10 @@
 											{@const commitTitle =
 												commitMessage?.message.split("\n")[0] || "No commit message provided"}
 											<p class="text-body commit-failed__file-entry-dependency-lock">
-												<i class="commit-failed__text-icon"><NewIcon name="branch" /></i>
+												<i class="commit-failed__text-icon"><Icon name="branch" /></i>
 												<span class="text-semibold">{branchName}</span>
 												<i class="clr-text-2">in commit</i>
-												<i class="commit-failed__text-icon"><NewIcon name="commit" /></i>
+												<i class="commit-failed__text-icon"><Icon name="commit" /></i>
 												<Tooltip text={commitTitle}>
 													<span class="commit-failed__tooltip-text text-semibold h-dotted-underline"
 														>{lock.commitId.substring(0, 7)}</span
@@ -102,10 +102,10 @@
 											</p>
 										{:else}
 											<p class="text-body commit-failed__file-entry-dependency-lock">
-												<i class="commit-failed__text-icon"><NewIcon name="branch" /></i>
+												<i class="commit-failed__text-icon"><Icon name="branch" /></i>
 												<span class="text-semibold">Unknown stack</span>
 												<i class="clr-text-2">in commit</i>
-												<i class="commit-failed__text-icon"><NewIcon name="commit" /></i>
+												<i class="commit-failed__text-icon"><Icon name="commit" /></i>
 												<span class="text-semibold">{lock.commitId.substring(0, 7)}</span>
 											</p>
 										{/if}

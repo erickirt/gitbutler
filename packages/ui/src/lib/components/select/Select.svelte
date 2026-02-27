@@ -35,7 +35,7 @@
 		customSelectButton?: Snippet;
 		itemSnippet: Snippet<[{ item: SelectItem<T>; highlighted: boolean; idx: number }]>;
 		children?: Snippet;
-		icon?: NewIconName;
+		icon?: IconName;
 		autofocus?: boolean;
 		onselect?: (value: T, modifiers?: Modifiers) => void;
 		ontoggle?: (isOpen: boolean) => void;
@@ -43,12 +43,12 @@
 </script>
 
 <script lang="ts" generics="T extends string">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import Textbox from "$components/Textbox.svelte";
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 	import OptionsGroup from "$components/select/OptionsGroup.svelte";
 	import SearchItem from "$components/select/SearchItem.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import { type IconName } from "$lib/icons/names";
 	import { portal } from "$lib/utils/portal";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { resizeObserver } from "$lib/utils/resizeObserver";
@@ -354,7 +354,7 @@
 			>
 				{#snippet customIconRight()}
 					<div class="select-chevron" class:open={listOpen}>
-						<NewIcon name="chevron-down" />
+						<Icon name="chevron-down" />
 					</div>
 				{/snippet}
 			</Textbox>

@@ -25,7 +25,7 @@
 </script>
 
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 
 	const { text, prefix, shortenText = true, onclick, class: className }: Props = $props();
 
@@ -37,7 +37,7 @@
 		{#if prefix}{prefix}
 		{/if}{displayText}
 	</span>
-	<NewIcon name="copy" size={14} />
+	<Icon name="copy" size={14} />
 </button>
 
 <style lang="postcss">

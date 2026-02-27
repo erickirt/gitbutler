@@ -5,7 +5,7 @@
 	import { isFound } from "@gitbutler/shared/network/loadable";
 	import { type PatchVersionEvent } from "@gitbutler/shared/patchEvents/types";
 	import { getPatch } from "@gitbutler/shared/patches/patchCommitsPreview.svelte";
-	import { AvatarGroup, NewIcon } from "@gitbutler/ui";
+	import { AvatarGroup, Icon } from "@gitbutler/ui";
 
 	interface Props {
 		event: PatchVersionEvent;
@@ -33,7 +33,7 @@
 
 <div class="patch-version">
 	<div class="patch-version__icon">
-		<NewIcon name="version-patch" />
+		<Icon name="version-patch" />
 	</div>
 
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

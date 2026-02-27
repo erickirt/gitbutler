@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 </script>
 
-<div class="loading"><NewIcon name="spinner" /></div>
+<div class="loading"><Icon name="spinner" /></div>
 
 <style>
 	.loading {

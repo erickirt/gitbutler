@@ -15,7 +15,7 @@
 	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
 	import { NOTIFICATION_SETTINGS_SERVICE } from "@gitbutler/shared/settings/notificationSettingsService";
 	import { getNotificationSettingsInterest } from "@gitbutler/shared/settings/notificationSetttingsPreview.svelte";
-	import { Button, CardGroup, chipToasts, NewIcon, Modal, Spacer } from "@gitbutler/ui";
+	import { Button, CardGroup, chipToasts, Icon, Modal, Spacer } from "@gitbutler/ui";
 	import { copyToClipboard } from "@gitbutler/ui/utils/clipboard";
 	import { env } from "$env/dynamic/public";
 
@@ -223,7 +223,7 @@
 					rel="noopener noreferrer"
 				>
 					<div class="tip-link__title">
-						<NewIcon name="docs" color="var(--clr-text-2)" />
+						<Icon name="docs" color="var(--clr-text-2)" />
 						<h3 class="text-14 text-semibold">Get Started</h3>
 					</div>
 					<p class="text-12 text-body clr-text-2">
@@ -239,7 +239,7 @@
 					rel="noopener noreferrer"
 				>
 					<div class="tip-link__title">
-						<NewIcon name="discord" color="var(--clr-text-2)" />
+						<Icon name="discord" color="var(--clr-text-2)" />
 						<h3 class="text-14 text-semibold">Join the Community</h3>
 					</div>
 					<p class="text-12 text-body clr-text-2">Join our Discord for help and discussion.</p>
@@ -248,7 +248,7 @@
 				</a>
 				<a class="tip-link" href={linksJson.other.support.url}>
 					<div class="tip-link__title">
-						<NewIcon name="chat" color="var(--clr-text-2)" />
+						<Icon name="chat" color="var(--clr-text-2)" />
 						<h3 class="text-14 text-semibold">Need Help?</h3>
 					</div>
 					<p class="text-12 text-body clr-text-2">

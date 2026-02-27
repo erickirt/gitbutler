@@ -1,6 +1,6 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { focusable } from "$lib/focus/focusable";
 	import { clickOutside } from "$lib/utils/clickOutside";
 	import { pxToRem } from "$lib/utils/pxToRem";
@@ -12,8 +12,8 @@
 		id?: string;
 		testId?: string;
 		type?: inputType;
-		iconLeft?: NewIconName;
-		iconRight?: NewIconName;
+		iconLeft?: IconName;
+		iconRight?: IconName;
 		customIconLeft?: Snippet;
 		customIconRight?: Snippet;
 		size?: "default" | "large";
@@ -158,7 +158,7 @@
 			</div>
 		{:else if iconLeft}
 			<div class="textbox__icon textbox__icon--left">
-				<NewIcon name={!disabled ? iconLeft : "lock"} />
+				<Icon name={!disabled ? iconLeft : "lock"} />
 			</div>
 		{/if}
 
@@ -168,7 +168,7 @@
 			</div>
 		{:else if iconRight}
 			<div class="textbox__icon textbox__icon--right">
-				<NewIcon name={!disabled ? iconRight : "lock"} />
+				<Icon name={!disabled ? iconRight : "lock"} />
 			</div>
 		{/if}
 
@@ -226,7 +226,7 @@
 						isInputValid = htmlInput.checkValidity();
 					}}
 				>
-					<NewIcon name="minus" />
+					<Icon name="minus" />
 				</button>
 				<button
 					type="button"
@@ -242,7 +242,7 @@
 						isInputValid = htmlInput.checkValidity();
 					}}
 				>
-					<NewIcon name="plus" />
+					<Icon name="plus" />
 				</button>
 			</div>
 		{/if}
@@ -258,7 +258,7 @@
 					htmlInput.focus();
 				}}
 			>
-				<NewIcon name={showPassword ? "eye" : "eye-closed"} />
+				<Icon name={showPassword ? "eye" : "eye-closed"} />
 			</button>
 		{/if}
 	</div>

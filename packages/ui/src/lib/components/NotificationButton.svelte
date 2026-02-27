@@ -1,11 +1,11 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import { type IconName } from "$lib/icons/names";
 	import { cubicOut } from "svelte/easing";
 	import { scale } from "svelte/transition";
 
 	interface Props {
-		icon?: NewIconName;
+		icon?: IconName;
 		hasUnread: boolean;
 		onclick: (event?: any) => void;
 	}

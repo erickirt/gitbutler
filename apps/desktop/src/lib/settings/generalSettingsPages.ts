@@ -1,9 +1,9 @@
-import { type NewIconName } from "@gitbutler/ui";
+import { type IconName } from "@gitbutler/ui";
 
 interface SettingsPage {
 	id: string;
 	label: string;
-	icon: NewIconName;
+	icon: IconName;
 	adminOnly?: boolean;
 }
 

@@ -4,7 +4,7 @@
 	import ExpandableSection from "$components/codegen/ExpandableSection.svelte";
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 	import type { GitButlerUpdate } from "$lib/codegen/types";
 
 	interface Props {
@@ -23,7 +23,7 @@
 			{#snippet summary()}
 				{#each message.commitIds as commitId}
 					<div class="commit-hash">
-						<NewIcon name="commit" color="var(--clr-text-3)" />
+						<Icon name="commit" color="var(--clr-text-3)" />
 						<span>{commitId.slice(0, 7)}</span>
 					</div>
 				{/each}
@@ -41,7 +41,7 @@
 							{/snippet}
 							{#snippet empty()}
 								<div class="commit-not-found text-12">
-									<NewIcon name="danger" color="var(--clr-text-2)" />
+									<Icon name="danger" color="var(--clr-text-2)" />
 									<span>Commit {commitId.slice(0, 7)} not found</span>
 								</div>
 							{/snippet}

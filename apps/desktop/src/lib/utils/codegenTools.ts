@@ -1,10 +1,10 @@
-import { type NewIconName } from "@gitbutler/ui";
+import { type IconName } from "@gitbutler/ui";
 import type { ToolCall } from "$lib/codegen/messages";
 
 /**
  * Maps tool call names to appropriate icons based on partial string matching
  */
-export function getToolIcon(toolName: string): NewIconName {
+export function getToolIcon(toolName: string): IconName {
 	const name = toolName.toLowerCase();
 
 	// Partial matches for tool types

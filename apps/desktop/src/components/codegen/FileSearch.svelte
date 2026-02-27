@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SETTINGS } from "$lib/settings/userSettings";
 	import { inject } from "@gitbutler/core/context";
-	import { FileListItem, NewIcon } from "@gitbutler/ui";
+	import { FileListItem, Icon } from "@gitbutler/ui";
 	import { clickOutside } from "@gitbutler/ui/utils/clickOutside";
 	import { fly } from "svelte/transition";
 
@@ -28,7 +28,7 @@
 		in:fly={{ y: 8, duration: 200 }}
 	>
 		<div class="dialog-popup__header">
-			<NewIcon name="search" color="var(--clr-text-3)" />
+			<Icon name="search" color="var(--clr-text-3)" />
 			<h3 class="text-12 text-bold flex-1">Search for files</h3>
 			<p class="text-11 clr-text-3">
 				<span class="text-italic text-bold"> Esc </span>

@@ -23,7 +23,7 @@
 
 <script lang="ts">
 	import Checkbox from "$components/Checkbox.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import SeriesIcon from "$components/SeriesIcon.svelte";
 	import { TestId } from "$lib/utils/testIds";
 	const {
@@ -59,7 +59,7 @@
 
 		{#if status === "integrated"}
 			<div class="integrated-label-wrap">
-				<NewIcon name="tick" />
+				<Icon name="tick" />
 				<span class="integrated-label text-12"> Part of the new base </span>
 			</div>
 		{/if}

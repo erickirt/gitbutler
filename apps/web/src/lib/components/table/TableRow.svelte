@@ -10,7 +10,7 @@
 	import { USER_SERVICE } from "$lib/user/userService";
 	import { inject } from "@gitbutler/core/context";
 	import Minimap from "@gitbutler/shared/branches/Minimap.svelte";
-	import { AvatarGroup, CommitStatusBadge, NewIcon, type CommitStatusType } from "@gitbutler/ui";
+	import { AvatarGroup, CommitStatusBadge, Icon, type CommitStatusType } from "@gitbutler/ui";
 
 	import dayjs from "dayjs";
 
@@ -123,7 +123,7 @@
 					{:else if key === "comments"}
 						<div class="text-12 dynclmn-comments" class:dynclmn-placeholder={!value}>
 							<span>{value}</span>
-							<div class="dynclmn-comments-icon"><NewIcon name="chat" size={14} /></div>
+							<div class="dynclmn-comments-icon"><Icon name="chat" size={14} /></div>
 						</div>
 					{:else}
 						{value}

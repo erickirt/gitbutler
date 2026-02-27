@@ -3,7 +3,7 @@
 	import { messageQueueSelectors, messageQueueSlice } from "$lib/codegen/messageQueueSlice";
 	import { CLIENT_STATE } from "$lib/state/clientState.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { NewIcon, Button } from "@gitbutler/ui";
+	import { Icon, Button } from "@gitbutler/ui";
 	import { slide } from "svelte/transition";
 	import type { PromptAttachment } from "$lib/codegen/types";
 
@@ -79,7 +79,7 @@
 	<div class="queued-messages" in:slide={{ duration: 300 }}>
 		<div class="queue-header">
 			<div class="flex items-center gap-8">
-				<NewIcon name="clock" />
+				<Icon name="clock" />
 				<span class="text-12">Queued messages</span>
 			</div>
 

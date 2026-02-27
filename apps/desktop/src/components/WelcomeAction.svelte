@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 	import type { Snippet } from "svelte";
 
 	const {
@@ -49,7 +49,7 @@
 	</div>
 	{#if loading}
 		<div class="action__spinner">
-			<NewIcon name="spinner" />
+			<Icon name="spinner" />
 		</div>
 	{/if}
 </button>

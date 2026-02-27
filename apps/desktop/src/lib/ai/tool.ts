@@ -1,4 +1,4 @@
-import type { NewIconName } from "@gitbutler/ui";
+import type { IconName } from "@gitbutler/ui";
 
 type ToolName =
 	| "commit"
@@ -362,7 +362,7 @@ function isCommitToolQuery(result: unknown): result is CommitToolResult {
 	);
 }
 
-export function getToolCallIcon(name: ToolName, isError: boolean): NewIconName {
+export function getToolCallIcon(name: ToolName, isError: boolean): IconName {
 	if (isError) {
 		return "danger";
 	}

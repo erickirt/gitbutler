@@ -20,7 +20,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { truncate } from "$lib/utils/string";
 	import { inject } from "@gitbutler/core/context";
-	import { Badge, NewIcon, type NewIconName } from "@gitbutler/ui";
+	import { Badge, Icon, type IconName } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import { slide } from "svelte/transition";
 	import type { ClaudeStatus, PromptAttachment } from "$lib/codegen/types";
@@ -57,7 +57,7 @@
 
 	let active = $state(false);
 
-	function getCurrentIconName(hasPendingApproval: boolean): NewIconName {
+	function getCurrentIconName(hasPendingApproval: boolean): IconName {
 		if (hasPendingApproval) {
 			return "danger";
 		}
@@ -103,7 +103,7 @@
 	{#if draft}
 		<!-- Draft mode: simple placeholder -->
 		<div class="codegen-row">
-			<NewIcon name="ai" color="var(--clr-theme-purple-element)" />
+			<Icon name="ai" color="var(--clr-theme-purple-element)" />
 			<h3 class="text-13 text-semibold truncate codegen-row__title">AI session will start here</h3>
 		</div>
 	{:else if projectId && messages && permissionRequests}
@@ -142,7 +142,7 @@
 						></div>
 					{/if}
 
-					<NewIcon
+					<Icon
 						name={getCurrentIconName(hasPendingAction)}
 						color="var(--clr-theme-purple-element)"
 					/>
@@ -156,7 +156,7 @@
 						<span class="text-12 codegen-row__todos">Todos ({completedCount}/{totalCount})</span>
 
 						{#if completedCount === totalCount}
-							<NewIcon name="tick-circle" color="var(--clr-theme-safe-element)" />
+							<Icon name="tick-circle" color="var(--clr-theme-safe-element)" />
 						{/if}
 					{/if}
 				</button>

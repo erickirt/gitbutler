@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CodegenStatusIcon from "$components/codegen/CodegenStatusIcon.svelte";
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 	import type { ClaudeTodo } from "$lib/codegen/types";
 
 	type Props = {
@@ -21,7 +21,7 @@
 <div class="todos-container">
 	<button type="button" class="todo-header" onclick={() => (expanded = !expanded)}>
 		<div class="todo-header__chevron" class:expanded>
-			<NewIcon name="chevron-right" />
+			<Icon name="chevron-right" />
 		</div>
 		{#if displayTodo && !expanded}
 			<CodegenStatusIcon status={displayTodo.status} />

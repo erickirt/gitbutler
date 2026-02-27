@@ -26,7 +26,7 @@
 		iconClass?: string;
 		customStyle?: string;
 		// Additional elements
-		icon?: NewIconName;
+		icon?: IconName;
 		isDropdown?: boolean;
 		dropdownOpen?: boolean;
 		hotkey?: string;
@@ -49,10 +49,10 @@
 </script>
 
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import Tooltip, { type TooltipAlign, type TooltipPosition } from "$components/Tooltip.svelte";
 	import { focusable } from "$lib/focus/focusable";
-	import { type NewIconName } from "$lib/icons/names";
+	import { type IconName } from "$lib/icons/names";
 	import { formatHotkeyForPlatform } from "$lib/utils/hotkeySymbols";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { onMount, tick } from "svelte";
@@ -197,13 +197,13 @@
 		{#if icon || loading || isDropdown}
 			<div class={["btn-icon", iconClass]}>
 				{#if loading}
-					<NewIcon name="spinner" />
+					<Icon name="spinner" />
 				{:else if isDropdown}
 					<div class="btn-dropdown-chevron" class:open={dropdownOpen}>
-						<NewIcon name="chevron-down" />
+						<Icon name="chevron-down" />
 					</div>
 				{:else if icon}
-					<NewIcon name={icon} />
+					<Icon name={icon} />
 				{/if}
 			</div>
 		{/if}

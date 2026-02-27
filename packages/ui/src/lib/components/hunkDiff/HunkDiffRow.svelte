@@ -9,7 +9,7 @@
 
 <script lang="ts">
 	import InfoButton from "$components/InfoButton.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import {
 		CountColumnSide,
 		isDeltaLine,
@@ -134,9 +134,9 @@
 			{#if deltaLine}
 				<div class="table__row-checkbox" class:staged class:locked>
 					{#if staged}
-						<NewIcon name="tick" />
+						<Icon name="tick" />
 					{:else}
-						<NewIcon name="minus" />
+						<Icon name="minus" />
 					{/if}
 				</div>
 			{/if}

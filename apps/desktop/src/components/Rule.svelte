@@ -15,13 +15,13 @@
 	import {
 		Button,
 		FileStatusBadge,
-		NewIcon,
+		Icon,
 		KebabButton,
 		ContextMenuSection,
 		ContextMenuItem,
 		Modal,
 		Tooltip,
-		type NewIconName,
+		type IconName,
 	} from "@gitbutler/ui";
 
 	type Props = {
@@ -47,7 +47,7 @@
 	}
 
 	function getFilterConfig(filter: RuleFilter): {
-		icon: NewIconName | null;
+		icon: IconName | null;
 		label: string;
 		tooltip: string;
 	} {
@@ -88,10 +88,10 @@
 	type FilterConfig = ReturnType<typeof getFilterConfig>;
 </script>
 
-{#snippet stackPill(icon: NewIconName, label: string, tooltip: string, hasError?: boolean)}
+{#snippet stackPill(icon: IconName, label: string, tooltip: string, hasError?: boolean)}
 	<Tooltip text={tooltip}>
 		<div class="target-pill" class:error={hasError}>
-			<NewIcon
+			<Icon
 				name={icon}
 				color={hasError ? "var(--clr-theme-danger-element)" : "var(--clr-text-2)"}
 			/>
@@ -126,7 +126,7 @@
 		<Tooltip text={config.tooltip}>
 			<div class="flex items-center gap-6 overflow-hidden">
 				{#if config.icon}
-					<NewIcon name={config.icon} color="var(--clr-text-2)" />
+					<Icon name={config.icon} color="var(--clr-text-2)" />
 				{/if}
 				<span class="text-12 truncate">{config.label}</span>
 			</div>
@@ -143,10 +143,10 @@
 	</Tooltip>
 {/snippet}
 
-{#snippet renderSessionPill(tooltip: string, icon: NewIconName, title: string)}
+{#snippet renderSessionPill(tooltip: string, icon: IconName, title: string)}
 	<Tooltip text={tooltip}>
 		<div class="ai-pill">
-			<NewIcon name={icon} color="var(--clr-theme-purple-element)" />
+			<Icon name={icon} color="var(--clr-theme-purple-element)" />
 			<span class="text-12 text-semibold truncate">{title}</span>
 		</div>
 	</Tooltip>
@@ -221,7 +221,7 @@
 				</div>
 			{/if}
 			<Tooltip text="Stage to branch">
-				<NewIcon name="arrow-right" color="var(--clr-text-3)" />
+				<Icon name="arrow-right" color="var(--clr-text-3)" />
 			</Tooltip>
 			{@render stackTarget(target)}
 		</div>

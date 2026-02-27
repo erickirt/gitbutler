@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
 	import { type ModalType } from "$components/Modal.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import { type Snippet } from "svelte";
 
 	interface Props {
@@ -25,15 +25,15 @@
 
 <div class="modal__header" class:sticky>
 	{#if type === "warning"}
-		<NewIcon name="warning" color="var(--clr-theme-warn-element)" />
+		<Icon name="warning" color="var(--clr-theme-warn-element)" />
 	{/if}
 
 	{#if type === "danger"}
-		<NewIcon name="danger" color="var(--clr-theme-danger-element)" />
+		<Icon name="danger" color="var(--clr-theme-danger-element)" />
 	{/if}
 
 	{#if type === "success"}
-		<NewIcon name="tick-circle" color="var(--clr-theme-safe-element)" />
+		<Icon name="tick-circle" color="var(--clr-theme-safe-element)" />
 	{/if}
 
 	<h2 class="text-14 text-bold">

@@ -2,7 +2,7 @@
 	import CollapseStackButton from "$components/CollapseStackButton.svelte";
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
-	import { ContextMenuItem, ContextMenuSection, NewIcon, KebabButton } from "@gitbutler/ui";
+	import { ContextMenuItem, ContextMenuSection, Icon, KebabButton } from "@gitbutler/ui";
 	import type { Stack } from "$lib/stacks/stack";
 
 	type Props = {
@@ -85,7 +85,7 @@
 	<CollapseStackButton {stackId} {projectId} {disabled} />
 
 	<div class="drag-handle-icon">
-		<NewIcon name="drag-horizontal" />
+		<Icon name="drag-horizontal" />
 	</div>
 
 	<KebabButton minimal>

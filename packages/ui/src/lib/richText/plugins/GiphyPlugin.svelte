@@ -1,5 +1,5 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import { getCursorPosition, insertImageAtCaret } from "$lib/richText/selection";
 	import { clickOutside } from "$lib/utils/clickOutside";
 	import { debounce } from "$lib/utils/debounce";
@@ -133,7 +133,7 @@
 						on:click={(e) => handleClick(e.detail.gif)}
 					/>
 				{/each}
-				<div class="loading" bind:this={loadingDiv}><NewIcon name="spinner" /></div>
+				<div class="loading" bind:this={loadingDiv}><Icon name="spinner" /></div>
 			</div>
 		{/if}
 	</div>

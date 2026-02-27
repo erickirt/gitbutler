@@ -1,12 +1,12 @@
 <script module lang="ts">
-	import NewIcon, { allIconNames } from "$components/NewIcon.svelte";
+	import Icon, { allIconNames } from "$components/Icon.svelte";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
 
-	import type { IconName } from "$components/NewIcon.svelte";
+	import type { IconName } from "$components/Icon.svelte";
 
 	const { Story } = defineMeta({
-		title: "Basic / NewIcon",
-		component: NewIcon,
+		title: "Basic / Icon",
+		component: Icon,
 		args: {
 			name: "pr" as IconName,
 			size: 16,
@@ -29,7 +29,7 @@
 
 <Story name="Playground">
 	{#snippet template(args)}
-		<NewIcon name={args.name} size={args.size} color={args.color} />
+		<Icon name={args.name} size={args.size} color={args.color} />
 	{/snippet}
 </Story>
 
@@ -38,7 +38,7 @@
 		<div class="icons">
 			{#each allIconNames as name}
 				<div class="icon-item">
-					<NewIcon {name} size={args.size} color={args.color} />
+					<Icon {name} size={args.size} color={args.color} />
 					<span class="text-11 icon-label">{name}</span>
 				</div>
 			{/each}

@@ -15,7 +15,7 @@
 	import { draggableBranch, type DraggableConfig } from "$lib/dragging/draggable";
 	import { DROPZONE_REGISTRY } from "$lib/dragging/registry";
 	import { inject } from "@gitbutler/core/context";
-	import { Badge, TestId, NewIcon } from "@gitbutler/ui";
+	import { Badge, TestId, Icon } from "@gitbutler/ui";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui/drag/dragStateService.svelte";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import { slide } from "svelte/transition";
@@ -141,7 +141,7 @@
 	>
 		{#if dragArgs && !dragArgs.disabled && !conflicts}
 			<div class="branch-header__drag-handle" data-no-drag>
-				<NewIcon name="drag-vertical" />
+				<Icon name="drag-vertical" />
 			</div>
 		{/if}
 

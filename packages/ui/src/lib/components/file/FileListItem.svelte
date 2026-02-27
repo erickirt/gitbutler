@@ -2,7 +2,7 @@
 	import Badge from "$components/Badge.svelte";
 	import Button from "$components/Button.svelte";
 	import Checkbox from "$components/Checkbox.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
 	import ExecutableLabel from "$components/file/ExecutableLabel.svelte";
 	import FileIndent from "$components/file/FileIndent.svelte";
@@ -124,7 +124,7 @@
 >
 	{#if draggable && !showCheckbox && !notched}
 		<div class="draggable-handle">
-			<NewIcon name="drag-vertical" />
+			<Icon name="drag-vertical" />
 		</div>
 	{/if}
 
@@ -154,7 +154,7 @@
 		{#if conflicted}
 			<Tooltip text={conflictHint}>
 				<div class="conflicted-icon">
-					<NewIcon name="warning" />
+					<Icon name="warning" />
 				</div>
 			</Tooltip>
 		{:else if fileStatus}
@@ -170,7 +170,7 @@
 					onmouseenter={() => onlockhover?.()}
 					onmouseleave={() => onlockunhover?.()}
 				>
-					<NewIcon name="lock" />
+					<Icon name="lock" />
 				</div>
 			</Tooltip>
 		{/if}

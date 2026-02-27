@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import Button from "$components/Button.svelte";
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import Select from "$components/select/Select.svelte";
 	import SelectItem from "$components/select/SelectItem.svelte";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
@@ -156,7 +156,7 @@
 				{#snippet itemSnippet({ item, highlighted })}
 					<SelectItem selected={item.value === selectedWithIcon} {highlighted}>
 						{#snippet iconSnippet()}
-							<NewIcon name={item.icon} />
+							<Icon name={item.icon} />
 						{/snippet}
 						{item.label}
 					</SelectItem>
@@ -221,8 +221,8 @@
 						<SelectItem selected={item.value === selectedWithIcon} {highlighted}>
 							{#snippet iconSnippet()}
 								<div class="custom-component">
-									<NewIcon name="plus" />
-									<NewIcon name="minus" />
+									<Icon name="plus" />
+									<Icon name="minus" />
 								</div>
 							{/snippet}
 							{item.label}

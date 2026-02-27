@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NewIcon } from "@gitbutler/ui";
+	import { Icon } from "@gitbutler/ui";
 	import { pxToRem } from "@gitbutler/ui/utils/pxToRem";
 	import type { Snippet } from "svelte";
 
@@ -46,7 +46,7 @@
 		>
 			<span class="text-11">{isOpen ? "Fold files" : `Show ${foldedAmount} files`}</span>
 			<div class="toggle-btn__icon" style="transform: rotate({isOpen ? '180deg' : '0'})">
-				<NewIcon name="chevron-down" size={14} />
+				<Icon name="chevron-down" size={14} />
 			</div>
 		</button>
 	{/if}

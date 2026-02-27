@@ -4,7 +4,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 
-	import { Badge, TestId, type MessageStyle, type NewIconName } from "@gitbutler/ui";
+	import { Badge, TestId, type MessageStyle, type IconName } from "@gitbutler/ui";
 	import type { ComponentColorType } from "@gitbutler/ui/utils/colorTypes";
 
 	type Props = {
@@ -18,7 +18,7 @@
 	type StatusInfo = {
 		text: string;
 		reducedText: string;
-		icon?: NewIconName;
+		icon?: IconName;
 		style?: ComponentColorType;
 		messageStyle?: MessageStyle;
 		tooltip?: string;

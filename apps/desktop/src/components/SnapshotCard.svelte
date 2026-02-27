@@ -6,7 +6,7 @@
 	import { MODE_SERVICE } from "$lib/mode/modeService";
 	import { toHumanReadableTime } from "$lib/utils/time";
 	import { inject } from "@gitbutler/core/context";
-	import { Button, NewIcon, ScrollableContainer, type NewIconName } from "@gitbutler/ui";
+	import { Button, Icon, ScrollableContainer, type IconName } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import type { Snapshot, SnapshotDetails } from "$lib/history/types";
 
@@ -47,7 +47,7 @@
 
 	function mapOperation(snapshotDetails: SnapshotDetails | undefined): {
 		text: string;
-		icon?: NewIconName;
+		icon?: IconName;
 		commitMessage?: string;
 	} {
 		if (!snapshotDetails) return { text: "", icon: "commit" };
@@ -205,7 +205,7 @@
 		{#if isRestoreSnapshot}
 			<img src="/images/history/restore-icon.svg" alt="" />
 		{:else if operation.icon}
-			<NewIcon name={operation.icon} />
+			<Icon name={operation.icon} />
 		{/if}
 	</div>
 
@@ -256,7 +256,7 @@
 		{#if isRestoreSnapshot}
 			<SnapshotAttachment>
 				<div class="restored-attacment">
-					<NewIcon name="commit" />
+					<Icon name="commit" />
 					<div class="restored-attacment__content">
 						<h4 class="text-13 text-semibold">
 							{camelToTitleCase(

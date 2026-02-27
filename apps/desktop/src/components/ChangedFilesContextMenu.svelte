@@ -33,7 +33,7 @@
 		ModalHeader,
 		ScrollableContainer,
 		chipToasts,
-		NewIcon,
+		Icon,
 		TestId,
 	} from "@gitbutler/ui";
 	import { tick } from "svelte";
@@ -724,7 +724,7 @@
 
 						<div class="absorption__content">
 							<div class="commit-header">
-								<NewIcon name="commit" />
+								<Icon name="commit" />
 
 								<div class="flex gap-8 overflow-hidden align-center full-width">
 									<p class="text-13 text-semibold truncate flex-1">

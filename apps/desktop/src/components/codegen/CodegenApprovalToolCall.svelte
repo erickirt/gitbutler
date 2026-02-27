@@ -8,7 +8,7 @@
 		ContextMenuSection,
 		ContextMenu,
 		Button,
-		NewIcon,
+		Icon,
 	} from "@gitbutler/ui";
 	import type { PermissionDecision } from "$lib/codegen/types";
 
@@ -95,7 +95,7 @@
 <div class="tool-call">
 	<div class="tool-call__details">
 		<div class="tool-call__header">
-			<NewIcon name={getToolIcon(toolCall.name)} color="var(--clr-text-3)" />
+			<Icon name={getToolIcon(toolCall.name)} color="var(--clr-text-3)" />
 			<span class="text-13 tool-name">{toolCall.name}</span>
 		</div>
 
@@ -104,7 +104,7 @@
 
 	{#if helperText}
 		<div class="tool-call__helper-text">
-			<NewIcon name="info" />
+			<Icon name="info" />
 			<p class="text-12">
 				{helperText}
 			</p>

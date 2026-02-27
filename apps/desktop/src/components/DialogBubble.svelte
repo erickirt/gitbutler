@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MessageRole } from "$lib/ai/types";
-	import { Button, NewIcon, Textarea, Markdown } from "@gitbutler/ui";
+	import { Button, Icon, Textarea, Markdown } from "@gitbutler/ui";
 
 	interface Props {
 		role: MessageRole;
@@ -36,13 +36,13 @@
 	<div class="bubble">
 		<div class="bubble__header text-13 text-bold">
 			{#if role === MessageRole.User}
-				<NewIcon name="user" />
+				<Icon name="user" />
 				<span>User</span>
 			{:else if role === MessageRole.System}
-				<NewIcon name="robot" />
+				<Icon name="robot" />
 				<span>System</span>
 			{:else}
-				<NewIcon name="robot" />
+				<Icon name="robot" />
 				<span>Assistant</span>
 			{/if}
 		</div>

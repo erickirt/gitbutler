@@ -2,7 +2,7 @@
  * Auto-generated icon name list from `src/lib/icons/svg/*.svg`.
  * Run `pnpm update-icons` to regenerate.
  */
-export const newIconNames = [
+export const iconNames = [
 	"agent",
 	"ai",
 	"ai-plus",
@@ -175,4 +175,4 @@ export const newIconNames = [
 	"youtube",
 ] as const;
 
-export type NewIconName = (typeof newIconNames)[number];
+export type IconName = (typeof iconNames)[number];

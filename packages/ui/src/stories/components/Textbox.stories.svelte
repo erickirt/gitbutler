@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import Textbox from "$components/Textbox.svelte";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
 
@@ -208,7 +208,7 @@
 					label="Action Example"
 				>
 					{#snippet customIconRight()}
-						<NewIcon name="plus" />
+						<Icon name="plus" />
 					{/snippet}
 				</Textbox>
 			</div>

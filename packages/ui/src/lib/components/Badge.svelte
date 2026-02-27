@@ -1,8 +1,8 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import SkeletonBone from "$components/SkeletonBone.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import { type NewIconName } from "$lib/icons/names";
+	import { type IconName } from "$lib/icons/names";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
@@ -12,7 +12,7 @@
 		kind?: "solid" | "soft";
 		size?: "icon" | "tag";
 		class?: string;
-		icon?: NewIconName;
+		icon?: IconName;
 		tooltip?: string;
 		skeleton?: boolean;
 		skeletonWidth?: string;
@@ -57,7 +57,7 @@
 			{/if}
 			{#if icon}
 				<i class="badge__icon">
-					<NewIcon name={icon} size={11} />
+					<Icon name={icon} size={11} />
 				</i>
 			{/if}
 		</div>

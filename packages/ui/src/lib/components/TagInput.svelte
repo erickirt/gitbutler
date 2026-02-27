@@ -1,5 +1,5 @@
 <script lang="ts">
-	import NewIcon from "$components/NewIcon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import { focusable } from "$lib/focus/focusable";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import type { BaseInputProps, InputStylingProps } from "$components/inputTypes";
@@ -135,7 +135,7 @@
 							}}
 							aria-label="Remove tag"
 						>
-							<NewIcon name="cross" size={14} />
+							<Icon name="cross" size={14} />
 						</button>
 					{/if}
 				</div>

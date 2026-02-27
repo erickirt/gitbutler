@@ -4,7 +4,7 @@
 	import { GIT_CONFIG_SERVICE } from "$lib/config/gitConfigService";
 	import { parseError } from "$lib/error/parser";
 	import { inject } from "@gitbutler/core/context";
-	import { Button, NewIcon, InfoMessage, Link } from "@gitbutler/ui";
+	import { Button, Icon, InfoMessage, Link } from "@gitbutler/ui";
 	import { slide } from "svelte/transition";
 
 	interface Props {
@@ -78,11 +78,11 @@
 								<div class="text-12 text-body check-result">
 									<i class="check-icon">
 										{#await check.promise}
-											<NewIcon name="spinner" size={14} />
+											<Icon name="spinner" size={14} />
 										{:then}
-											<NewIcon name="tick" size={14} />
+											<Icon name="tick" size={14} />
 										{:catch}
-											<NewIcon name="danger" size={14} />
+											<Icon name="danger" size={14} />
 										{/await}
 									</i>{check.name}
 

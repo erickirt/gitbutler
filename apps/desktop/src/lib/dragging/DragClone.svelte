@@ -3,7 +3,7 @@
 	import { getColorFromCommitState } from "$components/lib";
 	import { type CommitStatusType } from "$lib/commits/commit";
 	import { type PushStatus } from "$lib/stacks/stack";
-	import { NewIcon, FileIcon } from "@gitbutler/ui";
+	import { Icon, FileIcon } from "@gitbutler/ui";
 	import { type DragStateService } from "@gitbutler/ui/drag/dragStateService.svelte";
 	import { readable } from "svelte/store";
 
@@ -42,7 +42,7 @@
 				<span>{opt.label}</span>
 
 				<div class="drag-action-label-icon">
-					<NewIcon name="arrow-down" size={12} />
+					<Icon name="arrow-down" size={12} />
 				</div>
 			</div>
 		{/if}
@@ -90,11 +90,11 @@
 		<div class="drag-animation-wrapper" class:activated={$dropLabel !== undefined}>
 			{@render dropLabelSnippet({ label: $dropLabel, amount: childrenAmount })}
 			<div class="dragchip-ai-session-container">
-				<NewIcon name="ai" />
+				<Icon name="ai" />
 				{#if label}
 					<span class="text-12 text-semibold truncate dragchip-ai-session-label">{label}</span>
 				{/if}
-				<NewIcon name="drag-square" />
+				<Icon name="drag-square" />
 			</div>
 		</div>
 	</div>

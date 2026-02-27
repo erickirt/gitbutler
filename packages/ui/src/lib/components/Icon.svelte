@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { newIconNames, type NewIconName } from "$lib/icons/names";
+	import { iconNames, type IconName } from "$lib/icons/names";
 	import { pxToRem } from "$lib/utils/pxToRem";
 
 	const modules = import.meta.glob<string>("../icons/svg/*.svg", {
@@ -15,8 +15,8 @@
 		icons[name] = svg;
 	}
 
-	export const allIconNames = newIconNames;
-	export type IconName = NewIconName;
+	export const allIconNames = iconNames;
+	export type { IconName };
 </script>
 
 <script lang="ts">

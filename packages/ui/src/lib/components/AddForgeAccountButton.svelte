@@ -3,11 +3,11 @@
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import ContextMenuItem from "$components/ContextMenuItem.svelte";
 	import ContextMenuSection from "$components/ContextMenuSection.svelte";
-	import type { NewIconName } from "$lib/icons/names";
+	import type { IconName } from "$lib/icons/names";
 
 	interface MenuItem {
 		label: string;
-		icon: NewIconName;
+		icon: IconName;
 		onclick: () => void;
 	}
 

@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import Badge from "$components/Badge.svelte";
-	import { newIconNames } from "$lib/icons/names";
+	import { iconNames } from "$lib/icons/names";
 	import { defineMeta } from "@storybook/addon-svelte-csf";
 
 	const { Story } = defineMeta({
@@ -30,7 +30,7 @@
 				control: { type: "select" },
 			},
 			icon: {
-				options: newIconNames,
+				options: iconNames,
 				control: { type: "select" },
 			},
 			reversedDirection: {

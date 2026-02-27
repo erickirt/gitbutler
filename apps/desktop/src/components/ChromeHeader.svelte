@@ -19,7 +19,7 @@
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 	import {
 		Button,
-		NewIcon,
+		Icon,
 		NotificationButton,
 		OptionsGroup,
 		Select,
@@ -139,7 +139,7 @@
 				</Button>
 			{:else}
 				<div class="chrome-you-are-up-to-date">
-					<NewIcon name="tick" />
+					<Icon name="tick" />
 					<span class="text-12">You’re up to date</span>
 				</div>
 			{/if}
@@ -177,7 +177,7 @@
 					>
 						{#snippet custom()}
 							<div class="project-selector-btn__content">
-								<NewIcon name="repo" color="var(--clr-text-2)" />
+								<Icon name="repo" color="var(--clr-text-2)" />
 								<span class="text-12 text-bold">{projectTitle}</span>
 							</div>
 						{/snippet}
@@ -227,7 +227,7 @@
 				<Tooltip text="Current branch">
 					<div class="chrome-current-branch">
 						<div class="chrome-current-branch__content">
-							<NewIcon name="branch" color="var(--clr-text-2)" />
+							<Icon name="branch" color="var(--clr-text-2)" />
 							<span class="text-12 text-bold clr-text-2 truncate">{currentBranchName}</span>
 							{#if isNotInWorkspace}
 								<span class="text-12 text-bold clr-text-2 op-60"> read-only </span>

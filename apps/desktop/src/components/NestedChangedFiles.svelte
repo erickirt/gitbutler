@@ -5,7 +5,7 @@
 	import { FILE_SELECTION_MANAGER } from "$lib/selection/fileSelectionManager.svelte";
 	import { readStableSelectionKey, stableSelectionKey, type SelectionId } from "$lib/selection/key";
 	import { inject } from "@gitbutler/core/context";
-	import { Badge, LineStats, EmptyStatePlaceholder, NewIcon } from "@gitbutler/ui";
+	import { Badge, LineStats, EmptyStatePlaceholder, Icon } from "@gitbutler/ui";
 
 	import type { ConflictEntriesObj } from "$lib/files/conflicts";
 	import type { TreeChange, TreeStats } from "$lib/hunks/change";
@@ -93,7 +93,7 @@
 					aria-label="Toggle file list"
 					aria-expanded={!folded}
 				>
-					<NewIcon name="chevron-down" />
+					<Icon name="chevron-down" />
 				</button>
 				<h4 class="text-14 text-semibold truncate">{title}</h4>
 				<div class="text-11 header-stats">
