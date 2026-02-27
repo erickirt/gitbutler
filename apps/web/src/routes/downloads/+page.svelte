@@ -39,9 +39,7 @@
 					DOWNLOAD <i>the</i> app
 				</h1>
 				<div class="latest-release__header-subtitle">
-					<span>{latestRelease.version}</span>
-					<span> • </span>
-					<span>Latest release</span>
+					<span>{latestRelease.version} Latest release</span>
 					<span> • </span>
 					<span
 						>{new Date(latestRelease.released_at).toLocaleDateString("en-GB", {
