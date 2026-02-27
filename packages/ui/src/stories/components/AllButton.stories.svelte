@@ -22,7 +22,7 @@
 	style,
 	reversedDirection,
 }: {
-	size: "cta" | "button" | "tag";
+	size: "button" | "tag";
 	label: string;
 	style?: ComponentColorType;
 	reversedDirection?: boolean;
@@ -57,12 +57,6 @@
 	style?: ComponentColorType;
 	reversedDirection?: boolean;
 })}
-	{@render buttonGroup({
-		size: "cta",
-		label,
-		style,
-		reversedDirection,
-	})}
 	{@render buttonGroup({
 		size: "button",
 		label,

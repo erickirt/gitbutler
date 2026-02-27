@@ -14,7 +14,7 @@
 		reversedDirection?: boolean;
 		width?: number | string | undefined;
 		maxWidth?: number | undefined;
-		size?: "tag" | "button" | "cta";
+		size?: "tag" | "button";
 		wide?: boolean;
 		grow?: boolean;
 		align?: "flex-start" | "center" | "flex-end" | "stretch" | "baseline" | "auto";
@@ -415,12 +415,6 @@
 		&.button-size {
 			--btn-size: var(--size-button);
 			--btn-padding: 4px 6px;
-			--btn-gap: 2px;
-		}
-
-		&.cta-size {
-			--btn-size: var(--size-cta);
-			--btn-padding: 6px 8px;
 			--btn-gap: 2px;
 		}
 
