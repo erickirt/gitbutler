@@ -77,7 +77,7 @@
 				<span>No remote</span>
 			{:else}
 				<div class="sidebar-entry__branch truncate">
-					<SeriesIcon single />
+					<SeriesIcon single size={12} />
 					<span class="text-semibold truncate">{sourceBranch}</span>
 				</div>
 			{/if}
@@ -121,7 +121,7 @@
 	.sidebar-entry__branch {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
 		color: var(--clr-text-2);
 	}
 </style>

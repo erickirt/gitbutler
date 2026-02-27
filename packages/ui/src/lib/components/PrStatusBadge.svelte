@@ -4,7 +4,7 @@
 
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	interface Props {

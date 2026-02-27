@@ -22,7 +22,7 @@
 
 <BranchesCardTemplate testId={TestId.CurrentOriginListCard} {onclick} {selected}>
 	{#snippet content()}
-		<SeriesLabelsRow fontSize="13" origin series={[originName]} />
+		<SeriesLabelsRow origin series={[originName]} />
 
 		<button type="button" class="workspace-target-card__about">
 			<Avatar size="medium" username={authorName} srcUrl={authorAvatar} />

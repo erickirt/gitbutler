@@ -113,7 +113,7 @@
 >
 	{#snippet content()}
 		<div class="sidebar-entry__header">
-			<SeriesLabelsRow fontSize="13" series={filteredStackBranches} />
+			<SeriesLabelsRow series={filteredStackBranches} />
 			{#if branchListing.stack?.inWorkspace}
 				<div class="sidebar-entry__applied-tag">
 					<span class="text-10 text-semibold">Workspace</span>

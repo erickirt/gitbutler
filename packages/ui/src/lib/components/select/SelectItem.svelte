@@ -1,6 +1,6 @@
 <script lang="ts">
 	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import { focusable } from "$lib/focus/focusable";
 	import type { Snippet } from "svelte";
 

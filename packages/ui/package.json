@@ -21,7 +21,7 @@
 		"prepublishOnly": "pnpm run package",
 		"prepare": "svelte-kit sync",
 		"generate:svg-icons": "node scripts/generate-svg-icons.js",
-		"update-icons": "node scripts/update-icon-names.js",
+		"update-icons": "node icons/update-icon-names.js",
 		"storybook": "storybook dev --no-open -p 6006",
 		"storybook:build": "storybook build",
 		"test": "vitest run --mode development",

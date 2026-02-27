@@ -5,12 +5,10 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
 	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import { copyToClipboard } from "$lib/utils/clipboard";
-	import type { ComponentColorType } from "$lib/utils/colorTypes";
+	import { type ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
-
-	type IconColor = ComponentColorType | undefined;
 
 	interface Props {
 		icon?: NewIconName;
@@ -69,11 +67,11 @@
 		success: "tick-circle",
 	};
 
-	const iconColorMap: { [Key in MessageStyle]: IconColor } = {
-		info: "pop",
-		warning: "warning",
-		danger: "danger",
-		success: "safe",
+	const iconColorMap: { [Key in MessageStyle]: string } = {
+		info: "var(--clr-theme-pop-element)",
+		warning: "var(--clr-theme-warn-element)",
+		danger: "var(--clr-theme-danger-element)",
+		success: "var(--clr-theme-safe-element)",
 	};
 
 	const primaryButtonMap: { [Key in MessageStyle]: ComponentColorType } = {

@@ -71,7 +71,9 @@
 		<div class="series-header" class:integrated={allSeriesAreIntegrated}>
 			<div class="series-header-row">
 				<div class="name-label-wrap">
-					<SeriesIcon single={false} outlined />
+					<div class="series-icon">
+						<SeriesIcon single={false} />
+					</div>
 
 					<span class="series-label text-12 text-semibold truncate"> Stack branches </span>
 				</div>
@@ -110,7 +112,9 @@
 		{@const branch = series[0]}
 		<div class="series-header {branch.status}">
 			<div class="name-label-wrap">
-				<SeriesIcon single={true} outlined />
+				<div class="series-icon">
+					<SeriesIcon single={true} />
+				</div>
 
 				<span class="text-12 text-semibold truncate">
 					{branch.name}
@@ -201,6 +205,13 @@
 			align-items: center;
 			overflow: hidden;
 			gap: 10px;
+		}
+
+		.series-icon {
+			display: flex;
+			padding: 2px;
+			border: 1px solid var(--clr-border-2);
+			border-radius: var(--radius-m);
 		}
 
 		.branch-status-info {

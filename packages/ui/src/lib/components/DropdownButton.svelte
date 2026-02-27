@@ -2,7 +2,7 @@
 	import Button from "$components/Button.svelte";
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import type { ComponentColorType, ComponentKindType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 

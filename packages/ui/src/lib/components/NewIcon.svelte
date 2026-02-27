@@ -1,8 +1,8 @@
 <script lang="ts" module>
-	import { newIconNames, type NewIconName } from "$lib/data/newIconNames";
+	import { newIconNames, type NewIconName } from "$lib/icons/names";
 	import { pxToRem } from "$lib/utils/pxToRem";
 
-	const modules = import.meta.glob<string>("../icons/*.svg", {
+	const modules = import.meta.glob<string>("../icons/svg/*.svg", {
 		query: "?raw",
 		import: "default",
 		eager: true,
@@ -11,7 +11,7 @@
 	const icons: Record<string, string> = {};
 
 	for (const [path, svg] of Object.entries(modules)) {
-		const name = path.replace("../icons/", "").replace(".svg", "");
+		const name = path.replace("../icons/svg/", "").replace(".svg", "");
 		icons[name] = svg;
 	}
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Syncs newIconNames.ts with the actual SVG files in the icons folder.
+ * Syncs names.ts with the actual SVG files in the icons/svg folder.
  *
- * Reads all .svg files from `packages/ui/src/lib/icons/` and regenerates
- * `packages/ui/src/lib/data/newIconNames.ts` to match. Icons that no longer
+ * Reads all .svg files from `packages/ui/src/lib/icons/svg/` and regenerates
+ * `packages/ui/src/lib/icons/names.ts` to match. Icons that no longer
  * have an SVG file are removed; new SVG files are added.
  *
  * Usage:
@@ -17,8 +17,8 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uiRoot = path.resolve(__dirname, "..");
-const iconsDir = path.join(uiRoot, "src/lib/icons");
-const iconNamesFile = path.join(uiRoot, "src/lib/data/newIconNames.ts");
+const iconsDir = path.join(uiRoot, "src/lib/icons/svg");
+const iconNamesFile = path.join(uiRoot, "src/lib/icons/names.ts");
 
 function main() {
 	// Read all .svg files from the icons directory
@@ -47,7 +47,7 @@ function main() {
 	// Generate new file content
 	const iconEntries = svgFiles.map((name) => `\t"${name}"`).join(",\n");
 	const newContent = `/**
- * Auto-generated icon name list from \`src/lib/icons/*.svg\`.
+ * Auto-generated icon name list from \`src/lib/icons/svg/*.svg\`.
  * Run \`pnpm update-icons\` to regenerate.
  */
 export const newIconNames = [

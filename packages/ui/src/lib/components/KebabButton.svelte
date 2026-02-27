@@ -2,7 +2,7 @@
 	import Button from "$components/Button.svelte";
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import NewIcon from "$components/NewIcon.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import type { Snippet } from "svelte";
 
 	interface Props {

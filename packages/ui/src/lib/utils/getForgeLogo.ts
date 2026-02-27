@@ -1,4 +1,4 @@
-import { type NewIconName } from "$lib/data/newIconNames";
+import { type NewIconName } from "$lib/icons/names";
 
 export function getForgeLogo(forgeName: string, small = false): NewIconName {
 	if (forgeName === "gitlab") {

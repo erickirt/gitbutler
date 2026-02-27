@@ -47,7 +47,7 @@
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 	import OptionsGroup from "$components/select/OptionsGroup.svelte";
 	import SearchItem from "$components/select/SearchItem.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import { portal } from "$lib/utils/portal";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { resizeObserver } from "$lib/utils/resizeObserver";

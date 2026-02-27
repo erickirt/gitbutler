@@ -1,5 +1,5 @@
 /**
- * Auto-generated icon name list from `src/lib/icons/*.svg`.
+ * Auto-generated icon name list from `src/lib/icons/svg/*.svg`.
  * Run `pnpm update-icons` to regenerate.
  */
 export const newIconNames = [

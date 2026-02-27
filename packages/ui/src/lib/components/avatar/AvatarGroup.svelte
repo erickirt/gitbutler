@@ -15,7 +15,7 @@
 	import NewIcon from "$components/NewIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
 	import Avatar from "$components/avatar/Avatar.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	const { avatars, maxAvatars = 3, size = "medium", icon, iconColor }: Props = $props();

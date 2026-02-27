@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 
 	interface Props {
 		icon: NewIconName;

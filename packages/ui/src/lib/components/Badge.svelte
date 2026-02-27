@@ -2,7 +2,7 @@
 	import NewIcon from "$components/NewIcon.svelte";
 	import SkeletonBone from "$components/SkeletonBone.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import { type NewIconName } from "$lib/data/newIconNames";
+	import { type NewIconName } from "$lib/icons/names";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 

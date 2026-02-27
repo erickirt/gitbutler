@@ -3,7 +3,7 @@
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import ContextMenuItem from "$components/ContextMenuItem.svelte";
 	import ContextMenuSection from "$components/ContextMenuSection.svelte";
-	import type { NewIconName } from "$lib/data/newIconNames";
+	import type { NewIconName } from "$lib/icons/names";
 
 	interface MenuItem {
 		label: string;
