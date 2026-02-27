@@ -94,10 +94,9 @@ fn ensure_vb_storage_in_sync(
         };
     }
 
-    let db_data = snapshot_to_legacy(&snapshot)?;
-    // this data is always initialised, which happens above.
     match toml_info {
         TomlInfo::Missing => {
+            let db_data = snapshot_to_legacy(&snapshot)?;
             let info = write_toml(path, &db_data)?;
             let mut updated = snapshot;
             info.update_last_seen_metadata_on(&mut updated.state);
@@ -115,9 +114,10 @@ fn ensure_vb_storage_in_sync(
                     persist_snapshot(tx, db_snapshot)?;
                     Ok(parsed.data)
                 }
-                Ordering::Equal => Ok(db_data),
+                Ordering::Equal => Ok(snapshot_to_legacy(&snapshot)?),
                 // Toml is older
                 Ordering::Less => {
+                    let db_data = snapshot_to_legacy(&snapshot)?;
                     let info = write_toml(path, &db_data)?;
                     let mut updated = snapshot;
                     info.update_last_seen_metadata_on(&mut updated.state);
@@ -127,6 +127,7 @@ fn ensure_vb_storage_in_sync(
             }
         }
         TomlInfo::Invalid => {
+            let db_data = snapshot_to_legacy(&snapshot)?;
             let info = write_toml(path, &db_data)?;
             let mut updated = snapshot;
             info.update_last_seen_metadata_on(&mut updated.state);
