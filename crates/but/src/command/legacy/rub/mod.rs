@@ -269,6 +269,66 @@ pub(crate) fn route_operation<'a>(
                 *stack_id,
             ))
         }
+        // Uncommitted path prefix -> *
+        (
+            PathPrefix {
+                hunk_assignments, ..
+            },
+            Unassigned { .. },
+        ) => {
+            let hunk_assignments = hunk_assignments
+                .as_ref()
+                .map(|(_, hunk_assignment)| hunk_assignment);
+            Some(RubOperation::UnassignUncommitted(
+                hunk_assignments,
+                "hunk(s)".to_string(),
+            ))
+        }
+        (
+            PathPrefix {
+                hunk_assignments, ..
+            },
+            Commit { commit_id, .. },
+        ) => {
+            let hunk_assignments = hunk_assignments
+                .as_ref()
+                .map(|(_, hunk_assignment)| hunk_assignment);
+            Some(RubOperation::UncommittedToCommit(
+                hunk_assignments,
+                "hunk(s)".to_string(),
+                commit_id,
+            ))
+        }
+        (
+            PathPrefix {
+                hunk_assignments, ..
+            },
+            Branch { name, .. },
+        ) => {
+            let hunk_assignments = hunk_assignments
+                .as_ref()
+                .map(|(_, hunk_assignment)| hunk_assignment);
+            Some(RubOperation::UncommittedToBranch(
+                hunk_assignments,
+                "hunk(s)".to_string(),
+                name,
+            ))
+        }
+        (
+            PathPrefix {
+                hunk_assignments, ..
+            },
+            Stack { stack_id, .. },
+        ) => {
+            let hunk_assignments = hunk_assignments
+                .as_ref()
+                .map(|(_, hunk_assignment)| hunk_assignment);
+            Some(RubOperation::UncommittedToStack(
+                hunk_assignments,
+                "hunk(s)".to_string(),
+                *stack_id,
+            ))
+        }
         // Stack -> *
         (Stack { stack_id, .. }, Unassigned { .. }) => {
             Some(RubOperation::StackToUnassigned(*stack_id))
