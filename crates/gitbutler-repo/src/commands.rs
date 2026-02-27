@@ -247,21 +247,36 @@ impl RepoCommands for Context {
         let workdir = repo.workdir().context(
             "BUG: can't yet handle bare repos and we shouldn't run into this until we do",
         )?;
+        let canonical_workdir = gix::path::realpath(workdir)?;
         let (path_in_worktree, relative_path) = if probably_relative_path.is_relative() {
             (
+                // This keeps non-existing leaf components, which preserves deleted-file fallback
+                // behavior below.
                 gix::path::realpath(workdir.join(probably_relative_path))?,
                 probably_relative_path.to_owned(),
             )
         } else {
-            let Ok(relative_path) = probably_relative_path.strip_prefix(workdir) else {
-                bail!(
-                    "Path to read from at '{}' isn't in the worktree directory '{}'",
-                    probably_relative_path.display(),
-                    workdir.display()
-                );
+            let path_in_worktree = gix::path::realpath(probably_relative_path)?;
+            let relative_path = match path_in_worktree.strip_prefix(&canonical_workdir) {
+                Ok(relative_path) => relative_path.to_owned(),
+                Err(_) => {
+                    bail!(
+                        "Path to read from at '{}' isn't in the worktree directory '{}'",
+                        probably_relative_path.display(),
+                        canonical_workdir.display()
+                    );
+                }
             };
-            (probably_relative_path.to_owned(), relative_path.to_owned())
+            (path_in_worktree, relative_path)
         };
+
+        if !path_in_worktree.starts_with(&canonical_workdir) {
+            bail!(
+                "Refusing to read path '{}' as it resolves outside the worktree directory '{}'",
+                probably_relative_path.display(),
+                canonical_workdir.display()
+            );
+        }
 
         Ok(match path_in_worktree.symlink_metadata() {
             Ok(md) if md.is_file() => {
