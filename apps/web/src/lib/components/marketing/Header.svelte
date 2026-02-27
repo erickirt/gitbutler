@@ -49,16 +49,16 @@
 				icon: "discord-outline",
 			})}
 			{@render link({
-				href: jsonLinks.resources.blog.url,
-				label: jsonLinks.resources.blog.label,
-			})}
-			{@render link({
 				href: jsonLinks.resources.downloads.url,
 				label: jsonLinks.resources.downloads.label,
 			})}
 			{@render link({
 				href: jsonLinks.resources.jobs.url,
 				label: jsonLinks.resources.jobs.label,
+			})}
+			{@render link({
+				href: jsonLinks.resources.blog.url,
+				label: jsonLinks.resources.blog.label,
 			})}
 			<HeaderAuthSection />
 		</section>

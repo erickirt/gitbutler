@@ -128,9 +128,11 @@
 			</svg>
 			<div class="download-options">
 				{#each osBuilds as build}
-					<a href={build.url} class="download-link">
-						{getBuildDisplayName(build)}
-					</a>
+					{#if build.url}
+						<a href={build.url} class="download-link">
+							{getBuildDisplayName(build)}
+						</a>
+					{/if}
 				{/each}
 			</div>
 		</div>
