@@ -27,11 +27,15 @@ pub fn handle_tui(ctx: &mut Context, target_str: Option<&str>) -> anyhow::Result
                 let filter = WorktreeFilter::Uncommitted(Box::new(uncommitted_id.clone()));
                 DiffFileEntry::from_worktree(&id_map, Some(&filter))
             }
-            CliId::Unassigned { .. } => DiffFileEntry::from_worktree(&id_map, Some(&WorktreeFilter::Unassigned)),
+            CliId::Unassigned { .. } => {
+                DiffFileEntry::from_worktree(&id_map, Some(&WorktreeFilter::Unassigned))
+            }
             CliId::Stack { stack_id, .. } => {
                 DiffFileEntry::from_worktree(&id_map, Some(&WorktreeFilter::Stack(stack_id)))
             }
-            CliId::CommittedFile { commit_id, path, .. } => DiffFileEntry::from_commit(ctx, commit_id, Some(path))?,
+            CliId::CommittedFile {
+                commit_id, path, ..
+            } => DiffFileEntry::from_commit(ctx, commit_id, Some(path))?,
             CliId::Commit { commit_id, .. } => DiffFileEntry::from_commit(ctx, commit_id, None)?,
             CliId::Branch { name, .. } => DiffFileEntry::from_branch(ctx, name)?,
         }
@@ -46,7 +50,11 @@ pub fn handle_tui(ctx: &mut Context, target_str: Option<&str>) -> anyhow::Result
     crate::tui::diff_viewer::run_diff_viewer(files)
 }
 
-pub fn handle(ctx: &mut Context, out: &mut OutputChannel, target_str: Option<&str>) -> anyhow::Result<()> {
+pub fn handle(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    target_str: Option<&str>,
+) -> anyhow::Result<()> {
     let wt_changes = but_api::legacy::diff::changes_in_worktree(ctx)?;
     let id_map = IdMap::new_from_context(ctx, Some(wt_changes.assignments.clone()))?;
 
@@ -60,10 +68,14 @@ pub fn handle(ctx: &mut Context, out: &mut OutputChannel, target_str: Option<&st
         match id {
             CliId::Uncommitted(id) => show::worktree(id_map, out, Some(Filter::Uncommitted(id))),
             CliId::Unassigned { .. } => show::worktree(id_map, out, Some(Filter::Unassigned)),
-            CliId::CommittedFile { commit_id, path, .. } => show::commit(ctx, out, commit_id, Some(path)),
+            CliId::CommittedFile {
+                commit_id, path, ..
+            } => show::commit(ctx, out, commit_id, Some(path)),
             CliId::Branch { name, .. } => show::branch(ctx, out, name),
             CliId::Commit { commit_id: id, .. } => show::commit(ctx, out, id, None),
-            CliId::Stack { id: _, stack_id } => show::worktree(id_map, out, Some(Filter::Stack(stack_id))),
+            CliId::Stack { id: _, stack_id } => {
+                show::worktree(id_map, out, Some(Filter::Stack(stack_id)))
+            }
         }
     } else {
         show::worktree(id_map, out, None)

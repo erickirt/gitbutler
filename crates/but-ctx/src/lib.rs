@@ -165,7 +165,9 @@ impl TryFrom<gix::Repository> for Context {
 
 impl std::fmt::Debug for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Context").field("git_dir", &self.gitdir).finish()
+        f.debug_struct("Context")
+            .field("git_dir", &self.gitdir)
+            .finish()
     }
 }
 
@@ -206,7 +208,9 @@ impl Context {
         {
             use anyhow::Context as _;
             let repo = gix::open(&gitdir)?;
-            let worktree_dir = repo.workdir().context("Bare repositories aren't yet supported.")?;
+            let worktree_dir = repo
+                .workdir()
+                .context("Bare repositories aren't yet supported.")?;
             let legacy_project = LegacyProject::find_by_worktree_dir(worktree_dir)
                 .unwrap_or_else(|_| default_legacy_project_at_repo(&repo));
             Ok(Context {
@@ -243,7 +247,9 @@ impl Context {
         #[cfg(feature = "legacy")]
         {
             use anyhow::Context as _;
-            let worktree_dir = repo.workdir().context("Bare repositories aren't yet supported.")?;
+            let worktree_dir = repo
+                .workdir()
+                .context("Bare repositories aren't yet supported.")?;
             let legacy_project = LegacyProject::find_by_worktree_dir(worktree_dir)
                 .unwrap_or_else(|_| default_legacy_project_at_repo(&repo));
             let gitdir = repo.git_dir().to_owned();
@@ -346,7 +352,11 @@ impl Context {
     /// # IMPORTANT
     /// * if the workspace was changed, write it back into `&mut ws`.
     /// * Keep the guard alive like `let (_guard, …) = …`!
-    #[instrument(name = "Context::workspace_mut_and_db_mut_with_perm", level = "debug", skip_all)]
+    #[instrument(
+        name = "Context::workspace_mut_and_db_mut_with_perm",
+        level = "debug",
+        skip_all
+    )]
     pub fn workspace_mut_and_db_mut_with_perm(
         &mut self,
         _perm: &mut RepoExclusive,
@@ -356,7 +366,9 @@ impl Context {
         cell::RefMut<'_, but_db::DbHandle>,
     )> {
         let repo = self.repo.get()?;
-        if let Ok(cached) = cell::RefMut::filter_map(self.workspace.try_borrow_mut()?, |opt| opt.as_mut()) {
+        if let Ok(cached) =
+            cell::RefMut::filter_map(self.workspace.try_borrow_mut()?, |opt| opt.as_mut())
+        {
             let db = self.db.get_mut()?;
             return Ok((repo, cached, db));
         }
@@ -402,7 +414,11 @@ impl Context {
     /// # IMPORTANT
     /// * if the workspace was changed, write it back into `&mut ws`.
     /// * Keep the guard alive like `let (_guard, …) = …`!
-    #[instrument(name = "Context::workspace_and_db_mut_with_perm", level = "debug", skip_all)]
+    #[instrument(
+        name = "Context::workspace_and_db_mut_with_perm",
+        level = "debug",
+        skip_all
+    )]
     #[allow(clippy::type_complexity)]
     pub fn workspace_and_db_mut_with_perm(
         &mut self,
@@ -412,7 +428,8 @@ impl Context {
         cell::Ref<'_, but_graph::projection::Workspace>,
         cell::RefMut<'_, but_db::DbHandle>,
     )> {
-        if let Ok(cached) = cell::Ref::filter_map(self.workspace.try_borrow()?, |opt| opt.as_ref()) {
+        if let Ok(cached) = cell::Ref::filter_map(self.workspace.try_borrow()?, |opt| opt.as_ref())
+        {
             return Ok((self.repo.get()?, cached, self.db.get_mut()?));
         }
         let ws = self.workspace_from_head()?;
@@ -454,7 +471,11 @@ impl Context {
     ///
     /// # IMPORTANT
     /// * if the workspace was changed, write it back into `&mut ws`.
-    #[instrument(name = "Context::workspace_mut_and_db_with_perm", level = "debug", skip_all)]
+    #[instrument(
+        name = "Context::workspace_mut_and_db_with_perm",
+        level = "debug",
+        skip_all
+    )]
     #[allow(clippy::type_complexity)]
     pub fn workspace_mut_and_db_with_perm(
         &self,
@@ -464,7 +485,9 @@ impl Context {
         cell::RefMut<'_, but_graph::projection::Workspace>,
         cell::Ref<'_, but_db::DbHandle>,
     )> {
-        if let Ok(cached) = cell::RefMut::filter_map(self.workspace.try_borrow_mut()?, |opt| opt.as_mut()) {
+        if let Ok(cached) =
+            cell::RefMut::filter_map(self.workspace.try_borrow_mut()?, |opt| opt.as_mut())
+        {
             return Ok((self.repo.get()?, cached, self.db.get()?));
         }
         let ws = self.workspace_from_head()?;
@@ -502,7 +525,11 @@ impl Context {
     /// Create a new cached workspace as seen from the current HEAD for *reading* and return it,
     /// along with `(guard, &repo, &ws, &db)`, given a read-`perm`ission.
     /// The `db` is read-only.
-    #[instrument(name = "Context::workspace_and_db_with_perm", level = "debug", skip_all)]
+    #[instrument(
+        name = "Context::workspace_and_db_with_perm",
+        level = "debug",
+        skip_all
+    )]
     #[allow(clippy::type_complexity)]
     pub fn workspace_and_db_with_perm(
         &self,
@@ -512,7 +539,8 @@ impl Context {
         cell::Ref<'_, but_graph::projection::Workspace>,
         cell::Ref<'_, but_db::DbHandle>,
     )> {
-        if let Ok(cached) = cell::Ref::filter_map(self.workspace.try_borrow()?, |opt| opt.as_ref()) {
+        if let Ok(cached) = cell::Ref::filter_map(self.workspace.try_borrow()?, |opt| opt.as_ref())
+        {
             return Ok((self.repo.get()?, cached, self.db.get()?));
         }
         let ws = self.workspace_from_head()?;
@@ -533,7 +561,21 @@ impl Context {
     }
 
     fn meta_inner(&self) -> anyhow::Result<but_meta::VirtualBranchesTomlMetadata> {
-        but_meta::VirtualBranchesTomlMetadata::from_path(self.project_data_dir().join("virtual_branches.toml"))
+        but_meta::VirtualBranchesTomlMetadata::from_path(
+            self.project_data_dir().join("virtual_branches.toml"),
+        )
+    }
+}
+
+/// Non-project/global data access. Only for when no project is available (yet).
+impl Context {
+    /// Create an application cache handle in the configured application cache directory.
+    /// This is independent of projects.
+    ///
+    /// This is a convenience for callers that need app-cache access before a `Context`
+    /// instance is available. If you have an instance, use [`Self::app_cache`] instead.
+    pub fn app_cache() -> but_db::AppCacheHandle {
+        but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok())
     }
 }
 
@@ -547,7 +589,9 @@ impl Context {
     //            reads. For a correct implementation, this would also have to hold on to
     //            `_read_only`.
     pub fn meta(&self) -> anyhow::Result<impl but_core::RefMetadata + 'static> {
-        but_meta::VirtualBranchesTomlMetadata::from_path(self.project_data_dir().join("virtual_branches.toml"))
+        but_meta::VirtualBranchesTomlMetadata::from_path(
+            self.project_data_dir().join("virtual_branches.toml"),
+        )
     }
 
     /// Copy all copyable values into an instance to pass across thread boundaries.
@@ -633,7 +677,10 @@ impl Context {
     /// Use it for fastest-possible access, when incomplete configuration is acceptable.
     /// Note that [Self::repo].get() should be preferred.
     pub fn open_isolated_repo(&self) -> anyhow::Result<gix::Repository> {
-        Ok(gix::open_opts(&self.gitdir, gix::open::Options::isolated())?)
+        Ok(gix::open_opts(
+            &self.gitdir,
+            gix::open::Options::isolated(),
+        )?)
     }
 
     /// Return a cloned [`Repository`](gix::Repository) as cached in the context, with all configuration available
@@ -655,7 +702,8 @@ impl Context {
     /// This means *changes are non-persisting*.
     /// Note that the object cache will be temporary this way, and is dropped when the instance is dropped.
     pub fn clone_repo_for_merging_non_persisting(&self) -> anyhow::Result<gix::Repository> {
-        self.clone_repo_for_merging().map(|repo| repo.with_object_memory())
+        self.clone_repo_for_merging()
+            .map(|repo| repo.with_object_memory())
     }
 }
 
@@ -668,10 +716,12 @@ fn project_data_dir(gitdir: &Path) -> PathBuf {
 #[instrument(level = "trace")]
 fn new_ondemand_repo(gitdir: PathBuf) -> OnDemand<gix::Repository> {
     OnDemand::new(move || {
-        gix::open(&gitdir).map_err(anyhow::Error::from).map(|mut repo| {
-            repo.object_cache_size_if_unset(100 * 1024 * 1024);
-            repo
-        })
+        gix::open(&gitdir)
+            .map_err(anyhow::Error::from)
+            .map(|mut repo| {
+                repo.object_cache_size_if_unset(100 * 1024 * 1024);
+                repo
+            })
     })
 }
 
@@ -694,11 +744,17 @@ fn new_ondemand_app_cache(cache_dir: Option<PathBuf>) -> OnDemandCache<but_db::A
 }
 
 fn app_settings(config_dir: impl AsRef<Path>) -> anyhow::Result<AppSettings> {
-    AppSettings::load(&AppSettings::default_settings_path(config_dir.as_ref()), None)
+    AppSettings::load(
+        &AppSettings::default_settings_path(config_dir.as_ref()),
+        None,
+    )
 }
 
 #[cfg(feature = "legacy")]
 fn default_legacy_project_at_repo(repo: &gix::Repository) -> LegacyProject {
     LegacyProject::default_with_id(LegacyProjectId::from_number_for_testing(1))
-        .with_paths_for_testing(repo.git_dir().to_owned(), repo.workdir().map(ToOwned::to_owned))
+        .with_paths_for_testing(
+            repo.git_dir().to_owned(),
+            repo.workdir().map(ToOwned::to_owned),
+        )
 }

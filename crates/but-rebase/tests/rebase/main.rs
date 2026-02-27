@@ -4,7 +4,9 @@ use but_rebase::{Rebase, RebaseStep};
 use but_testsupport::visualize_commit_graph;
 use gix::prelude::ObjectIdExt;
 
-use crate::utils::{assure_nonconflicting, conflicted, fixture_writable, four_commits_writable, visualize_tree};
+use crate::utils::{
+    assure_nonconflicting, conflicted, fixture_writable, four_commits_writable, visualize_tree,
+};
 
 mod error_handling;
 mod graph_rebase;
@@ -23,8 +25,13 @@ mod commit {
                 config.set_raw_value(&"user.name", "name")?;
                 config.set_raw_value(&"user.email", "email")?;
             }
-            let err =
-                commit::save_author_if_unset_in_repo(&repo, gix::config::Source::Local, "user", "email").unwrap_err();
+            let err = commit::save_author_if_unset_in_repo(
+                &repo,
+                gix::config::Source::Local,
+                "user",
+                "email",
+            )
+            .unwrap_err();
             assert_eq!(
                 err.to_string(),
                 "Refusing to overwrite an existing user.name and user.email"
@@ -36,9 +43,17 @@ mod commit {
         fn keep_comments_and_customizations() -> anyhow::Result<()> {
             let (repo, _tmp, _meta) = fixture_writable("four-commits")?;
             let local_config_path = repo.path().join("config");
-            std::fs::write(&local_config_path, b"# a comment\n[special] \nvalue=foo #value comment")?;
+            std::fs::write(
+                &local_config_path,
+                b"# a comment\n[special] \nvalue=foo #value comment",
+            )?;
 
-            commit::save_author_if_unset_in_repo(&repo, gix::config::Source::Local, "user", "email")?;
+            commit::save_author_if_unset_in_repo(
+                &repo,
+                gix::config::Source::Local,
+                "user",
+                "email",
+            )?;
 
             // New values are written and everything else is still contained.
             insta::assert_snapshot!(std::fs::read_to_string(local_config_path)?, @"
@@ -325,7 +340,7 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
         .rebase()?;
     insta::assert_debug_snapshot!(out, @"
     RebaseOutput {
-        top_commit: Sha1(3ccc6a6db258bc7deed5a08efc892de13ba21746),
+        top_commit: Sha1(b811bdb2d96bfc96bf54030ce094edea09fc8db0),
         references: [],
         commit_mapping: [
             (
@@ -347,22 +362,22 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
                     Sha1(8f0d33828e5c859c95fb9e9fc063374fdd482536),
                 ),
                 Sha1(68a2fc349e13a186e6d65871a31bad244d25e6f4),
-                Sha1(c4a99d5da6b9e2c434563ae56ab51b85f03587d5),
+                Sha1(a5e5bdbc985301d4f814944f11f1cace8eac13a1),
             ),
             (
                 Some(
                     Sha1(8f0d33828e5c859c95fb9e9fc063374fdd482536),
                 ),
                 Sha1(134887021e06909021776c023a608f8ef179e859),
-                Sha1(3ccc6a6db258bc7deed5a08efc892de13ba21746),
+                Sha1(b811bdb2d96bfc96bf54030ce094edea09fc8db0),
             ),
         ],
     }
     ");
     insta::assert_snapshot!(visualize_commit_graph(&repo, out.top_commit)?, @r"
-    *-.   3ccc6a6 Re-merge branches 'A', 'B' and 'C'
+    *-.   b811bdb Re-merge branches 'A', 'B' and 'C'
     |\ \  
-    | | * c4a99d5 C~1
+    | | * a5e5bdb C~1
     | | * eebaa8b C
     | | * a037d4a C~2
     | * | a748762 (B) B: another 10 lines at the bottom
@@ -387,7 +402,7 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
 
     let conflict_commit_id = repo.rev_parse_single(format!("{}^3", out.top_commit).as_str())?;
     insta::assert_snapshot!(but_testsupport::visualize_tree(conflict_commit_id), @r#"
-    db4a5b8
+    9a27e64
     ├── .auto-resolution:5b3a532 
     │   ├── file:100644:5ecf5f4 "50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n"
     │   └── new-file:100644:213ec44 "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n"
@@ -401,12 +416,14 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
     ├── .conflict-side-1:71364f9 
     │   ├── file:100644:5ecf5f4 "50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n"
     │   └── new-file:100644:0ff3bbb "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n"
-    └── README.txt:100644:2af04b7 "You have checked out a GitButler Conflicted commit. You probably didn\'t mean to do this."
+    ├── CONFLICT-README.txt:100644:2af04b7 "You have checked out a GitButler Conflicted commit. You probably didn\'t mean to do this."
+    ├── file:100644:5ecf5f4 "50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n"
+    └── new-file:100644:213ec44 "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n"
     "#);
 
     // gitbutler headers were added here to indicate conflict (change-id is frozen for testing)
     insta::assert_snapshot!(conflict_commit_id.object()?.data.as_bstr(), @"
-    tree db4a5b82b209e5165cdf8d04ff4328ec1fc2526d
+    tree 9a27e6447201f9ae394c1e0aaef1536633943fe0
     parent eebaa8b32984736d7a835f805724c66a3988f01b
     author author <author@example.com> 946684800 +0000
     committer Committer (Memory Override) <committer@example.com> 946771200 +0000
@@ -422,7 +439,7 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
     tree 6abc3da6f1642bfd5543ef97f98b924f4f232a96
     parent add59d26b2ffd7468fcb44c2db48111dd8f481e5
     parent a7487625f079bedf4d20e48f052312c010117b38
-    parent c4a99d5da6b9e2c434563ae56ab51b85f03587d5
+    parent a5e5bdbc985301d4f814944f11f1cace8eac13a1
     author author <author@example.com> 946684800 +0000
     committer Committer (Memory Override) <committer@example.com> 946771200 +0000
     gitbutler-headers-version 2
@@ -465,7 +482,7 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
     // The base doesn't have new file, and we pick that up from the base of `base` of
     // the previous conflict. `our` side then is the original our.
     insta::assert_snapshot!(visualize_tree(&repo, &out ), @r#"
-    cb71c19
+    72b9cf3
     ├── .auto-resolution:5b3a532 
     │   ├── file:100644:5ecf5f4 "50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n"
     │   └── new-file:100644:213ec44 "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n"
@@ -478,7 +495,9 @@ fn reorder_with_conflict_and_remerge_and_pick_from_conflicts() -> Result<()> {
     ├── .conflict-side-1:fa799da 
     │   ├── file:100644:5ecf5f4 "50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n"
     │   └── new-file:100644:f00c965 "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
-    └── README.txt:100644:2af04b7 "You have checked out a GitButler Conflicted commit. You probably didn\'t mean to do this."
+    ├── CONFLICT-README.txt:100644:2af04b7 "You have checked out a GitButler Conflicted commit. You probably didn\'t mean to do this."
+    ├── file:100644:5ecf5f4 "50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n"
+    └── new-file:100644:213ec44 "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n"
     "#);
 
     Ok(())
@@ -570,9 +589,9 @@ fn reversible_conflicts() -> anyhow::Result<()> {
 
     let conflict_tip = repo.rev_parse_single(format!("{}^3", out.top_commit).as_str())?;
     insta::assert_snapshot!(visualize_commit_graph(&repo, out.top_commit)?, @r"
-    *-.   3ccc6a6 Re-merge branches 'A', 'B' and 'C'
+    *-.   b811bdb Re-merge branches 'A', 'B' and 'C'
     |\ \  
-    | | * c4a99d5 C~1
+    | | * a5e5bdb C~1
     | | * eebaa8b C
     | | * a037d4a C~2
     | * | a748762 (B) B: another 10 lines at the bottom
@@ -590,7 +609,9 @@ fn reversible_conflicts() -> anyhow::Result<()> {
     let out = builder
         .steps([
             RebaseStep::Pick {
-                commit_id: repo.rev_parse_single(format!("{conflict_tip}~2").as_str())?.into(),
+                commit_id: repo
+                    .rev_parse_single(format!("{conflict_tip}~2").as_str())?
+                    .into(),
                 new_message: Some("C~2 is first".into()),
             },
             RebaseStep::Pick {
@@ -669,10 +690,16 @@ pub mod utils {
     /// Returns a fixture that may not be written to, objects will never touch disk either.
     pub fn fixture(
         fixture_name: &str,
-    ) -> anyhow::Result<(gix::Repository, std::mem::ManuallyDrop<VirtualBranchesTomlMetadata>)> {
+    ) -> anyhow::Result<(
+        gix::Repository,
+        std::mem::ManuallyDrop<VirtualBranchesTomlMetadata>,
+    )> {
         let repo = but_testsupport::read_only_in_memory_scenario(fixture_name)?;
-        let meta =
-            VirtualBranchesTomlMetadata::from_path(repo.path().join(".git").join("should-never-be-written.toml"))?;
+        let meta = VirtualBranchesTomlMetadata::from_path(
+            repo.path()
+                .join(".git")
+                .join("should-never-be-written.toml"),
+        )?;
         Ok((repo, std::mem::ManuallyDrop::new(meta)))
     }
 
@@ -686,8 +713,11 @@ pub mod utils {
     )> {
         // TODO: remove the need for this, impl everything in `gitoxide`, allowing this to be in-memory entirely.
         let (repo, tmp) = but_testsupport::writable_scenario(fixture_name);
-        let meta =
-            VirtualBranchesTomlMetadata::from_path(repo.path().join(".git").join("should-never-be-written.toml"))?;
+        let meta = VirtualBranchesTomlMetadata::from_path(
+            repo.path()
+                .join(".git")
+                .join("should-never-be-written.toml"),
+        )?;
         Ok((repo, tmp, std::mem::ManuallyDrop::new(meta)))
     }
 
@@ -700,8 +730,11 @@ pub mod utils {
         std::mem::ManuallyDrop<VirtualBranchesTomlMetadata>,
     )> {
         let (repo, tmp) = but_testsupport::writable_scenario_with_ssh_key(fixture_name);
-        let meta =
-            VirtualBranchesTomlMetadata::from_path(repo.path().join(".git").join("should-never-be-written.toml"))?;
+        let meta = VirtualBranchesTomlMetadata::from_path(
+            repo.path()
+                .join(".git")
+                .join("should-never-be-written.toml"),
+        )?;
         Ok((repo, tmp, std::mem::ManuallyDrop::new(meta)))
     }
 
@@ -780,7 +813,11 @@ pub mod utils {
     pub fn conflicted(repo: &gix::Repository, out: &RebaseOutput) -> Vec<bool> {
         out.commit_mapping
             .iter()
-            .map(|t| but_core::Commit::from_id(t.2.attach(repo)).unwrap().is_conflicted())
+            .map(|t| {
+                but_core::Commit::from_id(t.2.attach(repo))
+                    .unwrap()
+                    .is_conflicted()
+            })
             .collect()
     }
 

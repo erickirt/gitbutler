@@ -10,7 +10,9 @@ use but_testsupport::{graph_workspace, id_at, id_by_rev, visualize_commit_graph_
 use but_workspace::branch::create_reference::{Anchor, Position::*};
 
 use crate::{
-    ref_info::with_workspace_commit::utils::{named_read_only_in_memory_scenario, named_writable_scenario},
+    ref_info::with_workspace_commit::utils::{
+        named_read_only_in_memory_scenario, named_writable_scenario,
+    },
     utils::{r, rc},
 };
 
@@ -26,8 +28,8 @@ mod with_workspace {
     use crate::{
         branch::create_reference::stack_id_for_name,
         ref_info::with_workspace_commit::utils::{
-            StackState, add_stack_with_segments, named_read_only_in_memory_scenario, named_writable_scenario,
-            named_writable_scenario_with_description,
+            StackState, add_stack_with_segments, named_read_only_in_memory_scenario,
+            named_writable_scenario, named_writable_scenario_with_description,
         },
         utils::{r, rc},
     };
@@ -91,7 +93,8 @@ mod with_workspace {
 
     #[test]
     fn journey_no_ws_commit() -> anyhow::Result<()> {
-        let (_tmp, repo, mut meta, desc) = named_writable_scenario_with_description("single-branch-no-ws-commit")?;
+        let (_tmp, repo, mut meta, desc) =
+            named_writable_scenario_with_description("single-branch-no-ws-commit")?;
         insta::assert_snapshot!(desc, @"Single commit, target, no ws commit, but ws-reference");
 
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @"* 3183e43 (HEAD -> gitbutler/workspace, origin/main, main) M1");
@@ -436,7 +439,15 @@ mod with_workspace {
 
         // create a new stack for good measure.
         let b_ref = r("refs/heads/B");
-        let ws = but_workspace::branch::create_reference(b_ref, None, &repo, &ws, &mut meta, stack_id_for_name, None)?;
+        let ws = but_workspace::branch::create_reference(
+            b_ref,
+            None,
+            &repo,
+            &ws,
+            &mut meta,
+            stack_id_for_name,
+            None,
+        )?;
         insta::assert_snapshot!(graph_workspace(&ws), @r"
         📕🏘️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main on bce0c5e
         ├── ≡📙:5:B on bce0c5e {42}
@@ -554,7 +565,8 @@ mod with_workspace {
 
     #[test]
     fn journey_single_branch_no_ws_commit_segment_anchor() -> anyhow::Result<()> {
-        let (_tmp, repo, mut meta) = named_writable_scenario("single-branch-3-commits-no-ws-commit")?;
+        let (_tmp, repo, mut meta) =
+            named_writable_scenario("single-branch-3-commits-no-ws-commit")?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * c2878fb (HEAD -> gitbutler/workspace, A) A2
         * 49d4b34 A1
@@ -762,7 +774,15 @@ mod with_workspace {
 
         // create a new stack for good measure.
         let b_ref = r("refs/heads/B");
-        let ws = but_workspace::branch::create_reference(b_ref, None, &repo, &ws, &mut meta, stack_id_for_name, None)?;
+        let ws = but_workspace::branch::create_reference(
+            b_ref,
+            None,
+            &repo,
+            &ws,
+            &mut meta,
+            stack_id_for_name,
+            None,
+        )?;
         insta::assert_snapshot!(graph_workspace(&ws), @r"
         📕🏘️⚠️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main on 3183e43
         ├── ≡📙:5:B on 3183e43 {42}
@@ -878,7 +898,8 @@ mod with_workspace {
 
     #[test]
     fn journey_single_branch_no_ws_commit_commit_anchor() -> anyhow::Result<()> {
-        let (_tmp, repo, mut meta) = named_writable_scenario("single-branch-3-commits-no-ws-commit")?;
+        let (_tmp, repo, mut meta) =
+            named_writable_scenario("single-branch-3-commits-no-ws-commit")?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * c2878fb (HEAD -> gitbutler/workspace, A) A2
         * 49d4b34 A1
@@ -1008,8 +1029,10 @@ mod with_workspace {
 
     #[test]
     fn error1() -> anyhow::Result<()> {
-        let (repo, mut meta) =
-            named_read_only_in_memory_scenario("with-remotes-and-workspace", "single-branch-no-ws-commit")?;
+        let (repo, mut meta) = named_read_only_in_memory_scenario(
+            "with-remotes-and-workspace",
+            "single-branch-no-ws-commit",
+        )?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * bce0c5e (HEAD -> gitbutler/workspace, main) M2
         * 3183e43 (origin/main) M1
@@ -1052,15 +1075,20 @@ mod with_workspace {
                 ws_id,
                 "the reference wasn't changed to the desired location"
             );
-            assert!(meta.branch(ws_ref_name.as_ref())?.is_default(), "no data was stored");
+            assert!(
+                meta.branch(ws_ref_name.as_ref())?.is_default(),
+                "no data was stored"
+            );
         }
         Ok(())
     }
 
     #[test]
     fn error2() -> anyhow::Result<()> {
-        let (repo, mut meta) =
-            named_read_only_in_memory_scenario("with-remotes-and-workspace", "single-branch-two-commits-no-ws-commit")?;
+        let (repo, mut meta) = named_read_only_in_memory_scenario(
+            "with-remotes-and-workspace",
+            "single-branch-two-commits-no-ws-commit",
+        )?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * bba50eb (extra) E1
         * c2878fb (HEAD -> gitbutler/workspace, A) A2
@@ -1109,7 +1137,10 @@ mod with_workspace {
                 ws_id,
                 "the reference wasn't changed to the desired location"
             );
-            assert!(meta.branch(ws_ref_name.as_ref())?.is_default(), "no data was stored");
+            assert!(
+                meta.branch(ws_ref_name.as_ref())?.is_default(),
+                "no data was stored"
+            );
         }
 
         // Try to set gitbutler/workspace to the same position, which technically is in the workspace
@@ -1139,7 +1170,10 @@ mod with_workspace {
                 ws_id,
                 "the reference wasn't changed to the desired location"
             );
-            assert!(meta.branch(ws_ref_name.as_ref())?.is_default(), "no data was stored");
+            assert!(
+                meta.branch(ws_ref_name.as_ref())?.is_default(),
+                "no data was stored"
+            );
         }
 
         // Creating independent branches inside the workspace that already exist outside of it.
@@ -1159,7 +1193,10 @@ mod with_workspace {
             "Reference 'extra' cannot be created as segment at 3183e43ff482a2c4c8ff531d595453b64f58d90b",
             "The simulation catches the issue first, note how it wants to create it at the base"
         );
-        assert!(meta.branch(outside_ref.as_ref())?.is_default(), "no data was stored");
+        assert!(
+            meta.branch(outside_ref.as_ref())?.is_default(),
+            "no data was stored"
+        );
         assert_eq!(
             repo.find_reference(outside_ref.as_ref())?.id(),
             outside_id,
@@ -1218,7 +1255,8 @@ fn errors() -> anyhow::Result<()> {
     .unwrap_err();
     assert_eq!(err.to_string(), "Cannot create reference on unborn branch");
 
-    let (repo, mut meta) = named_read_only_in_memory_scenario("with-remotes-no-workspace", "remote")?;
+    let (repo, mut meta) =
+        named_read_only_in_memory_scenario("with-remotes-no-workspace", "remote")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 89cc2d3 (A) change in A
     * d79bba9 new file in A
@@ -1236,11 +1274,21 @@ fn errors() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "main");
-    for anchor in [Anchor::at_id(id, Below), Anchor::at_segment(ref_name.as_ref(), Below)] {
+    for anchor in [
+        Anchor::at_id(id, Below),
+        Anchor::at_segment(ref_name.as_ref(), Below),
+    ] {
         // Below first in history
-        let err =
-            but_workspace::branch::create_reference(new_name, anchor, &repo, &ws, &mut *meta, stack_id_for_name, None)
-                .unwrap_err();
+        let err = but_workspace::branch::create_reference(
+            new_name,
+            anchor,
+            &repo,
+            &ws,
+            &mut *meta,
+            stack_id_for_name,
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             err.to_string(),
             "Commit c166d42d4ef2e5e742d33554d03805cfb0b24d11 is the first in history and no branch can point below it",
@@ -1250,15 +1298,25 @@ fn errors() -> anyhow::Result<()> {
             repo.try_find_reference(new_name)?.is_none(),
             "the reference isn't physically available"
         );
-        assert!(meta.branch(ref_name.as_ref())?.is_default(), "no data was stored");
+        assert!(
+            meta.branch(ref_name.as_ref())?.is_default(),
+            "no data was stored"
+        );
     }
 
     // Misaligned workspace - commit not included.
     let (id, ref_name) = id_at(&repo, "A");
     for anchor in [Anchor::at_id(id, Below), Anchor::at_id(id, Above)] {
-        let err =
-            but_workspace::branch::create_reference(new_name, anchor, &repo, &ws, &mut *meta, stack_id_for_name, None)
-                .unwrap_err();
+        let err = but_workspace::branch::create_reference(
+            new_name,
+            anchor,
+            &repo,
+            &ws,
+            &mut *meta,
+            stack_id_for_name,
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             err.to_string(),
             "Commit 89cc2d303514654e9cab2d05b9af08b420a740c1 isn't part of the workspace",
@@ -1269,7 +1327,10 @@ fn errors() -> anyhow::Result<()> {
             repo.try_find_reference(new_name)?.is_none(),
             "the reference isn't physically available"
         );
-        assert!(meta.branch(ref_name.as_ref())?.is_default(), "no data was stored");
+        assert!(
+            meta.branch(ref_name.as_ref())?.is_default(),
+            "no data was stored"
+        );
     }
 
     // Misaligned workspace - segment not included.
@@ -1278,9 +1339,16 @@ fn errors() -> anyhow::Result<()> {
         (Anchor::at_segment(a_ref.as_ref(), Below)),
         (Anchor::at_segment(a_ref.as_ref(), Above)),
     ] {
-        let err =
-            but_workspace::branch::create_reference(new_name, anchor, &repo, &ws, &mut *meta, stack_id_for_name, None)
-                .unwrap_err();
+        let err = but_workspace::branch::create_reference(
+            new_name,
+            anchor,
+            &repo,
+            &ws,
+            &mut *meta,
+            stack_id_for_name,
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             err.to_string(),
             "Could not find a segment named 'A' in workspace",
@@ -1290,7 +1358,10 @@ fn errors() -> anyhow::Result<()> {
             repo.try_find_reference(new_name)?.is_none(),
             "the reference isn't physically available"
         );
-        assert!(meta.branch(a_ref.as_ref())?.is_default(), "no data was stored");
+        assert!(
+            meta.branch(a_ref.as_ref())?.is_default(),
+            "no data was stored"
+        );
     }
 
     let graph = but_graph::Graph::from_commit_traversal(a_id, a_ref, &*meta, Options::limited())?;
@@ -1312,9 +1383,16 @@ fn errors() -> anyhow::Result<()> {
         (Anchor::at_segment(main_ref.as_ref(), Above)),
         (Anchor::at_id(main_id, Above)),
     ] {
-        let err =
-            but_workspace::branch::create_reference(a_ref, anchor, &repo, &ws, &mut *meta, stack_id_for_name, None)
-                .unwrap_err();
+        let err = but_workspace::branch::create_reference(
+            a_ref,
+            anchor,
+            &repo,
+            &ws,
+            &mut *meta,
+            stack_id_for_name,
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             err.to_string(),
             "The reference \"refs/heads/A\" should have content c166d42d4ef2e5e742d33554d03805cfb0b24d11, actual content was 89cc2d303514654e9cab2d05b9af08b420a740c1",
@@ -1499,7 +1577,15 @@ fn journey_with_commits() -> anyhow::Result<()> {
 
     // branch already exists in the workspace, all good.
     let main_ref = r("refs/heads/main");
-    let ws = but_workspace::branch::create_reference(main_ref, None, &repo, &ws, &mut meta, stack_id_for_name, None)?;
+    let ws = but_workspace::branch::create_reference(
+        main_ref,
+        None,
+        &repo,
+        &ws,
+        &mut meta,
+        stack_id_for_name,
+        None,
+    )?;
 
     assert!(
         meta.branch(main_ref)?.is_default(),
@@ -1595,10 +1681,21 @@ fn journey_anon_workspace() -> anyhow::Result<()> {
     ");
 
     let new = r("refs/heads/new-independent");
-    let err =
-        but_workspace::branch::create_reference(new, None, &repo, &ws, &mut meta, stack_id_for_name, None).unwrap_err();
+    let err = but_workspace::branch::create_reference(
+        new,
+        None,
+        &repo,
+        &ws,
+        &mut meta,
+        stack_id_for_name,
+        None,
+    )
+    .unwrap_err();
 
-    assert_eq!(err.to_string(), "workspace at <anonymous> is missing a base");
+    assert_eq!(
+        err.to_string(),
+        "workspace at <anonymous> is missing a base"
+    );
     assert!(repo.try_find_reference(new)?.is_none());
 
     let second_ref = rc("refs/heads/second");
@@ -1624,8 +1721,16 @@ fn journey_anon_workspace() -> anyhow::Result<()> {
             └── ·3d57fc1
     ");
 
-    let err =
-        but_workspace::branch::create_reference(new, None, &repo, &ws, &mut meta, stack_id_for_name, None).unwrap_err();
+    let err = but_workspace::branch::create_reference(
+        new,
+        None,
+        &repo,
+        &ws,
+        &mut meta,
+        stack_id_for_name,
+        None,
+    )
+    .unwrap_err();
 
     assert_eq!(
         err.to_string(),

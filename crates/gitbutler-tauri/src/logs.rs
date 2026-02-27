@@ -5,7 +5,12 @@ use tracing::{Level, instrument, metadata::LevelFilter, subscriber::set_global_d
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{Layer, filter::filter_fn, fmt::format::FmtSpan, layer::SubscriberExt};
 
-pub fn init(app_handle: &AppHandle, logs_dir: &Path, performance_logging: bool, enable_tokio_console_log: bool) {
+pub fn init(
+    app_handle: &AppHandle,
+    logs_dir: &Path,
+    performance_logging: bool,
+    enable_tokio_console_log: bool,
+) {
     fs::create_dir_all(logs_dir).expect("failed to create logs dir");
 
     let log_prefix = "GitButler";
@@ -98,8 +103,9 @@ fn should_log(level: Option<Level>, meta: &tracing::Metadata<'_>) -> bool {
     if level > Level::DEBUG {
         return true;
     }
-    meta.module_path()
-        .is_none_or(|p| p.starts_with("gitbutler_") || p.starts_with("but::") || p.starts_with("but_"))
+    meta.module_path().is_none_or(|p| {
+        p.starts_with("gitbutler_") || p.starts_with("but::") || p.starts_with("but_")
+    })
 }
 
 fn get_server_addr(app_handle: &AppHandle) -> (Ipv4Addr, u16) {
@@ -165,7 +171,11 @@ fn prune_old_logs(
     // delete files, so that (n-1) files remain, because we will create another log file
     for (file, _) in files.iter().take(files.len() - (max_files - 1)) {
         if let Err(err) = fs::remove_file(file.path()) {
-            tracing::warn!("Failed to remove extra log file {}: {}", file.path().display(), err,);
+            tracing::warn!(
+                "Failed to remove extra log file {}: {}",
+                file.path().display(),
+                err,
+            );
         }
     }
 
@@ -193,7 +203,11 @@ fn remove_old_logs(log_directory: &Path) -> anyhow::Result<()> {
     });
     for file_path in old_log_files {
         if let Err(err) = fs::remove_file(&file_path) {
-            tracing::warn!("Failed to remove old log file {}: {}", file_path.display(), err,);
+            tracing::warn!(
+                "Failed to remove old log file {}: {}",
+                file_path.display(),
+                err,
+            );
         }
     }
 

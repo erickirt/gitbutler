@@ -11,7 +11,8 @@ use crate::http::create_client;
 pub(crate) fn download_to_string(url: &str) -> Result<String> {
     let mut easy = create_client()?;
 
-    easy.url(url).with_context(|| format!("Failed to set URL: {url}"))?;
+    easy.url(url)
+        .with_context(|| format!("Failed to set URL: {url}"))?;
 
     let buf = std::cell::RefCell::new(Vec::new());
 
@@ -29,7 +30,9 @@ pub(crate) fn download_to_string(url: &str) -> Result<String> {
             .with_context(|| format!("Failed to download from {url}"))?;
     }
 
-    let response_code = easy.response_code().context("Failed to get response code")?;
+    let response_code = easy
+        .response_code()
+        .context("Failed to get response code")?;
     if response_code != 200 {
         bail!("Download of {url} failed with HTTP status: {response_code}");
     }
@@ -48,7 +51,8 @@ pub(crate) fn download_to_string(url: &str) -> Result<String> {
 pub(crate) fn download_file(url: &str, dest: &Path) -> Result<()> {
     let mut easy = create_client()?;
 
-    easy.url(url).with_context(|| format!("Failed to set URL: {url}"))?;
+    easy.url(url)
+        .with_context(|| format!("Failed to set URL: {url}"))?;
 
     // Enable libcurl's built-in progress reporting
     easy.progress(true)?;
@@ -114,7 +118,9 @@ pub(crate) fn download_file(url: &str, dest: &Path) -> Result<()> {
     // Clear progress line
     crate::ui::println_empty();
 
-    let response_code = easy.response_code().context("Failed to get response code")?;
+    let response_code = easy
+        .response_code()
+        .context("Failed to get response code")?;
     if response_code == 403 {
         bail!(
             "Download failed, the download artifact could not be found. Most likely, the but CLI has not been published for the requested version."

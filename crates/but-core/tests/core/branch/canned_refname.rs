@@ -53,7 +53,11 @@ fn emoji() -> anyhow::Result<()> {
 fn prefixed_emoji_in_latin_name() -> anyhow::Result<()> {
     let mut repo = read_only_in_memory_scenario("unborn-empty")?;
     set_author(&mut repo, "🩷Harry Awesome🤦‍♂️")?;
-    assert_eq!(canned_refname(&repo)?.shorten(), "ha-branch-1", "emojies are skipped");
+    assert_eq!(
+        canned_refname(&repo)?.shorten(),
+        "ha-branch-1",
+        "emojies are skipped"
+    );
     Ok(())
 }
 
@@ -78,7 +82,11 @@ fn no_author_configured() -> anyhow::Result<()> {
         config.raw_values_mut(&"author.email")?.delete_all();
     }
 
-    assert_eq!(canned_refname(&repo)?.shorten(), "branch-1", "it doesn't use a prefix");
+    assert_eq!(
+        canned_refname(&repo)?.shorten(),
+        "branch-1",
+        "it doesn't use a prefix"
+    );
     Ok(())
 }
 

@@ -8,4 +8,6 @@ mod events;
 pub use events::InternalEvent;
 
 mod file_monitor;
-pub use file_monitor::{FETCH_HEAD, FileMonitorHandle, HEAD, HEAD_ACTIVITY, INDEX, LOCAL_REFS_DIR, WatchMode, spawn};
+pub use file_monitor::{
+    FETCH_HEAD, FileMonitorHandle, HEAD, HEAD_ACTIVITY, INDEX, LOCAL_REFS_DIR, WatchMode, spawn,
+};

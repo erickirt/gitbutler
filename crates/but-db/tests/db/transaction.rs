@@ -1,4 +1,4 @@
-use but_db::{DbHandle, HunkAssignment};
+use but_db::{DbHandle, HunkAssignment, migration::improve_concurrency};
 use rusqlite::{ErrorCode, ffi};
 
 #[test]
@@ -31,7 +31,9 @@ fn deferred() -> anyhow::Result<()> {
         "the second transaction would block because the lock is taken"
     );
     assert_eq!(
-        t2.hunk_assignments().list_all().expect("readers see the original data"),
+        t2.hunk_assignments()
+            .list_all()
+            .expect("readers see the original data"),
         [],
         "However, thanks to WAL we can still read."
     );
@@ -53,6 +55,76 @@ fn deferred() -> anyhow::Result<()> {
         db1.transaction()?.hunk_assignments().list_all()?,
         assignments,
         "the data is visible through a new transaction as well"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn savepoint_read_snapshot_stays_consistent_across_tables_with_interleaved_write()
+-> anyhow::Result<()> {
+    let tmp = tempfile::tempdir()?;
+    let db_path = tmp.path().join("db");
+
+    let mut db1 = rusqlite::Connection::open(&db_path)?;
+    improve_concurrency(&db1)?;
+    but_db::migration::run(&mut db1, but_db::migration::ours())?;
+    let mut db2 = rusqlite::Connection::open(&db_path)?;
+    improve_concurrency(&db2)?;
+    but_db::migration::run(&mut db2, but_db::migration::ours())?;
+
+    db1.execute(
+        "INSERT INTO hunk_assignments (id, hunk_header, path, path_bytes, stack_id)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        rusqlite::params![
+            "id-1",
+            "@@ -1,1 +1,1 @@",
+            "path/to/file",
+            b"path/to/file".to_vec(),
+            Option::<String>::None,
+        ],
+    )?;
+
+    let sp1 = db1.savepoint()?;
+
+    let table1_count: i64 = sp1.query_row("SELECT COUNT(*) FROM hunk_assignments", [], |row| {
+        row.get(0)
+    })?;
+    assert_eq!(
+        table1_count, 1,
+        "first read establishes db1 savepoint snapshot"
+    );
+
+    db2.execute(
+        "INSERT INTO workspace_rules (id, created_at, enabled, trigger, filters, action)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![
+            "rule-1",
+            "2024-01-01 00:00:00",
+            true,
+            "on_change",
+            "{}",
+            "{}",
+        ],
+    )?;
+
+    let count = sp1
+        .query_row("SELECT COUNT(*) FROM workspace_rules", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("no database error, we see the pre-write state");
+    assert_eq!(
+        count, 0,
+        "second read in same savepoint must observe old snapshot rather than interleaved write"
+    );
+
+    sp1.commit()?;
+
+    let latest_count: i64 =
+        db1.query_row("SELECT COUNT(*) FROM workspace_rules", [], |row| row.get(0))?;
+    assert_eq!(
+        latest_count, 1,
+        "after savepoint ends, new writes are visible"
     );
 
     Ok(())

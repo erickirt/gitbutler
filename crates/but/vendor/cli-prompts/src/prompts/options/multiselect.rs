@@ -1,3 +1,4 @@
+use super::multioption_prompt::MultiOptionPrompt;
 use crate::{
     engine::CommandBuffer,
     input::Key,
@@ -5,15 +6,13 @@ use crate::{
     style::MultiselectionStyle,
 };
 
-use super::multioption_prompt::MultiOptionPrompt;
-
 const DEFAUTL_MAX_OPTIONS: u16 = 5;
 const DEFAULT_HELP_MESSAGE: &str = "Space to select, enter to submit";
 
 /// Prompt that allows to select multiple options from the given list.
 /// Supports filtering and moving the selection with arrow keys.
 ///
-/// ```rust
+/// ```rust,no_run
 /// use cli_prompts::{
 ///     prompts::{Multiselect, AbortReason},
 ///     DisplayPrompt,
@@ -164,18 +163,24 @@ impl<T> Prompt<Vec<T>> for Multiselect<T> {
 
     fn on_key_pressed(&mut self, key: Key) -> EventOutcome<Vec<T>> {
         match key {
-            Key::Up if self.currently_selected_index > 0 => {
-                self.currently_selected_index -= 1;
+            Key::Up | Key::Ctrl('p') | Key::Ctrl('P') => {
+                self.move_selection_up();
                 EventOutcome::Continue
             }
-            Key::Down
-                if self.currently_selected_index < self.options.filtered_options().len() - 1 =>
-            {
-                self.currently_selected_index += 1;
+            Key::Down | Key::Ctrl('n') | Key::Ctrl('N') => {
+                self.move_selection_down();
+                EventOutcome::Continue
+            }
+            Key::Home | Key::Ctrl('a') | Key::Ctrl('A') => {
+                self.move_selection_to_start();
+                EventOutcome::Continue
+            }
+            Key::End | Key::Ctrl('e') | Key::Ctrl('E') => {
+                self.move_selection_to_end();
                 EventOutcome::Continue
             }
             Key::Char(c) => {
-                if c == ' ' {
+                if c == ' ' && !self.options.filtered_options().is_empty() {
                     let selected_option_index =
                         self.options.filtered_options()[self.currently_selected_index];
                     let existing_value_index = self
@@ -244,5 +249,101 @@ impl<T> Multiselect<T> {
             filter: String::new(),
             style: MultiselectionStyle::default(),
         }
+    }
+
+    fn last_filtered_index(&self) -> usize {
+        self.options.filtered_options().len().saturating_sub(1)
+    }
+
+    fn move_selection_up(&mut self) {
+        self.currently_selected_index = self.currently_selected_index.saturating_sub(1);
+    }
+
+    fn move_selection_down(&mut self) {
+        self.currently_selected_index = self.currently_selected_index.saturating_add(1);
+        self.currently_selected_index = self
+            .currently_selected_index
+            .min(self.last_filtered_index());
+    }
+
+    fn move_selection_to_start(&mut self) {
+        self.currently_selected_index = 0;
+    }
+
+    fn move_selection_to_end(&mut self) {
+        self.currently_selected_index = self.last_filtered_index();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ctrl_p_moves_selection_up() {
+        let mut prompt = Multiselect::new("Pick many", ["a", "b", "c"].into_iter());
+        prompt.currently_selected_index = 2;
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('p')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.currently_selected_index, 1);
+    }
+
+    #[test]
+    fn ctrl_n_moves_selection_down() {
+        let mut prompt = Multiselect::new("Pick many", ["a", "b", "c"].into_iter());
+        prompt.currently_selected_index = 0;
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('n')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.currently_selected_index, 1);
+    }
+
+    #[test]
+    fn ctrl_a_and_ctrl_e_jump_to_selection_bounds() {
+        let mut prompt = Multiselect::new("Pick many", ["a", "b", "c"].into_iter());
+        prompt.currently_selected_index = 1;
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('e')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.currently_selected_index, 2);
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('a')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.currently_selected_index, 0);
+    }
+
+    #[test]
+    fn ctrl_navigation_is_safe_when_filter_has_no_results() {
+        let mut prompt = Multiselect::new("Pick many", ["a", "b", "c"].into_iter());
+        prompt.on_key_pressed(Key::Char('z'));
+
+        assert!(prompt.options.filtered_options().is_empty());
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('n')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.currently_selected_index, 0);
+    }
+
+    #[test]
+    fn space_with_empty_filter_result_does_not_panic_or_select() {
+        let mut prompt = Multiselect::new("Pick many", ["a", "b", "c"].into_iter());
+        prompt.on_key_pressed(Key::Char('z'));
+
+        assert!(prompt.options.filtered_options().is_empty());
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Char(' ')),
+            EventOutcome::Continue
+        ));
+        assert!(prompt.selected_options.is_empty());
     }
 }

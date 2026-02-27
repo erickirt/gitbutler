@@ -104,8 +104,10 @@ fn open_with_migrations_infallible<'p, 'm>(
             }
         }
         path = mem_url;
-        conn = rusqlite::Connection::open(path).expect("FATAL: failed to open memory database run migrations on");
-        run_migrations(&mut conn, migrations).expect("BUG: migrations on in-memory database should never fail");
+        conn = rusqlite::Connection::open(path)
+            .expect("FATAL: failed to open memory database run migrations on");
+        run_migrations(&mut conn, migrations)
+            .expect("BUG: migrations on in-memory database should never fail");
     }
 
     if path == mem_url {

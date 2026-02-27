@@ -76,7 +76,10 @@ pub async fn store_github_pat(access_token: Sensitive<String>) -> Result<AuthSta
 /// * `Err(_)` - If the token is invalid, host is unreachable, or storage fails
 #[but_api(json::AuthStatusResponseSensitive)]
 #[instrument(err(Debug))]
-pub async fn store_github_enterprise_pat(access_token: Sensitive<String>, host: String) -> Result<AuthStatusResponse> {
+pub async fn store_github_enterprise_pat(
+    access_token: Sensitive<String>,
+    host: String,
+) -> Result<AuthStatusResponse> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
     but_github::store_enterprise_pat(&host, &access_token, &storage).await
 }
@@ -133,7 +136,9 @@ pub fn clear_all_github_tokens() -> Result<()> {
 /// * `Err(_)` - If the API request fails or credentials are invalid
 #[but_api(json::AuthenticatedUserSensitive)]
 #[instrument(err(Debug))]
-pub async fn get_gh_user(account: but_github::GithubAccountIdentifier) -> Result<Option<AuthenticatedUser>> {
+pub async fn get_gh_user(
+    account: but_github::GithubAccountIdentifier,
+) -> Result<Option<AuthenticatedUser>> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
     but_github::get_gh_user(&account, &storage).await
 }
@@ -149,9 +154,9 @@ pub async fn get_gh_user(account: but_github::GithubAccountIdentifier) -> Result
 /// * `Err(_)` - If storage access fails
 #[but_api]
 #[instrument(err(Debug))]
-pub async fn list_known_github_accounts() -> Result<Vec<but_github::GithubAccountIdentifier>> {
+pub fn list_known_github_accounts() -> Result<Vec<but_github::GithubAccountIdentifier>> {
     let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
-    but_github::list_known_github_accounts(&storage).await
+    but_github::list_known_github_accounts(&storage)
 }
 
 /// Validates stored GitHub credentials.

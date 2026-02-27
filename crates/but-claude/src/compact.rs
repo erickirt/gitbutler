@@ -130,7 +130,9 @@ impl Claudes {
                 return Ok(());
             };
 
-            let session = { db::get_session_by_id(&ctx, rule.session_id)?.context("Failed to find session")? };
+            let session = {
+                db::get_session_by_id(&ctx, rule.session_id)?.context("Failed to find session")?
+            };
             (rule, session)
         };
 
@@ -208,7 +210,8 @@ impl Claudes {
                 + usage.input_tokens
                 + usage.output_tokens;
             if total > (model.context - COMPACTION_BUFFER) {
-                self.compact(sync_ctx.clone(), broadcaster.clone(), stack_id).await;
+                self.compact(sync_ctx.clone(), broadcaster.clone(), stack_id)
+                    .await;
             }
         };
 
@@ -222,7 +225,10 @@ fn find_model(name: String) -> Option<&'static Model<'static>> {
         .find(|&m| name.contains(m.name) && m.subtype.map(|s| name.contains(s)).unwrap_or(true))
 }
 
-pub async fn generate_summary(sync_ctx: ThreadSafeContext, session: &ClaudeSession) -> Result<String> {
+pub async fn generate_summary(
+    sync_ctx: ThreadSafeContext,
+    session: &ClaudeSession,
+) -> Result<String> {
     let mut command = {
         let worktree_dir = sync_ctx.clone().into_thread_local().workdir_or_fail()?;
         let session_id = Transcript::current_valid_session_id(&worktree_dir, session)

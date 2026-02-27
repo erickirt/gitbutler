@@ -11,8 +11,8 @@ use crate::{
     client::LLMClient,
     key::CredentialsKeyOption,
     openai_utils::{
-        OpenAIClientProvider, response_blocking, stream_response_blocking, structured_output_blocking,
-        tool_calling_loop, tool_calling_loop_stream,
+        OpenAIClientProvider, response_blocking, stream_response_blocking,
+        structured_output_blocking, tool_calling_loop, tool_calling_loop_stream,
     },
 };
 
@@ -95,23 +95,27 @@ impl OpenAiProvider {
     }
 
     fn gitbutler_proxied_creds() -> Result<(CredentialsKind, Sensitive<String>)> {
-        let creds = secret::retrieve("gitbutler_access_token", secret::Namespace::BuildKind)?.ok_or(
-            anyhow::anyhow!("No GitButler token available. Log-in to use the GitButler OpenAI provider"),
-        )?;
+        let creds = secret::retrieve("gitbutler_access_token", secret::Namespace::BuildKind)?
+            .ok_or(anyhow::anyhow!(
+                "No GitButler token available. Log-in to use the GitButler OpenAI provider"
+            ))?;
         Ok((CredentialsKind::GitButlerProxied, creds))
     }
 
     fn openai_own_key_creds() -> Result<(CredentialsKind, Sensitive<String>)> {
-        let creds = secret::retrieve("aiOpenAIKey", secret::Namespace::Global)?.ok_or(anyhow::anyhow!(
-            "No OpenAI own key configured. Add this through the GitButler settings"
-        ))?;
+        let creds =
+            secret::retrieve("aiOpenAIKey", secret::Namespace::Global)?.ok_or(anyhow::anyhow!(
+                "No OpenAI own key configured. Add this through the GitButler settings"
+            ))?;
         Ok((CredentialsKind::OwnOpenAiKey, creds))
     }
 
     fn openai_env_var_creds() -> Result<(CredentialsKind, Sensitive<String>)> {
         let creds = Sensitive(
             std::env::var_os("OPENAI_API_KEY")
-                .ok_or(anyhow::anyhow!("Environment variable OPENAI_API_KEY is not set"))?
+                .ok_or(anyhow::anyhow!(
+                    "Environment variable OPENAI_API_KEY is not set"
+                ))?
                 .into_string()
                 .map_err(|_| anyhow::anyhow!("Invalid UTF-8 in OPENAI_API_KEY"))?,
         );
@@ -127,7 +131,8 @@ impl OpenAIClientProvider for OpenAiProvider {
                 Ok(Client::with_config(config))
             }
             (CredentialsKind::OwnOpenAiKey, key) => {
-                let config = self.configure_custom_endpoint(OpenAIConfig::new().with_api_key(key.0.clone()));
+                let config =
+                    self.configure_custom_endpoint(OpenAIConfig::new().with_api_key(key.0.clone()));
                 Ok(Client::with_config(config))
             }
 
@@ -138,8 +143,13 @@ impl OpenAIClientProvider for OpenAiProvider {
                     reqwest::header::CONTENT_TYPE,
                     HeaderValue::from_static("application/json"),
                 );
-                headers.insert("X-Auth-Token", key.0.parse().unwrap_or(HeaderValue::from_static("")));
-                let http_client = reqwest::Client::builder().default_headers(headers).build()?;
+                headers.insert(
+                    "X-Auth-Token",
+                    key.0.parse().unwrap_or(HeaderValue::from_static("")),
+                );
+                let http_client = reqwest::Client::builder()
+                    .default_headers(headers)
+                    .build()?;
                 Ok(Client::with_config(config).with_http_client(http_client))
             }
         }
@@ -153,7 +163,9 @@ impl LLMClient for OpenAiProvider {
     {
         let credentials_kind = CredentialsKind::from_git_config(config)?;
         let model = config.string(OPEN_AI_MODEL_NAME).map(|v| v.to_string());
-        let custom_endpoint = config.string(OPEN_AI_CUSTOM_ENDPOINT).map(|v| v.to_string());
+        let custom_endpoint = config
+            .string(OPEN_AI_CUSTOM_ENDPOINT)
+            .map(|v| v.to_string());
 
         OpenAiProvider::with(Some(credentials_kind), model, custom_endpoint)
     }
@@ -170,7 +182,14 @@ impl LLMClient for OpenAiProvider {
         model: &str,
         on_token: impl Fn(&str) + Send + Sync + 'static,
     ) -> Result<(String, Vec<ChatMessage>)> {
-        let result = tool_calling_loop_stream(self, system_message, chat_messages, tool_set, model, on_token)?;
+        let result = tool_calling_loop_stream(
+            self,
+            system_message,
+            chat_messages,
+            tool_set,
+            model,
+            on_token,
+        )?;
         Ok((result.final_response, result.message_history))
     }
 
@@ -194,7 +213,9 @@ impl LLMClient for OpenAiProvider {
         stream_response_blocking(self, system_message, chat_messages, model, on_token)
     }
 
-    fn structured_output<T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static>(
+    fn structured_output<
+        T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static,
+    >(
         &self,
         system_message: &str,
         chat_messages: Vec<ChatMessage>,
@@ -203,7 +224,12 @@ impl LLMClient for OpenAiProvider {
         structured_output_blocking::<T>(self, system_message, chat_messages, model)
     }
 
-    fn response(&self, system_message: &str, chat_messages: Vec<ChatMessage>, model: &str) -> Result<Option<String>> {
+    fn response(
+        &self,
+        system_message: &str,
+        chat_messages: Vec<ChatMessage>,
+        model: &str,
+    ) -> Result<Option<String>> {
         response_blocking(self, system_message, chat_messages, model)
     }
 }

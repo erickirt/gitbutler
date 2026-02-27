@@ -16,7 +16,10 @@ use but_workspace::{branch::Stack, ref_info::LocalCommitRelation};
 use nonempty::NonEmpty;
 use self_cell::self_cell;
 
-use crate::id::{file_info::FileInfo, id_usage::UintId, stacks_info::StacksInfo, uncommitted_info::UncommittedInfo};
+use crate::id::{
+    file_info::FileInfo, id_usage::UintId, stacks_info::StacksInfo,
+    uncommitted_info::UncommittedInfo,
+};
 
 mod file_info;
 mod id_usage;
@@ -33,32 +36,37 @@ const UNASSIGNED: &str = "zz";
 
 /// Create a CLI ID for the given staged file (if `stack_id` is `Some`) or the
 /// given unstaged file or committed file (if `stack_id` is `None`).
-fn create_reverse_hex_id(path_bytes: &[u8], stack_id: Option<&StackId>) -> anyhow::Result<ChangeId> {
-    Ok(
-        if stack_id.is_none() && path_bytes.iter().all(|c| b'k' <= *c && *c <= b'z') {
-            ChangeId::from(BString::from(path_bytes))
-        } else {
-            let mut hasher = gix::hash::hasher(gix::hash::Kind::Sha1);
-            hasher.update(path_bytes);
-            if let Some(stack_id) = stack_id {
-                hasher.update(stack_id.0.as_bytes());
-            }
-            let object_id = hasher.try_finalize()?;
-            ChangeId::from_bytes(object_id.as_bytes())
-        },
-    )
+fn create_reverse_hex_id(
+    path_bytes: &[u8],
+    stack_id: Option<&StackId>,
+) -> anyhow::Result<ChangeId> {
+    let mut hasher = gix::hash::hasher(gix::hash::Kind::Sha1);
+    hasher.update(path_bytes);
+    if let Some(stack_id) = stack_id {
+        hasher.update(stack_id.0.as_bytes());
+    }
+    let object_id = hasher.try_finalize()?;
+    let mut change_id = ChangeId::from_bytes(object_id.as_bytes());
+    if stack_id.is_none() && path_bytes.iter().all(|c| b'k' <= *c && *c <= b'z') {
+        change_id.splice(0..0, path_bytes.to_owned());
+    }
+    Ok(change_id)
 }
 
 /// Assign short IDs to each `Some` entry such that they are unambiguous with
 /// respect to every other entry. `reverse_hex_short_ids` must already be
 /// sorted.
-fn assign_short_ids(reverse_hex_short_ids: &mut [(ChangeId, Option<&mut ShortId>)]) -> anyhow::Result<()> {
+fn assign_short_ids(
+    reverse_hex_short_ids: &mut [(ChangeId, Option<&mut ShortId>)],
+) -> anyhow::Result<()> {
     let mut common_with_previous_len = 0;
     let mut remaining = reverse_hex_short_ids;
     while let Some(((reverse_hex, short_id), rest)) = remaining.split_first_mut() {
-        let common_with_next_len = rest.first().map_or(0, |(next_reverse_hex, _next_short_id)| {
-            common_prefix_len(reverse_hex, next_reverse_hex)
-        });
+        let common_with_next_len = rest
+            .first()
+            .map_or(0, |(next_reverse_hex, _next_short_id)| {
+                common_prefix_len(reverse_hex, next_reverse_hex)
+            });
         if let Some(short_id) = short_id {
             short_id.push_str(str::from_utf8(
                 &reverse_hex[..(1 + 1.max(common_with_previous_len).max(common_with_next_len))],
@@ -76,7 +84,11 @@ fn short_ids_from_tree_changes(
     let FileInfo { changes } = FileInfo::from_tree_changes(tree_changes)?;
     let mut short_ids: Vec<(NonEmpty<but_core::TreeChange>, ChangeId, ShortId)> = Vec::new();
     for (path, changes) in changes {
-        short_ids.push((changes, create_reverse_hex_id(&path, None)?, ShortId::default()));
+        short_ids.push((
+            changes,
+            create_reverse_hex_id(&path, None)?,
+            ShortId::default(),
+        ));
     }
     let mut reverse_hex_short_ids: Vec<(ChangeId, Option<&mut ShortId>)> = short_ids
         .iter_mut()
@@ -87,8 +99,10 @@ fn short_ids_from_tree_changes(
     Ok(short_ids)
 }
 
-type ChangesInCommitFn<'a> =
-    Box<dyn FnMut(gix::ObjectId, Option<gix::ObjectId>) -> anyhow::Result<Vec<but_core::TreeChange>> + 'a>;
+type ChangesInCommitFn<'a> = Box<
+    dyn FnMut(gix::ObjectId, Option<gix::ObjectId>) -> anyhow::Result<Vec<but_core::TreeChange>>
+        + 'a,
+>;
 trait Node<'a> {
     fn parse(
         self: Box<Self>,
@@ -113,7 +127,11 @@ impl<'a> Node<'a> for Leaf {
         Ok(Vec::new())
     }
 
-    fn to_cli_id(self: Box<Self>, _short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        _short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         Ok(Some(self.cli_id.clone()))
     }
 }
@@ -152,11 +170,17 @@ impl WorkspaceCommitWithId {
 /// Methods to calculate the short IDs of committed files.
 impl WorkspaceCommitWithId {
     /// Calculate the short IDs of all changes in this commit.
-    pub fn tree_changes<F>(&self, mut changes_in_commit_fn: F) -> anyhow::Result<Vec<TreeChangeWithId>>
+    pub fn tree_changes<F>(
+        &self,
+        mut changes_in_commit_fn: F,
+    ) -> anyhow::Result<Vec<TreeChangeWithId>>
     where
         F: FnMut(gix::ObjectId, Option<gix::ObjectId>) -> anyhow::Result<Vec<but_core::TreeChange>>,
     {
-        let rhs_indexes = short_ids_from_tree_changes(changes_in_commit_fn(self.commit_id(), self.first_parent_id())?)?;
+        let rhs_indexes = short_ids_from_tree_changes(changes_in_commit_fn(
+            self.commit_id(),
+            self.first_parent_id(),
+        )?)?;
         Ok(rhs_indexes
             .into_iter()
             .flat_map(|(changes, _change_id, short_id)| {
@@ -169,8 +193,13 @@ impl WorkspaceCommitWithId {
     }
     /// Convenience for [WorkspaceCommitWithId::tree_changes] if a
     /// [gix::Repository] is available.
-    pub fn tree_changes_using_repo(&self, repo: &gix::Repository) -> anyhow::Result<Vec<TreeChangeWithId>> {
-        self.tree_changes(|commit_id, parent_id| but_core::diff::tree_changes(repo, parent_id, commit_id))
+    pub fn tree_changes_using_repo(
+        &self,
+        repo: &gix::Repository,
+    ) -> anyhow::Result<Vec<TreeChangeWithId>> {
+        self.tree_changes(|commit_id, parent_id| {
+            but_core::diff::tree_changes(repo, parent_id, commit_id)
+        })
     }
 }
 impl<'a> Node<'a> for &'a WorkspaceCommitWithId {
@@ -181,9 +210,13 @@ impl<'a> Node<'a> for &'a WorkspaceCommitWithId {
         changes_in_commit_fn: &mut ChangesInCommitFn<'a>,
     ) -> anyhow::Result<Vec<Box<dyn Node<'a> + 'a>>> {
         let mut matches = Vec::<Box<dyn Node<'a> + 'a>>::new();
-        let rhs_indexes = short_ids_from_tree_changes(changes_in_commit_fn(self.commit_id(), self.first_parent_id())?)?;
+        let rhs_indexes = short_ids_from_tree_changes(changes_in_commit_fn(
+            self.commit_id(),
+            self.first_parent_id(),
+        )?)?;
         for (tree_changes, change_id, short_id) in rhs_indexes {
-            let is_match = change_id.starts_with(element.as_bytes()) || tree_changes.first().path == BStr::new(element);
+            let is_match = change_id.starts_with(element.as_bytes())
+                || tree_changes.first().path == BStr::new(element);
             if is_match {
                 matches.push(Box::new(Leaf {
                     cli_id: CliId::CommittedFile {
@@ -197,7 +230,11 @@ impl<'a> Node<'a> for &'a WorkspaceCommitWithId {
         Ok(matches)
     }
 
-    fn to_cli_id(self: Box<Self>, _short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        _short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         Ok(Some(CliId::Commit {
             commit_id: self.commit_id(),
             id: self.short_id.clone(),
@@ -229,7 +266,11 @@ impl<'a> Node<'a> for &'a RemoteCommitWithId {
         Ok(Vec::new())
     }
 
-    fn to_cli_id(self: Box<Self>, _short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        _short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         Ok(Some(CliId::Commit {
             commit_id: self.commit_id(),
             id: self.short_id.clone(),
@@ -260,7 +301,10 @@ pub struct SegmentWithId {
 impl SegmentWithId {
     /// Returns the branch name.
     pub fn branch_name(&self) -> Option<&BStr> {
-        self.inner.ref_info.as_ref().map(|ref_info| ref_info.ref_name.shorten())
+        self.inner
+            .ref_info
+            .as_ref()
+            .map(|ref_info| ref_info.ref_name.shorten())
     }
     /// Returns the linked worktree ID.
     pub fn linked_worktree_id(&self) -> Option<&BStr> {
@@ -293,7 +337,11 @@ impl<'a> Node<'a> for &'a SegmentWithId {
         Ok(Vec::new())
     }
 
-    fn to_cli_id(self: Box<Self>, _short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        _short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         Ok(Some(CliId::Branch {
             name: self.branch_name().unwrap_or_default().to_string(),
             id: self.short_id.clone(),
@@ -322,14 +370,20 @@ impl<'a> Node<'a> for &'a StackWithId {
             // TODO once the set of allowed CLI IDs is determined and the
             // access patterns of `uncommitted_files` are known, change its data
             // structure to be more efficient than the current linear search.
-            if hunk_assignment.stack_id == self.id && hunk_assignment.path_bytes == element.as_bytes() {
+            if hunk_assignment.stack_id == self.id
+                && hunk_assignment.path_bytes == element.as_bytes()
+            {
                 return Ok(vec![Box::new(uncommitted_file)]);
             }
         }
         Ok(Vec::new())
     }
 
-    fn to_cli_id(self: Box<Self>, short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         let Some(stack_id) = self.id else {
             return Ok(None);
         };
@@ -391,7 +445,9 @@ impl IdMap {
         let mut uncommitted_files: BTreeMap<ChangeId, UncommittedFile> = BTreeMap::new();
         for hunk_assignments in partitioned_hunks {
             let HunkAssignment {
-                path_bytes, stack_id, ..
+                path_bytes,
+                stack_id,
+                ..
             } = hunk_assignments.first();
             let reverse_hex = create_reverse_hex_id(path_bytes, stack_id.as_ref())?;
             // Ensure that uncommitted files do not collide with CLI IDs generated after
@@ -414,7 +470,9 @@ impl IdMap {
         }
         let mut reverse_hex_short_ids: Vec<(ChangeId, Option<&mut ShortId>)> = uncommitted_files
             .iter_mut()
-            .map(|(reverse_hex, uncommitted_file)| (reverse_hex.clone(), Some(&mut uncommitted_file.short_id)))
+            .map(|(reverse_hex, uncommitted_file)| {
+                (reverse_hex.clone(), Some(&mut uncommitted_file.short_id))
+            })
             .collect();
         // Ensure that uncommitted files do not collide with branch substrings
         for short_id in short_ids_to_count.keys() {
@@ -464,7 +522,10 @@ impl IdMap {
     ///
     /// # NOTE: claims a read-only workspace lock!
     /// TODO(ctx|ai): make it use perm so the caller keeps the state exclusive/shared over greater periods.
-    pub fn new_from_context(ctx: &mut Context, assignments: Option<Vec<HunkAssignment>>) -> anyhow::Result<Self> {
+    pub fn new_from_context(
+        ctx: &mut Context,
+        assignments: Option<Vec<HunkAssignment>>,
+    ) -> anyhow::Result<Self> {
         let meta = ctx.meta()?;
         let context_lines = ctx.settings.context_lines;
         let (_guard, repo, ws, mut db) = ctx.workspace_and_db_mut()?;
@@ -512,7 +573,9 @@ impl IdMap {
             // TODO once the set of allowed CLI IDs is determined and the
             // access patterns of `uncommitted_files` are known, change its data
             // structure to be more efficient than the current linear search.
-            if hunk_assignment.stack_id == stack_id && hunk_assignment.path_bytes == element.as_bytes() {
+            if hunk_assignment.stack_id == stack_id
+                && hunk_assignment.path_bytes == element.as_bytes()
+            {
                 matches.push(Box::new(uncommitted_file));
             }
         }
@@ -584,7 +647,10 @@ impl IdMap {
             for stack_with_id in self.indexed_stacks.borrow_owner().iter() {
                 for segment_with_id in stack_with_id.segments.iter() {
                     for workspace_commit_with_id in segment_with_id.workspace_commits.iter() {
-                        if prefix.cmp_oid(&workspace_commit_with_id.commit_id()).is_eq() {
+                        if prefix
+                            .cmp_oid(&workspace_commit_with_id.commit_id())
+                            .is_eq()
+                        {
                             matches.push(Box::new(workspace_commit_with_id));
                         }
                     }
@@ -634,7 +700,11 @@ impl IdMap {
                     Ok(id_map.parse_uncommitted_filename(None, element))
                 }
 
-                fn to_cli_id(self: Box<Self>, _short_id: &str, id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+                fn to_cli_id(
+                    self: Box<Self>,
+                    _short_id: &str,
+                    id_map: &IdMap,
+                ) -> anyhow::Result<Option<CliId>> {
                     Ok(Some(id_map.unassigned.clone()))
                 }
             }
@@ -651,8 +721,9 @@ impl IdMap {
         // substring "kp"), so it should not match with "kp".
         if matches.is_empty() {
             let element_bstring = BString::from(element);
-            for (reverse_hex, uncommitted_file) in
-                self.uncommitted_files.range(ChangeId::from(element_bstring.clone())..)
+            for (reverse_hex, uncommitted_file) in self
+                .uncommitted_files
+                .range(ChangeId::from(element_bstring.clone())..)
             {
                 if !reverse_hex.starts_with(&element_bstring) {
                     break;
@@ -694,18 +765,38 @@ impl IdMap {
             }
         }
 
-        Ok(cli_ids)
+        let mut deduped = Vec::new();
+        'next: for cli_id in cli_ids {
+            for existing in &deduped {
+                if cli_ids_refer_to_same_entity(existing, &cli_id) {
+                    continue 'next;
+                }
+            }
+            deduped.push(cli_id);
+        }
+
+        Ok(deduped)
     }
     /// Convenience for [IdMap::parse] if a [gix::Repository] is available.
-    pub fn parse_using_repo<'a>(&'a self, entity: &str, repo: &'a gix::Repository) -> anyhow::Result<Vec<CliId>> {
+    pub fn parse_using_repo<'a>(
+        &'a self,
+        entity: &str,
+        repo: &'a gix::Repository,
+    ) -> anyhow::Result<Vec<CliId>> {
         self.parse(
             entity,
-            Box::new(move |commit_id, parent_id| but_core::diff::tree_changes(repo, parent_id, commit_id)),
+            Box::new(move |commit_id, parent_id| {
+                but_core::diff::tree_changes(repo, parent_id, commit_id)
+            }),
         )
     }
 
     /// Convenience for [IdMap::parse] if a [Context] is available.
-    pub fn parse_using_context(&self, entity: &str, ctx: &mut Context) -> anyhow::Result<Vec<CliId>> {
+    pub fn parse_using_context(
+        &self,
+        entity: &str,
+        ctx: &mut Context,
+    ) -> anyhow::Result<Vec<CliId>> {
         let repo = &*ctx.repo.get()?;
         self.parse_using_repo(entity, repo)
     }
@@ -726,6 +817,70 @@ impl IdMap {
     /// Returns all known stacks.
     pub fn stacks(&self) -> &Vec<StackWithId> {
         self.indexed_stacks.borrow_owner()
+    }
+}
+
+fn cli_ids_refer_to_same_entity(lhs: &CliId, rhs: &CliId) -> bool {
+    match (lhs, rhs) {
+        (CliId::Uncommitted(lhs_uncommitted), CliId::Uncommitted(rhs_uncommitted)) => {
+            lhs_uncommitted.hunk_assignments == rhs_uncommitted.hunk_assignments
+                && lhs_uncommitted.is_entire_file == rhs_uncommitted.is_entire_file
+        }
+        (
+            CliId::Commit {
+                commit_id: lhs_commit_id,
+                ..
+            },
+            CliId::Commit {
+                commit_id: rhs_commit_id,
+                ..
+            },
+        ) => lhs_commit_id == rhs_commit_id,
+        (
+            CliId::CommittedFile {
+                commit_id: lhs_commit_id,
+                path: lhs_path,
+                ..
+            },
+            CliId::CommittedFile {
+                commit_id: rhs_commit_id,
+                path: rhs_path,
+                ..
+            },
+        ) => lhs_commit_id == rhs_commit_id && lhs_path == rhs_path,
+        (
+            CliId::Branch {
+                name: lhs_name,
+                id: lhs_id,
+                stack_id: lhs_stack_id,
+                ..
+            },
+            CliId::Branch {
+                name: rhs_name,
+                id: rhs_id,
+                stack_id: rhs_stack_id,
+                ..
+            },
+        ) => match (lhs_stack_id, rhs_stack_id) {
+            // Managed stacks have stable stack IDs, so this is true entity identity.
+            (Some(lhs_stack_id), Some(rhs_stack_id)) => {
+                lhs_name == rhs_name && lhs_stack_id == rhs_stack_id
+            }
+            // Unmanaged stacks can have `None` IDs; keep branch matches distinct by their own CLI IDs.
+            _ => lhs_id == rhs_id,
+        },
+        (
+            CliId::Stack {
+                stack_id: lhs_stack_id,
+                ..
+            },
+            CliId::Stack {
+                stack_id: rhs_stack_id,
+                ..
+            },
+        ) => lhs_stack_id == rhs_stack_id,
+        (CliId::Unassigned { .. }, CliId::Unassigned { .. }) => true,
+        _ => false,
     }
 }
 
@@ -823,7 +978,9 @@ impl PartialEq for CliId {
                 Self::Uncommitted(UncommittedCliId { id: l_id, .. }),
                 Self::Uncommitted(UncommittedCliId { id: r_id, .. }),
             ) => l_id == r_id,
-            (Self::CommittedFile { id: l_id, .. }, Self::CommittedFile { id: r_id, .. }) => l_id == r_id,
+            (Self::CommittedFile { id: l_id, .. }, Self::CommittedFile { id: r_id, .. }) => {
+                l_id == r_id
+            }
             (Self::Branch { id: l_id, .. }, Self::Branch { id: r_id, .. }) => l_id == r_id,
             (Self::Commit { id: l_id, .. }, Self::Commit { id: r_id, .. }) => l_id == r_id,
             (Self::Unassigned { .. }, Self::Unassigned { .. }) => true,
@@ -898,7 +1055,11 @@ impl<'a> Node<'a> for &'a UncommittedFile {
         Ok(Vec::new())
     }
 
-    fn to_cli_id(self: Box<Self>, _short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        _short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         Ok(Some(CliId::Uncommitted(UncommittedCliId {
             id: self.short_id.clone(),
             hunk_assignments: self.hunk_assignments.clone(),
@@ -923,7 +1084,11 @@ impl<'a> Node<'a> for &'a UncommittedHunk {
         Ok(Vec::new())
     }
 
-    fn to_cli_id(self: Box<Self>, short_id: &str, _id_map: &IdMap) -> anyhow::Result<Option<CliId>> {
+    fn to_cli_id(
+        self: Box<Self>,
+        short_id: &str,
+        _id_map: &IdMap,
+    ) -> anyhow::Result<Option<CliId>> {
         Ok(Some(CliId::Uncommitted(UncommittedCliId {
             id: short_id.to_owned(),
             hunk_assignments: NonEmpty::new(self.hunk_assignment.clone()),

@@ -5,7 +5,8 @@ use but_graph::{Commit, CommitFlags, Graph, Segment, SegmentIndex};
 use petgraph::{Direction, visit::EdgeRef as _};
 
 use crate::graph_rebase::{
-    Checkout, Edge, Editor, Pick, RevisionHistory, Selector, Step, StepGraph, StepGraphIndex, SuccessfulRebase,
+    Checkout, Edge, Editor, Pick, RevisionHistory, Selector, Step, StepGraph, StepGraphIndex,
+    SuccessfulRebase,
 };
 
 /// Provides an extension for creating an Editor out of the segment graph
@@ -32,40 +33,48 @@ impl GraphExt for Graph {
 
         let mut segment_ids = vec![];
 
-        self.visit_all_segments_including_start_until(entrypoint.segment_index, Direction::Outgoing, |segment| {
-            segment_ids.push(segment.id);
+        self.visit_all_segments_including_start_until(
+            entrypoint.segment_index,
+            Direction::Outgoing,
+            |segment| {
+                segment_ids.push(segment.id);
 
-            // Make a note to create a reference for named segments
-            if let Some(refname) = segment.ref_name()
-                && let Some(commit) = find_nearest_commit(self, segment)
-            {
-                references
-                    .entry(commit.id)
-                    .and_modify(|rs| rs.push(refname.to_owned()))
-                    .or_insert_with(|| vec![refname.to_owned()]);
+                // Make a note to create a reference for named segments
+                if let Some(refname) = segment.ref_name()
+                    && let Some(commit) = find_nearest_commit(self, segment)
+                {
+                    references
+                        .entry(commit.id)
+                        .and_modify(|rs| rs.push(refname.to_owned()))
+                        .or_insert_with(|| vec![refname.to_owned()]);
 
-                if head_refname.is_none() {
-                    head_refname = Some(refname.to_owned());
-                }
-            }
-
-            // Make a note to create a references that sit on commits
-            for commit in &segment.commits {
-                if !commit.refs.is_empty() {
-                    commit.flags.contains(CommitFlags::InWorkspace);
-                    let refs = commit.refs.iter().map(|r| r.ref_name.clone()).collect::<Vec<_>>();
-                    if let Some(entry) = references.get_mut(&commit.id) {
-                        entry.extend(refs);
-                    } else {
-                        references.insert(commit.id, refs);
+                    if head_refname.is_none() {
+                        head_refname = Some(refname.to_owned());
                     }
                 }
-            }
 
-            commits.extend(segment.commits.clone());
+                // Make a note to create a references that sit on commits
+                for commit in &segment.commits {
+                    if !commit.refs.is_empty() {
+                        commit.flags.contains(CommitFlags::InWorkspace);
+                        let refs = commit
+                            .refs
+                            .iter()
+                            .map(|r| r.ref_name.clone())
+                            .collect::<Vec<_>>();
+                        if let Some(entry) = references.get_mut(&commit.id) {
+                            entry.extend(refs);
+                        } else {
+                            references.insert(commit.id, refs);
+                        }
+                    }
+                }
 
-            false
-        });
+                commits.extend(segment.commits.clone());
+
+                false
+            },
+        );
 
         // Used for linking up all the commits.
         // Each commit is considered to have a top and/or a bottom node. This is
@@ -168,7 +177,9 @@ impl GraphExt for Graph {
                     && Some(c.id) != workspace_commit_id
                 {
                     if let Some(StepChain { bottom, .. }) = steps_for_commits.get(&c.id)
-                        && let Step::Pick(Pick { preserved_parents, .. }) = &graph[*bottom]
+                        && let Step::Pick(Pick {
+                            preserved_parents, ..
+                        }) = &graph[*bottom]
                         && preserved_parents.is_some()
                     {
                         // Don't warn if preserved parents is set, we don't need
@@ -177,8 +188,14 @@ impl GraphExt for Graph {
                         tracing::warn!(
                             "but-graph inconsistent with the commit graph.\nParents for commit {} do not match.\n\nFound:{:?}\nExpected:{:?}\n\nThese IDs may be in memory, but may be helpful for debugging.",
                             c.id,
-                            parent_ids.iter().map(|p| p.commit.to_string()).collect::<Vec<_>>(),
-                            c.parent_ids.iter().map(|p| p.to_string()).collect::<Vec<_>>(),
+                            parent_ids
+                                .iter()
+                                .map(|p| p.commit.to_string())
+                                .collect::<Vec<_>>(),
+                            c.parent_ids
+                                .iter()
+                                .map(|p| p.to_string())
+                                .collect::<Vec<_>>(),
                         );
                     }
 
@@ -199,8 +216,10 @@ impl GraphExt for Graph {
                             top: top_p,
                             bottom: bottom_p,
                         }),
-                    ) = (steps_for_commits.get(&c.id), steps_for_commits.get(&p.commit))
-                    {
+                    ) = (
+                        steps_for_commits.get(&c.id),
+                        steps_for_commits.get(&p.commit),
+                    ) {
                         if p.via_reference {
                             graph.add_edge(*bottom, *top_p, Edge { order: i });
                         } else {
@@ -238,14 +257,20 @@ impl SuccessfulRebase {
 
 /// Find the commit that is nearest to the top of the segment via a first parent
 /// traversal.
-fn find_nearest_commit<'graph>(graph: &'graph Graph, segment: &'graph Segment) -> Option<&'graph Commit> {
+fn find_nearest_commit<'graph>(
+    graph: &'graph Graph,
+    segment: &'graph Segment,
+) -> Option<&'graph Commit> {
     let mut target = Some(segment);
     while let Some(s) = target {
         if let Some(c) = s.commits.first() {
             return Some(c);
         }
 
-        target = graph.segments_below_in_order(s.id).next().map(|s| &graph[s.1]);
+        target = graph
+            .segments_below_in_order(s.id)
+            .next()
+            .map(|s| &graph[s.1]);
     }
 
     None
@@ -265,7 +290,10 @@ struct CommitViaReference {
 ///
 /// It also annotates whether a reference was found between the bottom of the
 /// starting sidx and each parent commit.
-fn find_segment_edge_commits(graph: &but_graph::Graph, sidx: SegmentIndex) -> Vec<CommitViaReference> {
+fn find_segment_edge_commits(
+    graph: &but_graph::Graph,
+    sidx: SegmentIndex,
+) -> Vec<CommitViaReference> {
     struct SegmentViaReference {
         sidx: SegmentIndex,
         via_reference: bool,

@@ -11,8 +11,10 @@ use but_workspace::legacy::{StacksFilter, ui::StackEntry};
 use cli_prompts::DisplayPrompt;
 use colored::Colorize;
 use gitbutler_branch_actions::BranchListingFilter;
-use gitbutler_oplog::OplogExt;
-use gitbutler_oplog::entry::{OperationKind, SnapshotDetails};
+use gitbutler_oplog::{
+    OplogExt,
+    entry::{OperationKind, SnapshotDetails},
+};
 use gix::{revision::walk::Sorting, traverse::commit::simple::CommitTimeOrder};
 
 use crate::{CliId, IdMap, utils::OutputChannel};
@@ -20,9 +22,15 @@ use crate::{CliId, IdMap, utils::OutputChannel};
 /// Handle the `but pick` command.
 ///
 /// Cherry-picks one or more commits from an unapplied branch into an applied virtual branch.
-pub fn handle(ctx: &mut Context, out: &mut OutputChannel, source: &str, target_branch: Option<&str>) -> Result<()> {
+pub fn handle(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    source: &str,
+    target_branch: Option<&str>,
+) -> Result<()> {
     // Get applied stacks first - we'll need them for target resolution
-    let stacks = workspace::stacks(ctx, Some(StacksFilter::InWorkspace)).context("Failed to list stacks")?;
+    let stacks =
+        workspace::stacks(ctx, Some(StacksFilter::InWorkspace)).context("Failed to list stacks")?;
 
     if stacks.is_empty() {
         bail!("No applied stacks in workspace. Apply a branch first with 'but branch apply'.");
@@ -66,7 +74,8 @@ pub fn handle(ctx: &mut Context, out: &mut OutputChannel, source: &str, target_b
             resolve_target_stack(ctx, out, &stacks, effective_target, &status, &commit_hex)?;
 
         // Execute cherry-apply
-        cherry_apply::cherry_apply(ctx, commit_hex.clone(), target_stack_id).context("Failed to cherry-pick commit")?;
+        cherry_apply::cherry_apply(ctx, commit_hex.clone(), target_stack_id)
+            .context("Failed to cherry-pick commit")?;
 
         picked.push((commit_hex, target_branch_name, target_stack_id));
     }
@@ -126,7 +135,11 @@ pub fn handle(ctx: &mut Context, out: &mut OutputChannel, source: &str, target_b
 /// 1. Unapplied branch name (shows interactive commit selection if available)
 /// 2. CLI ID (e.g., "c5")
 /// 3. Full or partial commit SHA (via rev_parse)
-fn resolve_source_commits(ctx: &mut Context, out: &mut OutputChannel, source: &str) -> Result<Vec<gix::ObjectId>> {
+fn resolve_source_commits(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    source: &str,
+) -> Result<Vec<gix::ObjectId>> {
     // Try as an unapplied branch name first (case-insensitive)
     // This takes priority so branch names trigger interactive commit selection
     let branches = virtual_branches::list_branches(
@@ -254,8 +267,10 @@ fn select_commits_from_branch(
         })
         .collect();
 
-    let prompt =
-        cli_prompts::prompts::Multiselect::new(&format!("Pick commits from '{branch_name}':"), options.iter().cloned());
+    let prompt = cli_prompts::prompts::Multiselect::new(
+        &format!("Pick commits from '{branch_name}':"),
+        options.iter().cloned(),
+    );
 
     let selections = prompt
         .display()
@@ -276,7 +291,10 @@ fn select_commits_from_branch(
     selected_indices_sorted.sort_unstable();
     selected_indices_sorted.reverse();
 
-    Ok(selected_indices_sorted.into_iter().map(|i| commits[i].0).collect())
+    Ok(selected_indices_sorted
+        .into_iter()
+        .map(|i| commits[i].0)
+        .collect())
 }
 
 /// Resolve the target stack based on user input and cherry-apply status.
@@ -352,10 +370,9 @@ fn handle_locked_to_stack(
     // Warn if user specified a different target
     if let Some(target) = target_branch {
         let target_lower = target.to_lowercase();
-        let target_matches = locked_stack
-            .heads
-            .iter()
-            .any(|h| h.name.to_str_lossy() == target || h.name.to_string().to_lowercase() == target_lower);
+        let target_matches = locked_stack.heads.iter().any(|h| {
+            h.name.to_str_lossy() == target || h.name.to_string().to_lowercase() == target_lower
+        });
 
         if !target_matches && let Some(out) = out.for_human() {
             writeln!(
@@ -371,7 +388,11 @@ fn handle_locked_to_stack(
 }
 
 /// Find a stack by CLI ID or branch name (case-insensitive).
-fn find_stack_by_target(ctx: &mut Context, stacks: &[StackEntry], target: &str) -> Result<(StackId, String)> {
+fn find_stack_by_target(
+    ctx: &mut Context,
+    stacks: &[StackEntry],
+    target: &str,
+) -> Result<(StackId, String)> {
     // Try parsing as CLI ID first
     if let Ok(id_map) = IdMap::new_from_context(ctx, None)
         && let Ok(cli_ids) = id_map.parse_using_context(target, ctx)
@@ -395,7 +416,9 @@ fn find_stack_by_target(ctx: &mut Context, stacks: &[StackEntry], target: &str) 
     let target_lower = target.to_lowercase();
     for stack in stacks {
         for head in &stack.heads {
-            if head.name.to_str_lossy() == target || head.name.to_string().to_lowercase() == target_lower {
+            if head.name.to_str_lossy() == target
+                || head.name.to_string().to_lowercase() == target_lower
+            {
                 return get_stack_info(stack);
             }
         }
@@ -440,7 +463,8 @@ fn select_target_interactively(stacks: &[StackEntry]) -> Result<(StackId, String
         bail!("No branches available for selection.");
     }
 
-    let prompt = cli_prompts::prompts::Selection::new("Select target branch:", options.iter().cloned());
+    let prompt =
+        cli_prompts::prompts::Selection::new("Select target branch:", options.iter().cloned());
 
     let selection = prompt
         .display()

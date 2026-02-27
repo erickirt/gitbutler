@@ -6,7 +6,7 @@
 	import { getOS, type OS } from '$lib/utils/getOS';
 	import { onMount } from 'svelte';
 
-	let detectedOS = $state('');
+	let detectedOS = $state("");
 	let selectedDownload = $state(jsonLinks.downloads.appleSilicon);
 	let tiltX = $state(0);
 	let tiltY = $state(0);
@@ -41,7 +41,7 @@
 	// Tilt effect handlers (only for non-touch devices)
 	function handleMouseMove(e: MouseEvent) {
 		// Skip tilt effect on touch devices
-		if (window.matchMedia('(pointer: coarse)').matches) return;
+		if (window.matchMedia("(pointer: coarse)").matches) return;
 
 		const target = e.currentTarget as HTMLElement;
 		const rect = target.getBoundingClientRect();
@@ -59,7 +59,7 @@
 
 	function handleMouseEnter() {
 		// Skip hover effect on touch devices
-		if (window.matchMedia('(pointer: coarse)').matches) return;
+		if (window.matchMedia("(pointer: coarse)").matches) return;
 		isHovering = true;
 	}
 

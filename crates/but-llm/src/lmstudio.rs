@@ -8,8 +8,8 @@ use crate::{
     chat::ChatMessage,
     client::LLMClient,
     openai_utils::{
-        OpenAIClientProvider, response_blocking, stream_response_blocking, structured_output_blocking,
-        tool_calling_loop, tool_calling_loop_stream,
+        OpenAIClientProvider, response_blocking, stream_response_blocking,
+        structured_output_blocking, tool_calling_loop, tool_calling_loop_stream,
     },
 };
 
@@ -93,7 +93,14 @@ impl LLMClient for LMStudioProvider {
         model: &str,
         on_token: impl Fn(&str) + Send + Sync + 'static,
     ) -> Result<(String, Vec<ChatMessage>)> {
-        let result = tool_calling_loop_stream(self, system_message, chat_messages, tool_set, model, on_token)?;
+        let result = tool_calling_loop_stream(
+            self,
+            system_message,
+            chat_messages,
+            tool_set,
+            model,
+            on_token,
+        )?;
         Ok((result.final_response, result.message_history))
     }
 
@@ -117,7 +124,9 @@ impl LLMClient for LMStudioProvider {
         stream_response_blocking(self, system_message, chat_messages, model, on_token)
     }
 
-    fn structured_output<T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static>(
+    fn structured_output<
+        T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static,
+    >(
         &self,
         system_message: &str,
         chat_messages: Vec<ChatMessage>,
@@ -126,7 +135,12 @@ impl LLMClient for LMStudioProvider {
         structured_output_blocking::<T>(self, system_message, chat_messages, model)
     }
 
-    fn response(&self, system_message: &str, chat_messages: Vec<ChatMessage>, model: &str) -> Result<Option<String>> {
+    fn response(
+        &self,
+        system_message: &str,
+        chat_messages: Vec<ChatMessage>,
+        model: &str,
+    ) -> Result<Option<String>> {
         response_blocking(self, system_message, chat_messages, model)
     }
 }

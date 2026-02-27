@@ -42,7 +42,8 @@ pub fn available_review_templates(root_path: &path::Path, forge_name: &ForgeName
             }
             SupportedTemplateDirectory::Custom(custom_dir) => {
                 let custom_path = root_path.join(custom_dir);
-                list_files(custom_path.as_path(), &[root_path], true, Some(root_path)).unwrap_or_default()
+                list_files(custom_path.as_path(), &[root_path], true, Some(root_path))
+                    .unwrap_or_default()
             }
         })
         .filter_map(|entry| {
@@ -120,10 +121,14 @@ fn is_review_template_github(path_str: &str) -> bool {
     let normalized_path = path_str.replace('\\', "/");
     normalized_path == "PULL_REQUEST_TEMPLATE.md"
         || normalized_path == "pull_request_template.md"
-        || normalized_path.contains(".github/PULL_REQUEST_TEMPLATE") && normalized_path.ends_with(".md")
-        || normalized_path.contains(".github/pull_request_template") && normalized_path.ends_with(".md")
-        || normalized_path.contains("docs/PULL_REQUEST_TEMPLATE") && normalized_path.ends_with(".md")
-        || normalized_path.contains("docs/pull_request_template") && normalized_path.ends_with(".md")
+        || normalized_path.contains(".github/PULL_REQUEST_TEMPLATE")
+            && normalized_path.ends_with(".md")
+        || normalized_path.contains(".github/pull_request_template")
+            && normalized_path.ends_with(".md")
+        || normalized_path.contains("docs/PULL_REQUEST_TEMPLATE")
+            && normalized_path.ends_with(".md")
+        || normalized_path.contains("docs/pull_request_template")
+            && normalized_path.ends_with(".md")
 }
 
 fn is_valid_review_template_path_github(path: &path::Path) -> bool {
@@ -374,7 +379,11 @@ impl From<but_github::PullRequest> for ForgeReview {
             repository_ssh_url: pr.repository_ssh_url,
             repository_https_url: pr.repository_https_url,
             repo_owner: pr.repo_owner,
-            reviewers: pr.requested_reviewers.into_iter().map(ForgeUser::from).collect(),
+            reviewers: pr
+                .requested_reviewers
+                .into_iter()
+                .map(ForgeUser::from)
+                .collect(),
             unit_symbol: "#".to_string(),
             last_sync_at: chrono::Local::now().naive_local(),
         }
@@ -488,10 +497,13 @@ pub async fn check_forge_account_is_valid(
 ) -> Result<ForgeAccountValidity> {
     match forge_repo_info.forge {
         ForgeName::GitHub => {
-            let preferred_account = match preferred_forge_user.as_ref().and_then(|user| user.github().cloned()) {
+            let preferred_account = match preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.github().cloned())
+            {
                 Some(account) => account,
                 None => {
-                    let known_accounts = but_github::list_known_github_accounts(storage).await?;
+                    let known_accounts = but_github::list_known_github_accounts(storage)?;
                     match known_accounts.first() {
                         Some(account) => account.clone(),
                         None => {
@@ -506,10 +518,13 @@ pub async fn check_forge_account_is_valid(
                 .map(Into::into)
         }
         ForgeName::GitLab => {
-            let preferred_account = match preferred_forge_user.as_ref().and_then(|user| user.gitlab().cloned()) {
+            let preferred_account = match preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.gitlab().cloned())
+            {
                 Some(account) => account,
                 None => {
-                    let known_accounts = but_gitlab::list_known_gitlab_accounts(storage).await?;
+                    let known_accounts = but_gitlab::list_known_gitlab_accounts(storage)?;
                     match known_accounts.first() {
                         Some(account) => account.clone(),
                         None => {
@@ -535,10 +550,14 @@ fn list_forge_reviews(
     forge_repo_info: &crate::forge::ForgeRepoInfo,
     storage: &but_forge_storage::Controller,
 ) -> Result<Vec<ForgeReview>> {
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
     let reviews = match forge {
         ForgeName::GitHub => {
-            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github().cloned());
+            let preferred_account = preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.github().cloned());
 
             // Clone owned data for thread
             let owner = owner.clone();
@@ -546,36 +565,47 @@ fn list_forge_reviews(
             let storage = storage.clone();
 
             let pulls = std::thread::spawn(move || {
-                tokio::runtime::Runtime::new().unwrap().block_on(but_github::pr::list(
-                    preferred_account.as_ref(),
-                    &owner,
-                    &repo,
-                    &storage,
-                ))
+                tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(but_github::pr::list(
+                        preferred_account.as_ref(),
+                        &owner,
+                        &repo,
+                        &storage,
+                    ))
             })
             .join()
             .map_err(|e| anyhow::anyhow!("Failed to join thread: {e:?}"))??;
 
-            pulls.into_iter().map(ForgeReview::from).collect::<Vec<ForgeReview>>()
+            pulls
+                .into_iter()
+                .map(ForgeReview::from)
+                .collect::<Vec<ForgeReview>>()
         }
         ForgeName::GitLab => {
-            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab().cloned());
+            let preferred_account = preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.gitlab().cloned());
 
             // Clone owned data for thread
             let project_id = GitLabProjectId::new(owner, repo);
             let storage = storage.clone();
 
             let mrs = std::thread::spawn(move || {
-                tokio::runtime::Runtime::new().unwrap().block_on(but_gitlab::mr::list(
-                    preferred_account.as_ref(),
-                    project_id,
-                    &storage,
-                ))
+                tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(but_gitlab::mr::list(
+                        preferred_account.as_ref(),
+                        project_id,
+                        &storage,
+                    ))
             })
             .join()
             .map_err(|e| anyhow::anyhow!("Failed to join thread: {e:?}"))??;
 
-            mrs.into_iter().map(ForgeReview::from).collect::<Vec<ForgeReview>>()
+            mrs.into_iter()
+                .map(ForgeReview::from)
+                .collect::<Vec<ForgeReview>>()
         }
         _ => {
             return Err(Error::msg(format!(
@@ -604,22 +634,39 @@ pub async fn list_forge_reviews_for_branch(
     filter: Option<ForgeReviewFilter>,
 ) -> Result<Vec<ForgeReview>> {
     let filter = filter.unwrap_or_default();
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
     match forge {
         ForgeName::GitHub => {
-            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github().cloned());
-            let prs =
-                but_github::pr::list_all_for_branch(preferred_account.as_ref(), owner, repo, branch, storage).await?;
+            let preferred_account = preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.github().cloned());
+            let prs = but_github::pr::list_all_for_branch(
+                preferred_account.as_ref(),
+                owner,
+                repo,
+                branch,
+                storage,
+            )
+            .await?;
 
             let prs = filter_prs(prs, &filter);
 
             Ok(prs.into_iter().map(ForgeReview::from).collect())
         }
         ForgeName::GitLab => {
-            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab().cloned());
+            let preferred_account = preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.gitlab().cloned());
             let project_id = GitLabProjectId::new(owner, repo);
-            let mrs =
-                but_gitlab::mr::list_all_for_target(preferred_account.as_ref(), project_id, branch, storage).await?;
+            let mrs = but_gitlab::mr::list_all_for_target(
+                preferred_account.as_ref(),
+                project_id,
+                branch,
+                storage,
+            )
+            .await?;
             let mrs = filter_mrs(mrs, &filter);
             Ok(mrs.into_iter().map(ForgeReview::from).collect())
         }
@@ -629,7 +676,10 @@ pub async fn list_forge_reviews_for_branch(
     }
 }
 
-fn filter_prs(prs: Vec<but_github::PullRequest>, filter: &ForgeReviewFilter) -> Vec<but_github::PullRequest> {
+fn filter_prs(
+    prs: Vec<but_github::PullRequest>,
+    filter: &ForgeReviewFilter,
+) -> Vec<but_github::PullRequest> {
     let now = chrono::Utc::now();
     prs.into_iter()
         .filter(|pr| {
@@ -649,7 +699,8 @@ fn filter_prs(prs: Vec<but_github::PullRequest>, filter: &ForgeReviewFilter) -> 
                     if let Some(merged_at_str) = &pr.merged_at
                         && let Ok(merged_at) = chrono::DateTime::parse_from_rfc3339(merged_at_str)
                     {
-                        let week_start = now - chrono::Duration::days(now.weekday().num_days_from_monday() as i64);
+                        let week_start = now
+                            - chrono::Duration::days(now.weekday().num_days_from_monday() as i64);
                         return merged_at.date_naive() >= week_start.date_naive();
                     }
                     false
@@ -668,7 +719,10 @@ fn filter_prs(prs: Vec<but_github::PullRequest>, filter: &ForgeReviewFilter) -> 
         .collect()
 }
 
-fn filter_mrs(mrs: Vec<but_gitlab::MergeRequest>, filter: &ForgeReviewFilter) -> Vec<but_gitlab::MergeRequest> {
+fn filter_mrs(
+    mrs: Vec<but_gitlab::MergeRequest>,
+    filter: &ForgeReviewFilter,
+) -> Vec<but_gitlab::MergeRequest> {
     let now = chrono::Utc::now();
     mrs.into_iter()
         .filter(|mr| {
@@ -688,7 +742,8 @@ fn filter_mrs(mrs: Vec<but_gitlab::MergeRequest>, filter: &ForgeReviewFilter) ->
                     if let Some(merged_at_str) = &mr.merged_at
                         && let Ok(merged_at) = chrono::DateTime::parse_from_rfc3339(merged_at_str)
                     {
-                        let week_start = now - chrono::Duration::days(now.weekday().num_days_from_monday() as i64);
+                        let week_start = now
+                            - chrono::Duration::days(now.weekday().num_days_from_monday() as i64);
                         return merged_at.date_naive() >= week_start.date_naive();
                     }
                     false
@@ -707,30 +762,71 @@ fn filter_mrs(mrs: Vec<but_gitlab::MergeRequest>, filter: &ForgeReviewFilter) ->
         .collect()
 }
 
-/// Get a specific review (e.g. pull request) for a given forge repository
-pub async fn get_forge_review(
+async fn get_forge_review_inner(
     preferred_forge_user: &Option<crate::ForgeUser>,
     forge_repo_info: &crate::forge::ForgeRepoInfo,
     review_number: usize,
     storage: &but_forge_storage::Controller,
 ) -> Result<ForgeReview> {
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
     match forge {
         ForgeName::GitHub => {
             let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github());
-            let pr = but_github::pr::get(preferred_account, owner, repo, review_number, storage).await?;
+            let pr =
+                but_github::pr::get(preferred_account, owner, repo, review_number, storage).await?;
             Ok(ForgeReview::from(pr))
         }
         ForgeName::GitLab => {
             let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
             let project_id = GitLabProjectId::new(owner, repo);
-            let mr = but_gitlab::mr::get(preferred_account, project_id, review_number, storage).await?;
+            let mr =
+                but_gitlab::mr::get(preferred_account, project_id, review_number, storage).await?;
             Ok(ForgeReview::from(mr))
         }
         _ => Err(Error::msg(format!(
             "Getting reviews for forge {forge:?} is not implemented yet.",
         ))),
     }
+}
+
+/// Get a specific review (e.g. pull request) for a given forge repository
+///
+/// The resulting review will be cached.
+pub fn get_forge_review(
+    preferred_forge_user: &Option<crate::ForgeUser>,
+    forge_repo_info: &crate::forge::ForgeRepoInfo,
+    review_number: usize,
+    db: &mut but_db::DbHandle,
+    storage: &but_forge_storage::Controller,
+) -> Result<ForgeReview> {
+    let preferred_forge_user = preferred_forge_user.clone();
+    let forge_repo_info = forge_repo_info.clone();
+    let storage = storage.clone();
+
+    let review = std::thread::spawn(move || {
+        let runtime = tokio::runtime::Runtime::new().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed fetch review {review_number}: failed to create Tokio runtime: {e}"
+            )
+        })?;
+
+        runtime.block_on(get_forge_review_inner(
+            &preferred_forge_user,
+            &forge_repo_info,
+            review_number,
+            &storage,
+        ))
+    })
+    .join()
+    .map_err(|e| {
+        anyhow::anyhow!("Failed to fetch review {review_number}: thread panicked: {e:?}")
+    })??;
+
+    // Cache the review and ignore any issues, if any.
+    crate::db::upsert_review(db, &review).ok();
+    Ok(review)
 }
 
 /// Merge a review to it's target branch
@@ -740,7 +836,9 @@ pub async fn merge_review(
     review_number: usize,
     storage: &but_forge_storage::Controller,
 ) -> Result<()> {
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
     match forge {
         ForgeName::GitHub => {
             let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github());
@@ -777,6 +875,96 @@ pub async fn merge_review(
     }
 }
 
+/// Set a review to automatically merge when all prerequisites are met.
+pub async fn set_review_auto_merge_state(
+    preferred_forge_user: &Option<crate::ForgeUser>,
+    forge_repo_info: &crate::forge::ForgeRepoInfo,
+    review_number: usize,
+    enable: bool,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
+
+    match forge {
+        ForgeName::GitHub => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github());
+            let pr_number = review_number
+                .try_into()
+                .context("PR: Failed to cast usize to i64, somehow")?;
+            let params = but_github::SetPullRequestAutoMergeParams {
+                owner,
+                repo,
+                pr_number,
+                state: enable.into(),
+            };
+            but_github::pr::set_auto_merge(preferred_account, params, storage).await
+        }
+        ForgeName::GitLab => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let project_id = GitLabProjectId::new(owner, repo);
+            let mr_iid = review_number
+                .try_into()
+                .context("MR: Failed to cast usize to i64, somehow")?;
+            let params = but_gitlab::SetMergeRequestAutoMergeParams {
+                project_id,
+                mr_iid,
+                enabled: enable,
+            };
+            but_gitlab::mr::set_auto_merge(preferred_account, params, storage).await
+        }
+        _ => Err(Error::msg(format!(
+            "Setting the auto-merge state of reviews for forge {forge:?} is not implemented yet.",
+        ))),
+    }
+}
+
+/// Set the draftiness of a review: Should it be a draft or is it ready to review?
+pub async fn set_review_draftiness(
+    preferred_forge_user: &Option<crate::ForgeUser>,
+    forge_repo_info: &crate::forge::ForgeRepoInfo,
+    review_number: usize,
+    draft: bool,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
+
+    match forge {
+        ForgeName::GitHub => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github());
+            let pr_number = review_number
+                .try_into()
+                .context("PR: Failed to cast usize to i64, somehow")?;
+            let params = but_github::SetPullRequestDraftStateParams {
+                owner,
+                repo,
+                pr_number,
+                draft,
+            };
+            but_github::pr::set_draft_state(preferred_account, params, storage).await
+        }
+        ForgeName::GitLab => {
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let project_id = GitLabProjectId::new(owner, repo);
+            let mr_iid = review_number
+                .try_into()
+                .context("MR: Failed to cast usize to i64, somehow")?;
+            let params = but_gitlab::SetMergeRequestDraftStateParams {
+                project_id,
+                mr_iid,
+                is_draft: draft,
+            };
+            but_gitlab::mr::set_draft_state(preferred_account, params, storage).await
+        }
+        _ => Err(Error::msg(format!(
+            "Setting the draftiness of reviews for forge {forge:?} is not implemented yet.",
+        ))),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateForgeReviewParams {
@@ -787,24 +975,55 @@ pub struct CreateForgeReviewParams {
     pub draft: bool,
 }
 
+fn github_head_owner_and_repo<'a>(
+    forge_repo_info: &'a crate::forge::ForgeRepoInfo,
+    forge_push_repo_info: &'a Option<crate::forge::ForgeRepoInfo>,
+) -> (&'a str, Option<&'a str>) {
+    if let Some(forge_push_repo_info) = forge_push_repo_info
+        && forge_push_repo_info != forge_repo_info
+    {
+        // If there's a push repo defined, it means we're handling a fork.
+        // The head owner is the repository were we push the branches to (the fork) and
+        // the target repo (the one holding the base branch) is the original repository.
+        (
+            forge_push_repo_info.owner.as_str(),
+            Some(forge_push_repo_info.repo.as_str()),
+        )
+    } else {
+        // If there's no push repo, we assume the owner is the same as the owner of the target repo.
+        // We don't need a `head_repo`` in that case.
+        (forge_repo_info.owner.as_str(), None)
+    }
+}
+
 /// Create a new review (e.g. pull request) for a given forge repository
+///
+/// Some info on the push repo:
+/// If there's a push repository specified and it's different from the main repository,
+/// we assume we're opening a review from a fork.
 pub async fn create_forge_review(
     preferred_forge_user: &Option<crate::ForgeUser>,
     forge_repo_info: &crate::forge::ForgeRepoInfo,
+    forge_push_repo_info: &Option<crate::forge::ForgeRepoInfo>,
     params: &CreateForgeReviewParams,
     storage: &but_forge_storage::Controller,
 ) -> Result<ForgeReview> {
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
     match forge {
         ForgeName::GitHub => {
-            // TODO: handle forks better
-            let head = format!("{}:{}", owner, params.source_branch);
+            let (head_owner, head_repo) =
+                github_head_owner_and_repo(forge_repo_info, forge_push_repo_info);
+
+            let head = format!("{}:{}", head_owner, params.source_branch);
             let pr_params = but_github::CreatePullRequestParams {
                 owner,
                 repo,
                 title: &params.title,
                 body: &params.body,
                 head: &head,
+                head_repo,
                 base: &params.target_branch,
                 draft: params.draft,
             };
@@ -814,14 +1033,19 @@ pub async fn create_forge_review(
         }
         ForgeName::GitLab => {
             let project_id = GitLabProjectId::new(owner, repo);
-            // TODO: handle forks better
-            // TODO: handle draft properly
+            // If there's a push repo defined, we consider that the source repository.
+            let source_project_id = forge_push_repo_info
+                .as_ref()
+                .map(|repo_info| GitLabProjectId::new(&repo_info.owner, &repo_info.repo));
+
             let mr_params = but_gitlab::CreateMergeRequestParams {
                 project_id,
                 title: &params.title,
                 body: &params.body,
                 source_branch: &params.source_branch,
                 target_branch: &params.target_branch,
+                source_project_id,
+                draft: params.draft,
             };
             let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
             let mr = but_gitlab::mr::create(preferred_account, mr_params, storage).await?;
@@ -861,7 +1085,9 @@ pub async fn update_review_description_tables(
     reviews: &[ForgeReviewDescriptionUpdate],
     storage: &but_forge_storage::Controller,
 ) -> Result<()> {
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
 
     match forge {
         ForgeName::GitHub => {
@@ -869,7 +1095,12 @@ pub async fn update_review_description_tables(
             let pr_numbers: Vec<i64> = reviews.iter().map(|r| r.number).collect();
 
             for review in reviews {
-                let updated_body = update_body(review.body.as_deref(), review.number, &pr_numbers, &review.unit_symbol);
+                let updated_body = update_body(
+                    review.body.as_deref(),
+                    review.number,
+                    &pr_numbers,
+                    &review.unit_symbol,
+                );
 
                 let params = but_github::UpdatePullRequestParams {
                     owner,
@@ -882,6 +1113,33 @@ pub async fn update_review_description_tables(
                 };
 
                 but_github::pr::update(preferred_account, params, storage).await?;
+            }
+
+            Ok(())
+        }
+        ForgeName::GitLab => {
+            let project_id = GitLabProjectId::new(owner, repo);
+            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.gitlab());
+            let mr_iids: Vec<i64> = reviews.iter().map(|r| r.number).collect();
+
+            for review in reviews {
+                let updated_body = update_body(
+                    review.body.as_deref(),
+                    review.number,
+                    &mr_iids,
+                    &review.unit_symbol,
+                );
+
+                let params = but_gitlab::UpdateMergeRequestParams {
+                    project_id: project_id.clone(),
+                    mr_iid: review.number,
+                    title: None,
+                    description: Some(&updated_body),
+                    target_branch: None,
+                    state_event: None,
+                };
+
+                but_gitlab::mr::update(preferred_account, params, storage).await?;
             }
 
             Ok(())
@@ -907,8 +1165,16 @@ pub async fn update_review_description_tables(
 /// The updated body with the footer replaced, inserted, or removed
 fn update_body(body: Option<&str>, pr_number: i64, all_pr_numbers: &[i64], symbol: &str) -> String {
     let body = body.unwrap_or("");
-    let head = body.split(STACKING_FOOTER_BOUNDARY_TOP).next().unwrap_or("").trim();
-    let tail = body.split(STACKING_FOOTER_BOUNDARY_BOTTOM).nth(1).unwrap_or("").trim();
+    let head = body
+        .split(STACKING_FOOTER_BOUNDARY_TOP)
+        .next()
+        .unwrap_or("")
+        .trim();
+    let tail = body
+        .split(STACKING_FOOTER_BOUNDARY_BOTTOM)
+        .nth(1)
+        .unwrap_or("")
+        .trim();
 
     // If there's only one PR, don't add a footer
     if all_pr_numbers.len() == 1 {
@@ -937,7 +1203,10 @@ fn update_body(body: Option<&str>, pr_number: i64, all_pr_numbers: &[i64], symbo
 /// A formatted markdown footer string with stack information
 fn generate_footer(for_pr_number: i64, all_pr_numbers: &[i64], symbol: &str) -> String {
     let stack_length = all_pr_numbers.len();
-    let stack_index = all_pr_numbers.iter().position(|&n| n == for_pr_number).unwrap_or(0);
+    let stack_index = all_pr_numbers
+        .iter()
+        .position(|&n| n == for_pr_number)
+        .unwrap_or(0);
     let nth = stack_length - stack_index;
 
     let mut footer = String::new();
@@ -975,6 +1244,49 @@ mod tests {
         Path::new(path)
     }
 
+    fn repo_info(owner: &str, repo: &str) -> crate::forge::ForgeRepoInfo {
+        crate::forge::ForgeRepoInfo {
+            forge: crate::forge::ForgeName::GitHub,
+            owner: owner.to_string(),
+            repo: repo.to_string(),
+            protocol: "https".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_github_head_owner_and_repo_without_push_repo() {
+        let forge_repo_info = repo_info("target-owner", "target-repo");
+
+        let (head_owner, head_repo) = github_head_owner_and_repo(&forge_repo_info, &None);
+
+        assert_eq!(head_owner, "target-owner");
+        assert_eq!(head_repo, None);
+    }
+
+    #[test]
+    fn test_github_head_owner_and_repo_with_fork_push_repo() {
+        let forge_repo_info = repo_info("target-owner", "target-repo");
+        let forge_push_repo_info = Some(repo_info("fork-owner", "fork-repo"));
+
+        let (head_owner, head_repo) =
+            github_head_owner_and_repo(&forge_repo_info, &forge_push_repo_info);
+
+        assert_eq!(head_owner, "fork-owner");
+        assert_eq!(head_repo, Some("fork-repo"));
+    }
+
+    #[test]
+    fn test_github_head_owner_and_repo_with_equal_push_repo() {
+        let forge_repo_info = repo_info("target-owner", "target-repo");
+        let forge_push_repo_info = Some(repo_info("target-owner", "target-repo"));
+
+        let (head_owner, head_repo) =
+            github_head_owner_and_repo(&forge_repo_info, &forge_push_repo_info);
+
+        assert_eq!(head_owner, "target-owner");
+        assert_eq!(head_repo, None);
+    }
+
     #[test]
     fn test_is_valid_review_template_path_github() {
         assert!(is_valid_review_template_path_github(p(
@@ -989,7 +1301,9 @@ mod tests {
         assert!(is_valid_review_template_path_github(p(
             ".docs/PULL_REQUEST_TEMPLATE.md"
         )));
-        assert!(is_valid_review_template_path_github(p("PULL_REQUEST_TEMPLATE.md")));
+        assert!(is_valid_review_template_path_github(p(
+            "PULL_REQUEST_TEMPLATE.md"
+        )));
         assert!(!is_valid_review_template_path_github(p("README.md"),));
     }
 
@@ -1007,7 +1321,9 @@ mod tests {
         assert!(is_valid_review_template_path_github(p(
             ".docs\\PULL_REQUEST_TEMPLATE.md"
         ),));
-        assert!(is_valid_review_template_path_github(p("PULL_REQUEST_TEMPLATE.md"),));
+        assert!(is_valid_review_template_path_github(p(
+            "PULL_REQUEST_TEMPLATE.md"
+        ),));
         assert!(!is_valid_review_template_path_github(p("README.md"),));
     }
 
@@ -1061,7 +1377,9 @@ mod tests {
     #[test]
     fn test_is_review_template_gitlab() {
         // Valid GitLab merge request templates
-        assert!(is_review_template_gitlab(".gitlab/merge_request_templates/Default.md"));
+        assert!(is_review_template_gitlab(
+            ".gitlab/merge_request_templates/Default.md"
+        ));
         assert!(is_review_template_gitlab(
             ".gitlab/merge_request_templates/Documentation.md"
         ));
@@ -1075,7 +1393,9 @@ mod tests {
         assert!(!is_review_template_gitlab(
             ".gitlab/merge_request_templates/Default.txt"
         ));
-        assert!(!is_review_template_gitlab("merge_request_templates/Default.md"));
+        assert!(!is_review_template_gitlab(
+            "merge_request_templates/Default.md"
+        ));
 
         // Windows path separators should work
         assert!(is_review_template_gitlab(

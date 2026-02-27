@@ -5,7 +5,8 @@ use but_testsupport::visualize_commit_graph_all;
 use crate::ref_info::{
     utils::standard_options,
     with_workspace_commit::{
-        journey::utils::standard_options_with_extra_target, utils::named_read_only_in_memory_scenario_with_description,
+        journey::utils::standard_options_with_extra_target,
+        utils::named_read_only_in_memory_scenario_with_description,
     },
 };
 
@@ -282,7 +283,11 @@ fn remote_diverged_merge() -> anyhow::Result<()> {
     * fafd9d0 init
     ");
 
-    let info = but_workspace::head_info(&repo, &*meta, standard_options_with_extra_target(&repo, "fafd9d0"));
+    let info = but_workspace::head_info(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "fafd9d0"),
+    );
     insta::assert_debug_snapshot!(info, @r#"
     Ok(
         RefInfo {
@@ -445,7 +450,11 @@ fn remote_behind_merge_no_ff() -> anyhow::Result<()> {
     * fafd9d0 init
     ");
 
-    let info = but_workspace::head_info(&repo, &*meta, standard_options_with_extra_target(&repo, "fafd9d0"));
+    let info = but_workspace::head_info(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "fafd9d0"),
+    );
     insta::assert_debug_snapshot!(info, @r#"
     Ok(
         RefInfo {
@@ -606,7 +615,11 @@ fn remote_ahead_merge_ff() -> anyhow::Result<()> {
     * fafd9d0 init
     ");
 
-    let info = but_workspace::head_info(&repo, &*meta, standard_options_with_extra_target(&repo, "fafd9d0"));
+    let info = but_workspace::head_info(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "fafd9d0"),
+    );
     insta::assert_debug_snapshot!(info, @r#"
     Ok(
         RefInfo {

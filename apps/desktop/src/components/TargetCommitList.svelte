@@ -1,18 +1,18 @@
 <script lang="ts">
-	import BranchCard from '$components/BranchCard.svelte';
-	import CommitRow from '$components/CommitRow.svelte';
-	import NestedChangedFiles from '$components/NestedChangedFiles.svelte';
-	import ReduxResult from '$components/ReduxResult.svelte';
-	import { BASE_BRANCH_SERVICE } from '$lib/baseBranch/baseBranchService.svelte';
-	import { commitCreatedAt, type Commit } from '$lib/branches/v3';
-	import { createCommitSelection } from '$lib/selection/key';
-	import { SETTINGS } from '$lib/settings/userSettings';
-	import { STACK_SERVICE } from '$lib/stacks/stackService.svelte';
-	import { inject } from '@gitbutler/core/context';
+	import BranchCard from "$components/BranchCard.svelte";
+	import CommitRow from "$components/CommitRow.svelte";
+	import NestedChangedFiles from "$components/NestedChangedFiles.svelte";
+	import ReduxResult from "$components/ReduxResult.svelte";
+	import { BASE_BRANCH_SERVICE } from "$lib/baseBranch/baseBranchService.svelte";
+	import { commitCreatedAt, type Commit } from "$lib/branches/v3";
+	import { createCommitSelection } from "$lib/selection/key";
+	import { SETTINGS } from "$lib/settings/userSettings";
+	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
+	import { inject } from "@gitbutler/core/context";
 
-	import VirtualList from '@gitbutler/ui/components/VirtualList.svelte';
-	import { getColorFromBranchType } from '@gitbutler/ui/utils/getColorFromBranchType';
-	import { onMount } from 'svelte';
+	import VirtualList from "@gitbutler/ui/components/VirtualList.svelte";
+	import { getColorFromBranchType } from "@gitbutler/ui/utils/getColorFromBranchType";
+	import { onMount } from "svelte";
 
 	type Props = {
 		projectId: string;
@@ -77,7 +77,7 @@
 		<BranchCard
 			type="normal-branch"
 			first
-			lineColor={getColorFromBranchType('LocalAndRemote')}
+			lineColor={getColorFromBranchType("LocalAndRemote")}
 			{projectId}
 			branchName={branch.branchName}
 			isTopBranch
@@ -96,12 +96,13 @@
 						visibility={$userSettings.scrollbarVisibilityState}
 						onloadmore={async () => await loadMore()}
 						renderDistance={100}
+						getId={(commit) => commit.id}
 					>
 						{#snippet template(commit, index)}
 							<CommitRow
 								disableCommitActions
 								type="LocalAndRemote"
-								diverged={commit.state.type === 'LocalAndRemote' &&
+								diverged={commit.state.type === "LocalAndRemote" &&
 									commit.id !== commit.state.subject}
 								commitId={commit.id}
 								branchName={branch.branchName}
@@ -128,7 +129,7 @@
 												selectionId={createCommitSelection({ commitId: commit.id })}
 												changes={changesResult.changes.filter(
 													(change) =>
-														!(change.path in (changesResult.conflictEntries?.entries ?? {}))
+														!(change.path in (changesResult.conflictEntries?.entries ?? {})),
 												)}
 												stats={changesResult.stats}
 												conflictEntries={changesResult.conflictEntries}

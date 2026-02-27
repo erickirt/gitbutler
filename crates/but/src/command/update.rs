@@ -7,7 +7,11 @@ use colored::Colorize;
 
 use crate::{args::update, utils::OutputChannel};
 
-pub fn handle(cmd: update::Subcommands, out: &mut OutputChannel, app_settings: &AppSettings) -> Result<()> {
+pub fn handle(
+    cmd: update::Subcommands,
+    out: &mut OutputChannel,
+    app_settings: &AppSettings,
+) -> Result<()> {
     match cmd {
         update::Subcommands::Check => check_for_updates(out, app_settings),
         update::Subcommands::Suppress { days } => suppress_updates(out, days),
@@ -17,7 +21,7 @@ pub fn handle(cmd: update::Subcommands, out: &mut OutputChannel, app_settings: &
 }
 
 fn check_for_updates(out: &mut OutputChannel, app_settings: &AppSettings) -> Result<()> {
-    let mut cache = but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok());
+    let mut cache = but_ctx::Context::app_cache();
     let status = check_status(AppName::Cli, app_settings, &mut cache)?;
 
     if let Some(status) = status {
@@ -83,7 +87,7 @@ fn suppress_updates(out: &mut OutputChannel, days: u32) -> Result<()> {
     let hours = days * 24;
 
     // Call the suppress_update function
-    let mut cache = but_db::AppCacheHandle::new_in_directory(but_path::app_cache_dir().ok());
+    let mut cache = but_ctx::Context::app_cache();
     but_update::suppress_update(&mut cache, hours)?;
 
     if let Some(writer) = out.for_human() {
@@ -155,6 +159,17 @@ fn install(out: &mut OutputChannel, target: Option<String>) -> Result<()> {
             "View release notes: https://gitbutler.com/releases".bold()
         )?;
         writeln!(writer)?;
+    }
+
+    let mut cache = but_ctx::Context::app_cache();
+    if let Err(err) = cache.update_check_mut().and_then(|handle| handle.delete()) {
+        tracing::warn!(?err, "Failed to invalidate update check cache");
+        if let Some(writer) = out.for_human() {
+            writeln!(
+                writer,
+                "Failed to invalidate update check cache - skipping invalidation: {err:?}",
+            )?;
+        }
     }
 
     Ok(())

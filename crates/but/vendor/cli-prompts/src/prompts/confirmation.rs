@@ -1,13 +1,12 @@
-use crate::{engine::CommandBuffer, input::Key, prompts::EventOutcome, style::ConfirmationStyle};
-
 use super::Prompt;
+use crate::{engine::CommandBuffer, input::Key, prompts::EventOutcome, style::ConfirmationStyle};
 
 /// A prompt that expects a "yes or no" answer.
 /// You can press 'y' or 'n' for positive or negative result.
 /// Pressing 'Enter' without any previous input will trigger the default ansewer, which is
 /// configurable
 ///
-/// ```rust
+/// ```rust,no_run
 /// use cli_prompts::{
 ///     prompts::{Confirmation, AbortReason},
 ///     style::{ConfirmationStyle, Formatting},

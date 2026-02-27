@@ -38,7 +38,9 @@ pub fn get_gh_access_token(
     Ok(account.map(|acct| acct.access_token()))
 }
 
-pub fn list_known_github_accounts(storage: &but_forge_storage::Controller) -> Result<Vec<GithubAccountIdentifier>> {
+pub fn list_known_github_accounts(
+    storage: &but_forge_storage::Controller,
+) -> Result<Vec<GithubAccountIdentifier>> {
     Ok(storage
         .github_accounts()?
         .iter()
@@ -90,12 +92,20 @@ impl GithubAccountIdentifier {
 
     pub fn client(&self, access_token: &Sensitive<String>) -> Result<GitHubClient> {
         match self {
-            GithubAccountIdentifier::OAuthUsername { .. } | GithubAccountIdentifier::PatUsername { .. } => {
-                GitHubClient::new(access_token)
-            }
+            GithubAccountIdentifier::OAuthUsername { .. }
+            | GithubAccountIdentifier::PatUsername { .. } => GitHubClient::new(access_token),
             GithubAccountIdentifier::Enterprise { host, .. } => {
                 GitHubClient::new_with_host_override(access_token, host)
             }
+        }
+    }
+
+    /// Retrieve the custom forge host, if this is an Enterprise account.
+    pub fn custom_host(&self) -> Option<String> {
+        match self {
+            GithubAccountIdentifier::Enterprise { host, .. } => Some(host.to_string()),
+            GithubAccountIdentifier::OAuthUsername { .. } => None,
+            GithubAccountIdentifier::PatUsername { .. } => None,
         }
     }
 }
@@ -134,14 +144,18 @@ impl From<&GitHubAccount> for but_forge_storage::settings::GitHubAccount {
     fn from(account: &GitHubAccount) -> Self {
         let access_token_key = account.secret_key();
         match account {
-            GitHubAccount::OAuth { username, .. } => but_forge_storage::settings::GitHubAccount::OAuth {
-                username: username.to_owned(),
-                access_token_key,
-            },
-            GitHubAccount::Pat { username, .. } => but_forge_storage::settings::GitHubAccount::Pat {
-                username: username.to_owned(),
-                access_token_key,
-            },
+            GitHubAccount::OAuth { username, .. } => {
+                but_forge_storage::settings::GitHubAccount::OAuth {
+                    username: username.to_owned(),
+                    access_token_key,
+                }
+            }
+            GitHubAccount::Pat { username, .. } => {
+                but_forge_storage::settings::GitHubAccount::Pat {
+                    username: username.to_owned(),
+                    access_token_key,
+                }
+            }
             GitHubAccount::Enterprise { host, username, .. } => {
                 but_forge_storage::settings::GitHubAccount::Enterprise {
                     username: username.to_owned(),
@@ -161,9 +175,11 @@ impl From<&but_forge_storage::settings::GitHubAccount> for GithubAccountIdentifi
                     username: username.to_owned(),
                 }
             }
-            but_forge_storage::settings::GitHubAccount::Pat { username, .. } => GithubAccountIdentifier::PatUsername {
-                username: username.to_owned(),
-            },
+            but_forge_storage::settings::GitHubAccount::Pat { username, .. } => {
+                GithubAccountIdentifier::PatUsername {
+                    username: username.to_owned(),
+                }
+            }
             but_forge_storage::settings::GitHubAccount::Enterprise { host, username, .. } => {
                 GithubAccountIdentifier::Enterprise {
                     username: username.to_owned(),
@@ -220,16 +236,26 @@ fn retrieve_github_secret(account_secret_key: &str) -> Result<Option<Sensitive<S
     secret::retrieve(account_secret_key, secret::Namespace::BuildKind)
 }
 
-fn persist_github_account(account: &GitHubAccount, storage: &but_forge_storage::Controller) -> Result<()> {
+fn persist_github_account(
+    account: &GitHubAccount,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
     let secret_key = account.secret_key();
     storage.add_github_account(&account.into())?;
 
     static FAIR_QUEUE: Mutex<()> = Mutex::new(());
     let _one_at_a_time_to_prevent_races = FAIR_QUEUE.lock().unwrap();
-    secret::persist(&secret_key, &account.secret_value()?, secret::Namespace::BuildKind)
+    secret::persist(
+        &secret_key,
+        &account.secret_value()?,
+        secret::Namespace::BuildKind,
+    )
 }
 
-fn delete_github_account(account: &GitHubAccount, storage: &but_forge_storage::Controller) -> Result<()> {
+fn delete_github_account(
+    account: &GitHubAccount,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
     let secret_key = account.secret_key();
     storage.remove_github_account(&account.into())?;
 
@@ -254,21 +280,24 @@ fn find_github_account(
 ) -> Result<Option<GitHubAccount>> {
     let accounts = storage.github_accounts()?;
     let result = match account_id {
-        GithubAccountIdentifier::OAuthUsername { username } => accounts.iter().find_map(|account| {
-            if let but_forge_storage::settings::GitHubAccount::OAuth {
-                username: acct_username,
-                access_token_key,
-            } = account
-                && acct_username == username
-                && let Some(access_token) = retrieve_github_secret(access_token_key).ok().flatten()
-            {
-                return Some(GitHubAccount::OAuth {
-                    username: acct_username.clone(),
-                    access_token,
-                });
-            }
-            None
-        }),
+        GithubAccountIdentifier::OAuthUsername { username } => {
+            accounts.iter().find_map(|account| {
+                if let but_forge_storage::settings::GitHubAccount::OAuth {
+                    username: acct_username,
+                    access_token_key,
+                } = account
+                    && acct_username == username
+                    && let Some(access_token) =
+                        retrieve_github_secret(access_token_key).ok().flatten()
+                {
+                    return Some(GitHubAccount::OAuth {
+                        username: acct_username.clone(),
+                        access_token,
+                    });
+                }
+                None
+            })
+        }
         GithubAccountIdentifier::PatUsername { username } => accounts.iter().find_map(|account| {
             if let but_forge_storage::settings::GitHubAccount::Pat {
                 username: acct_username,
@@ -284,24 +313,27 @@ fn find_github_account(
             }
             None
         }),
-        GithubAccountIdentifier::Enterprise { username, host } => accounts.iter().find_map(|account| {
-            if let but_forge_storage::settings::GitHubAccount::Enterprise {
-                username: acct_username,
-                host: acct_host,
-                access_token_key,
-            } = account
-                && acct_host == host
-                && acct_username == username
-                && let Some(access_token) = retrieve_github_secret(access_token_key).ok().flatten()
-            {
-                return Some(GitHubAccount::Enterprise {
-                    username: acct_username.clone(),
-                    host: acct_host.clone(),
-                    access_token,
-                });
-            }
-            None
-        }),
+        GithubAccountIdentifier::Enterprise { username, host } => {
+            accounts.iter().find_map(|account| {
+                if let but_forge_storage::settings::GitHubAccount::Enterprise {
+                    username: acct_username,
+                    host: acct_host,
+                    access_token_key,
+                } = account
+                    && acct_host == host
+                    && acct_username == username
+                    && let Some(access_token) =
+                        retrieve_github_secret(access_token_key).ok().flatten()
+                {
+                    return Some(GitHubAccount::Enterprise {
+                        username: acct_username.clone(),
+                        host: acct_host.clone(),
+                        access_token,
+                    });
+                }
+                None
+            })
+        }
     };
     Ok(result)
 }

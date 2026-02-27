@@ -72,7 +72,14 @@ pub fn auto_commit_simple(
     absorption_plan: Vec<CommitAbsorption>,
     guard: &mut RepoExclusiveGuard,
 ) -> anyhow::Result<usize> {
-    auto_commit::auto_commit_simple(repo, project_data_dir, context_lines, llm, absorption_plan, guard)
+    auto_commit::auto_commit_simple(
+        repo,
+        project_data_dir,
+        context_lines,
+        llm,
+        absorption_plan,
+        guard,
+    )
 }
 
 pub fn handle_changes(
@@ -84,13 +91,20 @@ pub fn handle_changes(
     exclusive_stack: Option<StackId>,
 ) -> anyhow::Result<(Uuid, Outcome)> {
     match handler {
-        ActionHandler::HandleChangesSimple => {
-            simple::handle_changes(ctx, change_summary, external_prompt, source, exclusive_stack)
-        }
+        ActionHandler::HandleChangesSimple => simple::handle_changes(
+            ctx,
+            change_summary,
+            external_prompt,
+            source,
+            exclusive_stack,
+        ),
     }
 }
 
-fn default_target_setting_if_none(ctx: &Context, vb_state: &VirtualBranchesHandle) -> anyhow::Result<Target> {
+fn default_target_setting_if_none(
+    ctx: &Context,
+    vb_state: &VirtualBranchesHandle,
+) -> anyhow::Result<Target> {
     if let Ok(default_target) = vb_state.get_default_target() {
         return Ok(default_target);
     }
@@ -108,7 +122,8 @@ fn default_target_setting_if_none(ctx: &Context, vb_state: &VirtualBranchesHandl
 
     let head_commit = head_ref.peel_to_commit()?;
 
-    let remote_refname = gitbutler_reference::RemoteRefname::from_str(&head_ref.name().as_bstr().to_string())?;
+    let remote_refname =
+        gitbutler_reference::RemoteRefname::from_str(&head_ref.name().as_bstr().to_string())?;
 
     let target = Target {
         branch: remote_refname,
@@ -123,11 +138,19 @@ fn default_target_setting_if_none(ctx: &Context, vb_state: &VirtualBranchesHandl
 
 fn stacks(ctx: &Context, repo: &gix::Repository) -> anyhow::Result<Vec<StackEntry>> {
     let meta = ctx.legacy_meta()?;
-    but_workspace::legacy::stacks_v3(repo, &meta, but_workspace::legacy::StacksFilter::InWorkspace, None)
+    but_workspace::legacy::stacks_v3(
+        repo,
+        &meta,
+        but_workspace::legacy::StacksFilter::InWorkspace,
+        None,
+    )
 }
 
 /// Returns the currently applied stacks, creating one if none exists.
-fn stacks_creating_if_none(ctx: &Context, perm: &mut RepoExclusive) -> anyhow::Result<Vec<StackEntry>> {
+fn stacks_creating_if_none(
+    ctx: &Context,
+    perm: &mut RepoExclusive,
+) -> anyhow::Result<Vec<StackEntry>> {
     let repo = &*ctx.repo.get()?;
     let stacks = stacks(ctx, repo)?;
     if stacks.is_empty() {

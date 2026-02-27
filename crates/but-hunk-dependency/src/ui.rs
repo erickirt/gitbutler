@@ -56,7 +56,9 @@ impl HunkDependencies {
                 continue;
             };
             for hunk in hunks {
-                if let Some(intersections) = ranges.intersection(&change.path, hunk.old_start, hunk.old_lines) {
+                if let Some(intersections) =
+                    ranges.intersection(&change.path, hunk.old_start, hunk.old_lines)
+                {
                     let locks: Vec<_> = intersections
                         .into_iter()
                         .map(|dependency| HunkLock {

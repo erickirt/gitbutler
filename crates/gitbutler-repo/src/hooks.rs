@@ -1,4 +1,8 @@
-use std::{io::Write, process::Stdio};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+    process::Stdio,
+};
 
 use anyhow::Result;
 use bstr::ByteSlice;
@@ -40,16 +44,31 @@ pub enum MessageHookResult {
     Failure(ErrorData),
 }
 
+fn husky_search_paths(ctx: &Context) -> Option<&'static [&'static str]> {
+    if ctx.legacy_project.husky_hooks_enabled {
+        Some(&["../.husky"])
+    } else {
+        None
+    }
+}
+
 pub fn commit_msg(ctx: &Context, mut message: String) -> Result<MessageHookResult> {
     let original_message = message.clone();
-    match git2_hooks::hooks_commit_msg(&*ctx.git2_repo.get()?, Some(&["../.husky"]), &mut message)? {
+    match git2_hooks::hooks_commit_msg(
+        &*ctx.git2_repo.get()?,
+        husky_search_paths(ctx),
+        &mut message,
+    )? {
         H::Ok { hook: _ } => match message == original_message {
             true => Ok(MessageHookResult::Success),
             false => Ok(MessageHookResult::Message(MessageData { message })),
         },
         H::NoHookFound => Ok(MessageHookResult::NotConfigured),
         H::RunNotSuccessful {
-            stdout, stderr, code, ..
+            stdout,
+            stderr,
+            code,
+            ..
         } => {
             let error = join_output(stdout, stderr, code);
             Ok(MessageHookResult::Failure(ErrorData { error }))
@@ -74,11 +93,14 @@ pub fn pre_commit_with_tree(ctx: &Context, tree_id: git2::Oid) -> Result<HookRes
     index.write()?;
 
     Ok(
-        match git2_hooks::hooks_pre_commit(&*ctx.git2_repo.get()?, Some(&["../.husky"]))? {
+        match git2_hooks::hooks_pre_commit(&*ctx.git2_repo.get()?, husky_search_paths(ctx))? {
             H::Ok { hook: _ } => HookResult::Success,
             H::NoHookFound => HookResult::NotConfigured,
             H::RunNotSuccessful {
-                stdout, stderr, code, ..
+                stdout,
+                stderr,
+                code,
+                ..
             } => {
                 // If the output contains GITBUTLER_ERROR, it's our managed hook blocking
                 // commits on gitbutler/workspace - this is expected behavior, not a failure
@@ -94,11 +116,14 @@ pub fn pre_commit_with_tree(ctx: &Context, tree_id: git2::Oid) -> Result<HookRes
 }
 
 pub fn post_commit(ctx: &Context) -> Result<HookResult> {
-    match git2_hooks::hooks_post_commit(&*ctx.git2_repo.get()?, Some(&["../.husky"]))? {
+    match git2_hooks::hooks_post_commit(&*ctx.git2_repo.get()?, husky_search_paths(ctx))? {
         H::Ok { hook: _ } => Ok(HookResult::Success),
         H::NoHookFound => Ok(HookResult::NotConfigured),
         H::RunNotSuccessful {
-            stdout, stderr, code, ..
+            stdout,
+            stderr,
+            code,
+            ..
         } => {
             let error = join_output(stdout, stderr, code);
             Ok(HookResult::Failure(ErrorData { error }))
@@ -117,23 +142,26 @@ pub fn pre_push(
     remote_url: &str,
     local_commit: git2::Oid,
     remote_tracking_branch: &gitbutler_reference::RemoteRefname,
+    run_husky_hooks: bool,
 ) -> Result<HookResult> {
     let hooks_dir = repo
         .config()
         .and_then(|config| config.get_path("core.hooksPath"))
         .unwrap_or_else(|_| repo.path().join("hooks"));
     let hooks_path = hooks_dir.join("pre-push");
-    let husky_path = repo
-        .path()
-        .parent()
-        .and_then(|p| p.parent())
-        .map(|p| p.join(".husky").join("pre-push"));
+    let husky_path = run_husky_hooks.then(|| {
+        repo.path()
+            .parent()
+            .and_then(|p| p.parent())
+            .map(|p| p.join(".husky").join("pre-push"))
+    });
 
     // Check for hook in .git/hooks/pre-push first, then ../.husky/pre-push
     let hook_path = hooks_path
         .exists()
         .then_some(hooks_path)
-        .or_else(|| husky_path.filter(|path| path.exists()));
+        .filter(|path| run_husky_hooks || !path_is_in_husky_dir(repo, path))
+        .or_else(|| husky_path.flatten().filter(|path| path.exists()));
 
     let Some(hook_path) = hook_path else {
         return Ok(HookResult::NotConfigured);
@@ -146,8 +174,9 @@ pub fn pre_push(
             prep.use_shell = true;
             prep.allow_manual_arg_splitting = false;
             // Need unix separators for the unix bash to not swallow the backslash!
-            let with_slashes_for_bash =
-                gix::path::to_unix_separators_on_windows(gix::path::os_str_into_bstr(&prep.command)?);
+            let with_slashes_for_bash = gix::path::to_unix_separators_on_windows(
+                gix::path::os_str_into_bstr(&prep.command)?,
+            );
             prep.command = gix::path::from_bstring(with_slashes_for_bash.into_owned()).into();
         }
         prep.arg(remote_name).arg(remote_url)
@@ -172,7 +201,8 @@ pub fn pre_push(
             .unwrap_or_else(git2::Oid::zero);
         // THIS IS WRONG: but is correct in the common case. This also is an issue when the ref is actually pushed,
         // but we can fix it when moving everything to `gix`.
-        let local_tracking_branch_deduced = format!("refs/heads/{}", remote_tracking_branch.branch());
+        let local_tracking_branch_deduced =
+            format!("refs/heads/{}", remote_tracking_branch.branch());
         let stdin = child.stdin.as_mut().expect("configured");
         stdin.write_all(
             format!("{local_tracking_branch_deduced} {local_commit} {remote_tracking_branch} {remote_commit}\n")
@@ -193,8 +223,30 @@ pub fn pre_push(
     }
 }
 
+fn path_is_in_husky_dir(repo: &git2::Repository, path: &Path) -> bool {
+    let Some(workdir) = repo.workdir() else {
+        return false;
+    };
+
+    let husky_dir = canonicalize_fallback(workdir.join(".husky"), workdir);
+    let path = canonicalize_fallback(path, workdir);
+    path.starts_with(husky_dir)
+}
+
+fn canonicalize_fallback(path: impl AsRef<Path>, workdir: &Path) -> PathBuf {
+    let path = path.as_ref();
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        workdir.join(path)
+    };
+    std::fs::canonicalize(&absolute).unwrap_or(absolute)
+}
+
 fn join_output(stdout: String, stderr: String, code: Option<i32>) -> String {
-    let code = code.map(|code| format!(" (Exit Code {code})")).unwrap_or_default();
+    let code = code
+        .map(|code| format!(" (Exit Code {code})"))
+        .unwrap_or_default();
     if stdout.is_empty() && stderr.is_ascii() {
         return format!("hook produced no output{code}");
     } else if stdout.is_empty() {

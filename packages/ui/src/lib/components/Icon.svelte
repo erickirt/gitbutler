@@ -1,13 +1,13 @@
 <script lang="ts" module>
-	import iconsJson from '$lib/data/icons.json';
-	import { pxToRem } from '$lib/utils/pxToRem';
+	import iconsJson from "$lib/data/icons.json";
+	import { pxToRem } from "$lib/utils/pxToRem";
 
 	export type IconColor = ComponentColorType | undefined;
 	export type IconName = keyof typeof iconsJson;
 </script>
 
 <script lang="ts">
-	import type { ComponentColorType } from '$lib/utils/colorTypes';
+	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	interface Props {
 		name: IconName;
@@ -30,20 +30,20 @@
 		rotate,
 		verticalAlign,
 		noEvents,
-		zIndex
+		zIndex,
 	}: Props = $props();
 
 	// Check if color is a predefined type or custom color
 	function getGenericColors(): string | undefined {
 		switch (color) {
-			case 'safe':
-				return 'var(--clr-theme-safe-element)';
-			case 'danger':
-				return 'var(--clr-theme-danger-element)';
-			case 'pop':
-				return 'var(--clr-theme-pop-element)';
-			case 'warning':
-				return 'var(--clr-theme-warn-element)';
+			case "safe":
+				return "var(--clr-theme-safe-element)";
+			case "danger":
+				return "var(--clr-theme-danger-element)";
+			case "pop":
+				return "var(--clr-theme-pop-element)";
+			case "warning":
+				return "var(--clr-theme-warn-element)";
 			default:
 				return color;
 		}
@@ -61,14 +61,21 @@
 	style:transform={rotate ? `rotate(${rotate}deg)` : undefined}
 	style:vertical-align={verticalAlign}
 	style:z-index={zIndex}
-	style:pointer-events={noEvents ? 'none' : undefined}
+	style:pointer-events={noEvents ? "none" : undefined}
 	style="--spinner-radius: {spinnerRadius}; --custom-icon-color: {getGenericColors()};"
 >
-	{#if name === 'spinner'}
-		<g class:spinner={name === 'spinner'}>
-			<circle class="spinner-path" cx="8" cy="8" r={spinnerRadius} fill="none" />
+	{#if name === "spinner"}
+		<g class="spinner">
 			<circle
 				class="spinner-back-path"
+				cx="8"
+				cy="8"
+				r={spinnerRadius}
+				fill="none"
+				vector-effect="non-scaling-stroke"
+			/>
+			<circle
+				class="spinner-path"
 				cx="8"
 				cy="8"
 				r={spinnerRadius}
@@ -91,7 +98,8 @@
 
 	.spinner {
 		transform-origin: center;
-		animation: spinning 1s infinite linear;
+		animation: spinning 0.75s infinite linear;
+		will-change: transform;
 	}
 	@keyframes spinning {
 		100% {
@@ -100,27 +108,14 @@
 	}
 	.spinner-path {
 		stroke: currentColor;
+		stroke-dasharray: calc(var(--spinner-radius) * 3.5), calc(var(--spinner-radius) * 6.3);
+		stroke-linecap: round;
 		stroke-width: var(--spinner-stroke-width);
-		animation: spinning-path 2s infinite ease-in-out;
 	}
 
 	.spinner-back-path {
 		stroke: currentColor;
 		stroke-width: var(--spinner-stroke-width);
-		opacity: 0.3;
-	}
-	@keyframes spinning-path {
-		0% {
-			stroke-dasharray: 1, 120;
-			stroke-dashoffset: 0;
-		}
-		60% {
-			stroke-dasharray: 60, 120;
-			stroke-dashoffset: -10;
-		}
-		100% {
-			stroke-dasharray: 60, 120;
-			stroke-dashoffset: calc(-1 * var(--spinner-radius) * 5.5);
-		}
+		opacity: 0.2;
 	}
 </style>

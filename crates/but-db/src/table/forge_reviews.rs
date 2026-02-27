@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use serde::{Deserialize, Serialize};
 
 use crate::{DbHandle, M, Transaction};
@@ -30,7 +32,7 @@ CREATE TABLE `forge_reviews`(
 );",
 )];
 
-/// Tests are in `but-db/tests/db/table/forge_reviews.rs`.
+/// Tests are in `but-db/tests/db/table/forge_review.rs`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ForgeReview {
     pub html_url: String,
@@ -171,6 +173,64 @@ impl ForgeReviewsHandleMut<'_> {
                 ],
             )?;
         }
+
+        self.sp.commit()?;
+        Ok(())
+    }
+
+    /// Inserts or updates a single forge review by review number.
+    pub fn upsert(self, review: ForgeReview) -> rusqlite::Result<()> {
+        self.sp.execute(
+            "INSERT INTO forge_reviews (html_url, number, title, body, author, labels, draft, \
+             source_branch, target_branch, sha, created_at, modified_at, merged_at, closed_at, \
+             repository_ssh_url, repository_https_url, repo_owner, reviewers, unit_symbol, \
+             last_sync_at, struct_version) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21) \
+             ON CONFLICT(number) DO UPDATE SET
+                html_url = excluded.html_url,
+                title = excluded.title,
+                body = excluded.body,
+                author = excluded.author,
+                labels = excluded.labels,
+                draft = excluded.draft,
+                source_branch = excluded.source_branch,
+                target_branch = excluded.target_branch,
+                sha = excluded.sha,
+                created_at = excluded.created_at,
+                modified_at = excluded.modified_at,
+                merged_at = excluded.merged_at,
+                closed_at = excluded.closed_at,
+                repository_ssh_url = excluded.repository_ssh_url,
+                repository_https_url = excluded.repository_https_url,
+                repo_owner = excluded.repo_owner,
+                reviewers = excluded.reviewers,
+                unit_symbol = excluded.unit_symbol,
+                last_sync_at = excluded.last_sync_at,
+                struct_version = excluded.struct_version",
+            rusqlite::params![
+                review.html_url,
+                review.number,
+                review.title,
+                review.body,
+                review.author,
+                review.labels,
+                review.draft,
+                review.source_branch,
+                review.target_branch,
+                review.sha,
+                review.created_at,
+                review.modified_at,
+                review.merged_at,
+                review.closed_at,
+                review.repository_ssh_url,
+                review.repository_https_url,
+                review.repo_owner,
+                review.reviewers,
+                review.unit_symbol,
+                review.last_sync_at,
+                review.struct_version,
+            ],
+        )?;
 
         self.sp.commit()?;
         Ok(())

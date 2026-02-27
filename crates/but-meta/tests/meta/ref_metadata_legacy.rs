@@ -24,18 +24,30 @@ fn journey() -> anyhow::Result<()> {
     roundtrip_journey(&mut store)?;
     let writable_toml_path = store.path().to_owned();
     drop(store);
+    // The file exists, but is empty and valid. This is handled correctly by code
+    // that cares about the file.
+    insta::assert_snapshot!(std::fs::read_to_string(&writable_toml_path)?, @"
+    [branch_targets]
 
-    assert!(
-        !writable_toml_path.exists(),
-        "The file is deleted when the workspace is removed"
-    );
+    [branches]
+    ");
+
     let store = VirtualBranchesTomlMetadata::from_path(&writable_toml_path)?;
-    assert_eq!(store.iter().count(), 0, "on drop we write the file immediately");
+    assert_eq!(
+        store.iter().count(),
+        0,
+        "on drop we write the file immediately"
+    );
     drop(store);
     assert!(
-        !writable_toml_path.exists(),
-        "default content isn't written back either"
+        writable_toml_path.exists(),
+        "default content is mirrored back to TOML"
     );
+    insta::assert_snapshot!(std::fs::read_to_string(&writable_toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
 
     Ok(())
 }
@@ -153,7 +165,9 @@ fn read_only() -> anyhow::Result<()> {
             let b = store
                 .branch(branch.ref_name.as_ref())
                 .expect("branch is present for each refs mentioned in workspace");
-            let b_id = b.stack_id().expect("each branch has the stack-id of the stack its in");
+            let b_id = b
+                .stack_id()
+                .expect("each branch has the stack-id of the stack its in");
             (
                 uuids
                     .get(&b_id.to_string())
@@ -273,16 +287,33 @@ fn read_only() -> anyhow::Result<()> {
 
     let toml_path = store.path().to_owned();
     assert!(toml_path.exists(), "the file is still present");
+    let toml_content = std::fs::read_to_string(&toml_path)?;
     let was_deleted = store.remove("refs/heads/gitbutler/workspace".try_into()?)?;
     assert!(was_deleted, "This basically clears out everything");
-    assert!(!toml_path.exists(), "implemented brutally by file deletion");
+    assert!(
+        toml_path.exists(),
+        "workspace clear keeps an empty TOML mirror"
+    );
+    // The file exists, but is empty and valid. This is handled correctly by code
+    // that cares about the file.
+    assert_eq!(
+        std::fs::read_to_string(&toml_path)?,
+        toml_content,
+        "The content of the toml file didn't change as syncing happens on drop"
+    );
 
     // Asking for the workspace
     let ws = store.workspace("refs/heads/gitbutler/integration".try_into()?)?;
-    assert!(ws.is_default(), "The workspace was deleted so it doesn't exist anymore");
+    assert!(
+        ws.is_default(),
+        "The workspace was deleted so it doesn't exist anymore"
+    );
 
     let was_deleted = store.remove("refs/heads/gitbutler/workspace".try_into()?)?;
-    assert!(!was_deleted, "and clearing out everything can only happen once");
+    assert!(
+        !was_deleted,
+        "and clearing out everything can only happen once"
+    );
     assert_eq!(
         store.iter().count(),
         0,
@@ -291,12 +322,19 @@ fn read_only() -> anyhow::Result<()> {
 
     drop(store);
 
-    assert!(!toml_path.exists(), "It won't recreate a previously deleted file");
+    assert!(toml_path.exists(), "the TOML mirror stays available");
+    insta::assert_snapshot!(std::fs::read_to_string(&toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
+
     Ok(())
 }
 
 #[test]
-fn create_workspace_and_stacks_with_branches_from_scratch_with_workspace_and_unapply() -> anyhow::Result<()> {
+fn create_workspace_and_stacks_with_branches_from_scratch_with_workspace_and_unapply()
+-> anyhow::Result<()> {
     let (mut store, _tmp) = empty_vb_store_rw()?;
     store.data_mut().default_target = None;
 
@@ -502,7 +540,12 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     let branch_name: gix::refs::FullName = "refs/heads/feat".try_into()?;
     let mut branch = store.branch(branch_name.as_ref())?;
     assert!(branch.is_default(), "nothing was there yet");
-    assert!(!toml_path.exists(), "file wasn't written yet");
+    assert!(toml_path.exists(), "TOML mirror exists from initialization");
+    insta::assert_snapshot!(std::fs::read_to_string(&toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
     assert_eq!(branch.stack_id(), None, "default values have no stack-id");
 
     branch.review = but_core::ref_metadata::Review {
@@ -543,7 +586,9 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
             archived: false,
         }],
     });
-    store.set_workspace(&ws).expect("This is the way to add branches");
+    store
+        .set_workspace(&ws)
+        .expect("This is the way to add branches");
     assert_eq!(ws.stack_id(), None);
 
     // Assure `ws` is what we think it should be - a single stack with one branch.
@@ -563,7 +608,10 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
         },
     ]
     "#);
-    assert!(!uuids.contains_key(&ignored_id.to_string()), "it really is ignore");
+    assert!(
+        !uuids.contains_key(&ignored_id.to_string()),
+        "it really is ignore"
+    );
     assert!(
         uuids.contains_key(&id.to_string()),
         "the generated branch id was present though, it's the id of the stack"
@@ -579,7 +627,9 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
         },
     );
     assert_eq!(ws.stacks[0].ref_name(), Some(&stacked_branch_name));
-    store.set_workspace(&ws).expect("This is the way to add branches");
+    store
+        .set_workspace(&ws)
+        .expect("This is the way to add branches");
 
     let mut ws = store.workspace(workspace_name.as_ref())?;
     let (actual, uuids) = sanitize_uuids_and_timestamps_with_mapping(debug_str(&ws.stacks));
@@ -609,7 +659,8 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     drop(store);
 
     assert!(toml_path.exists(), "file was written due to change");
-    let (actual, uuids) = sanitize_uuids_and_timestamps_with_mapping(std::fs::read_to_string(&toml_path)?);
+    let (actual, uuids) =
+        sanitize_uuids_and_timestamps_with_mapping(std::fs::read_to_string(&toml_path)?);
     insta::assert_snapshot!(actual, @r#"
     [branch_targets]
 
@@ -735,7 +786,9 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
         "The workspace is automatically updated, as we see out-of-workspace stacks"
     );
     // insert it as archived just because.
-    let second_id = branch.stack_id().expect("can also set a valid id, it doesn't matter");
+    let second_id = branch
+        .stack_id()
+        .expect("can also set a valid id, it doesn't matter");
     ws.stacks.push(WorkspaceStack {
         id: second_id,
         workspacecommit_relation: Merged,
@@ -787,7 +840,11 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     ws.stacks.pop();
     store.set_workspace(&ws)?;
     let mut ws = store.workspace(ws.as_ref())?;
-    assert_eq!(ws.stacks.len(), 1, "The stack is still gone because we just removed it");
+    assert_eq!(
+        ws.stacks.len(),
+        1,
+        "The stack is still gone because we just removed it"
+    );
 
     // Add it again, then remove it by removing the branch.
     ws.stacks.push(WorkspaceStack {
@@ -819,16 +876,25 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
         store.remove(stacked_branch_name.as_ref())?,
         "there was something to remove"
     );
-    assert!(!store.remove(stacked_branch_name.as_ref())?, "nothing left to remove");
+    assert!(
+        !store.remove(stacked_branch_name.as_ref())?,
+        "nothing left to remove"
+    );
     assert!(
         store.remove(branch_name.as_ref())?,
         "there was something to remove, still"
     );
-    assert!(!store.remove(branch_name.as_ref())?, "nothing left to remove");
+    assert!(
+        !store.remove(branch_name.as_ref())?,
+        "nothing left to remove"
+    );
     assert!(store.remove(archived_branch.as_ref())?);
 
     let ws = store.workspace(workspace_name.as_ref())?;
-    assert!(ws.is_default(), "it's empty, so no difference to a default one");
+    assert!(
+        ws.is_default(),
+        "it's empty, so no difference to a default one"
+    );
     insta::assert_debug_snapshot!(ws.deref(), @r#"
     Workspace {
         ref_info: RefInfo { created_at: "2023-01-31 14:55:57 +0000", updated_at: None },
@@ -840,9 +906,14 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     "#);
 
     drop(store);
+    insta::assert_snapshot!(std::fs::read_to_string(&toml_path)?, @"
+    [branch_targets]
+
+    [branches]
+    ");
     assert!(
-        !toml_path.exists(),
-        "if everything is just the default, the file is deleted on write"
+        toml_path.exists(),
+        "default state is still mirrored into TOML"
     );
 
     let mut store = VirtualBranchesTomlMetadata::from_path(&toml_path)?;
@@ -852,11 +923,14 @@ fn create_workspace_and_stacks_with_branches_from_scratch() -> anyhow::Result<()
     let mut ws = store.workspace(workspace_name.as_ref())?;
 
     ws.push_remote = Some("push-remote".into());
-    ws.target_ref = Some(gix::refs::FullName::try_from("refs/remotes/new-origin/new-target")?);
+    ws.target_ref = Some(gix::refs::FullName::try_from(
+        "refs/remotes/new-origin/new-target",
+    )?);
     store.set_workspace(&ws)?;
 
     drop(store);
-    let (actual, _uuids) = sanitize_uuids_and_timestamps_with_mapping(std::fs::read_to_string(&toml_path)?);
+    let (actual, _uuids) =
+        sanitize_uuids_and_timestamps_with_mapping(std::fs::read_to_string(&toml_path)?);
     insta::assert_snapshot!(actual, @r#"
     [default_target]
     branchName = "new-target"
@@ -878,7 +952,10 @@ fn target_journey() -> anyhow::Result<()> {
     let (mut store, _tmp) = empty_vb_store_rw()?;
     let ws_name = "refs/heads/gitbutler/workspace".try_into()?;
     let mut ws = store.workspace(ws_name)?;
-    assert_eq!(ws.target_ref, Some("refs/remotes/origin/sub-name/main".try_into()?));
+    assert_eq!(
+        ws.target_ref,
+        Some("refs/remotes/origin/sub-name/main".try_into()?)
+    );
 
     let expected_target: gix::refs::FullName = "refs/remotes/origin/main".try_into()?;
     ws.target_ref = Some(expected_target.clone());
@@ -1259,7 +1336,13 @@ fn dlib_rs_auto_fix() -> anyhow::Result<()> {
 
     // Now that there is one stack left, we can manipulate it and look at vb.toml data directly.
     // AND: this makes no sense with the lack of a `Stack::name` field.
-    store.data_mut().branches.values_mut().next().expect("exactly one").id = StackId::from_number_for_testing(8);
+    store
+        .data_mut()
+        .branches
+        .values_mut()
+        .next()
+        .expect("exactly one")
+        .id = StackId::from_number_for_testing(8);
     // Now the ID and the ID used for storage are out of sync.
     snapbox::assert_data_eq!(
         debug_str(&store.data().branches),
@@ -1376,5 +1459,41 @@ fn legacy_change_id_deserializes_as_null_sha() -> anyhow::Result<()> {
         "legacy ChangeId should deserialize as null SHA to allow loading old toml files"
     );
 
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn falls_back_to_in_memory_db_when_persistent_db_open_fails() -> anyhow::Result<()> {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let tmp = tempdir()?;
+    let toml_path = tmp.path().join("virtual_branches.toml");
+    std::fs::write(&toml_path, "[branch_targets]\n\n[branches]\n")?;
+
+    let original_permissions = std::fs::metadata(tmp.path())?.permissions();
+    let mut read_only_permissions = original_permissions.clone();
+    read_only_permissions.set_mode(0o555);
+    std::fs::set_permissions(tmp.path(), read_only_permissions)?;
+
+    let store_result = VirtualBranchesTomlMetadata::from_path(&toml_path);
+
+    // Restore permissions so TempDir cleanup can remove the directory.
+    std::fs::set_permissions(tmp.path(), original_permissions)?;
+
+    let _store = store_result?;
+
+    assert!(
+        !tmp.path().join("but.sqlite").exists(),
+        "failed on-disk DB open should not leave a persistent sqlite file behind"
+    );
+    assert!(
+        !tmp.path().join("but.sqlite-wal").exists(),
+        "failed on-disk DB open should not leave sqlite wal sidecars behind"
+    );
+    assert!(
+        !tmp.path().join("but.sqlite-shm").exists(),
+        "failed on-disk DB open should not leave sqlite shm sidecars behind"
+    );
     Ok(())
 }

@@ -35,7 +35,7 @@ fn by_default_conflicts_are_allowed() -> Result<()> {
 
     // We expect to see conflicted headers
     insta::assert_snapshot!(cat_commit(&repo, "c")?, @"
-    tree 7c4363d235e51107d74c858038cfab0d192db092
+    tree c199bde16a034b8588f7c896ec3640c40ad017dd
     parent 5e0ba4636be91de6216903697b269915d3db6c53
     author author <author@example.com> 946684800 +0000
     committer Committer (Memory Override) <committer@example.com> 946771200 +0000
@@ -50,7 +50,8 @@ fn by_default_conflicts_are_allowed() -> Result<()> {
 }
 
 #[test]
-fn if_a_commit_has_been_configured_not_to_conflict_but_ends_up_conflicted_an_error_is_raised() -> Result<()> {
+fn if_a_commit_has_been_configured_not_to_conflict_but_ends_up_conflicted_an_error_is_raised()
+-> Result<()> {
     let (repo, _tmpdir, meta) = fixture_writable("four-commits-one-file")?;
 
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @"
@@ -89,7 +90,8 @@ fn if_a_commit_has_been_configured_not_to_conflict_but_ends_up_conflicted_an_err
 }
 
 #[test]
-fn if_a_commit_has_been_configured_not_to_conflict_and_doesnt_end_up_conflicted_result_is_ok() -> Result<()> {
+fn if_a_commit_has_been_configured_not_to_conflict_and_doesnt_end_up_conflicted_result_is_ok()
+-> Result<()> {
     let (repo, _tmpdir, meta) = fixture_writable("four-commits-one-file")?;
 
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @"

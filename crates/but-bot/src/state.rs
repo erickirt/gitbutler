@@ -138,7 +138,11 @@ pub struct AgentState {
 }
 
 impl AgentState {
-    pub fn new(project_id: ProjectId, message_id: String, emitter: std::sync::Arc<but_tools::emit::Emitter>) -> Self {
+    pub fn new(
+        project_id: ProjectId,
+        message_id: String,
+        emitter: std::sync::Arc<but_tools::emit::Emitter>,
+    ) -> Self {
         let mut state = AgentState {
             todos: Vec::new(),
             sys_prompt: SYS_PROMPT.to_string(),
@@ -155,7 +159,8 @@ impl AgentState {
     }
 
     fn emit(&self) {
-        let todos: Vec<but_tools::emit::TodoState> = self.todos.iter().map(|todo| todo.clone().into()).collect();
+        let todos: Vec<but_tools::emit::TodoState> =
+            self.todos.iter().map(|todo| todo.clone().into()).collect();
         let todo_update = but_tools::emit::TodoUpdate {
             project_id: self.project_id,
             message_id: self.message_id.clone(),
@@ -204,9 +209,13 @@ impl AgentState {
         next_todo
     }
 
-    fn call_tool_inner(&mut self, name: &str, parameters: &str) -> anyhow::Result<serde_json::Value> {
-        let params: serde_json::Value =
-            serde_json::from_str(parameters).map_err(|e| anyhow::anyhow!("Failed to parse parameters: {e}"))?;
+    fn call_tool_inner(
+        &mut self,
+        name: &str,
+        parameters: &str,
+    ) -> anyhow::Result<serde_json::Value> {
+        let params: serde_json::Value = serde_json::from_str(parameters)
+            .map_err(|e| anyhow::anyhow!("Failed to parse parameters: {e}"))?;
         let state_tool = AgentStateTool::try_from((name, params))?;
 
         match state_tool {
@@ -218,8 +227,8 @@ impl AgentState {
                 Ok(json!({"status": "success", "message": "Todos added successfully"}))
             }
             AgentStateTool::UpdateTodoStatus(params) => {
-                let uuid =
-                    uuid::Uuid::parse_str(&params.id).map_err(|e| anyhow::anyhow!("Failed to parse UUID: {e}"))?;
+                let uuid = uuid::Uuid::parse_str(&params.id)
+                    .map_err(|e| anyhow::anyhow!("Failed to parse UUID: {e}"))?;
                 self.update_todo_status(uuid, params.status)
                     .map_err(|e| anyhow::anyhow!("Failed to update todo status: {e}"))?;
 
@@ -263,13 +272,13 @@ impl TryFrom<(&str, serde_json::Value)> for AgentStateTool {
     fn try_from(value: (&str, serde_json::Value)) -> Result<Self, Self::Error> {
         match value.0 {
             "add_todos" => {
-                let params: AddTodosParamters =
-                    serde_json::from_value(value.1).map_err(|e| anyhow::anyhow!("Failed to parse parameters: {e}"))?;
+                let params: AddTodosParamters = serde_json::from_value(value.1)
+                    .map_err(|e| anyhow::anyhow!("Failed to parse parameters: {e}"))?;
                 Ok(AgentStateTool::AddTodos(params))
             }
             "update_todo_status" => {
-                let params: UpdateTodoStatusParameters =
-                    serde_json::from_value(value.1).map_err(|e| anyhow::anyhow!("Failed to parse parameters: {e}"))?;
+                let params: UpdateTodoStatusParameters = serde_json::from_value(value.1)
+                    .map_err(|e| anyhow::anyhow!("Failed to parse parameters: {e}"))?;
                 Ok(AgentStateTool::UpdateTodoStatus(params))
             }
             _ => Err(anyhow::anyhow!("Unknown tool: {}", value.0)),
@@ -341,7 +350,9 @@ impl Tool for AddTodos {
         _: &mut Context,
         _: &mut std::collections::HashMap<ObjectId, ObjectId>,
     ) -> anyhow::Result<serde_json::Value> {
-        Err(anyhow::anyhow!("The tool AddTodos doesn't support contextual calls."))
+        Err(anyhow::anyhow!(
+            "The tool AddTodos doesn't support contextual calls."
+        ))
     }
 }
 

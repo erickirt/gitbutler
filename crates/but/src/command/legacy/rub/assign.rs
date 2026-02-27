@@ -21,7 +21,12 @@ pub(crate) fn assign_uncommitted_to_branch(
     let reqs = to_assignment_request(ctx, assignments, Some(branch_name))?;
     do_assignments(ctx, reqs, out)?;
     if let Some(out) = out.for_human() {
-        writeln!(out, "Staged {} → {}.", description, format!("[{branch_name}]").green())?;
+        writeln!(
+            out,
+            "Staged {} → {}.",
+            description,
+            format!("[{branch_name}]").green()
+        )?;
     } else if let Some(out) = out.for_json() {
         out.write_value(serde_json::json!({"ok": true}))?;
     }
@@ -100,14 +105,24 @@ pub(crate) fn assign_all(
     out: &mut OutputChannel,
 ) -> anyhow::Result<()> {
     let (from_branch, from_stack_id) = match from {
-        Some(AssignTarget::Branch(name)) => (Some(name.to_string()), branch_name_to_stack_id(ctx, Some(name))?),
-        Some(AssignTarget::Stack(stack_id)) => (stack_id_to_branch_name(ctx, stack_id), Some(*stack_id)),
+        Some(AssignTarget::Branch(name)) => (
+            Some(name.to_string()),
+            branch_name_to_stack_id(ctx, Some(name))?,
+        ),
+        Some(AssignTarget::Stack(stack_id)) => {
+            (stack_id_to_branch_name(ctx, stack_id), Some(*stack_id))
+        }
 
         None => (None, None),
     };
     let (to_branch, to_stack_id) = match to {
-        Some(AssignTarget::Branch(name)) => (Some(name.to_string()), branch_name_to_stack_id(ctx, Some(name))?),
-        Some(AssignTarget::Stack(stack_id)) => (stack_id_to_branch_name(ctx, stack_id), Some(*stack_id)),
+        Some(AssignTarget::Branch(name)) => (
+            Some(name.to_string()),
+            branch_name_to_stack_id(ctx, Some(name))?,
+        ),
+        Some(AssignTarget::Stack(stack_id)) => {
+            (stack_id_to_branch_name(ctx, stack_id), Some(*stack_id))
+        }
         None => (None, None),
     };
     assign_all_inner(ctx, from_branch, from_stack_id, to_branch, to_stack_id, out)
@@ -182,7 +197,14 @@ pub(crate) fn do_assignments(
 ) -> anyhow::Result<()> {
     let context_lines = ctx.settings.context_lines;
     let (_guard, repo, ws, mut db) = ctx.workspace_and_db_mut()?;
-    let rejections = but_hunk_assignment::assign(db.hunk_assignments_mut()?, &repo, &ws, reqs, None, context_lines)?;
+    let rejections = but_hunk_assignment::assign(
+        db.hunk_assignments_mut()?,
+        &repo,
+        &ws,
+        reqs,
+        None,
+        context_lines,
+    )?;
     if !rejections.is_empty()
         && let Some(out) = out.for_human()
     {
@@ -191,7 +213,10 @@ pub(crate) fn do_assignments(
     Ok(())
 }
 
-pub(crate) fn branch_name_to_stack_id(ctx: &Context, branch_name: Option<&str>) -> anyhow::Result<Option<StackId>> {
+pub(crate) fn branch_name_to_stack_id(
+    ctx: &Context,
+    branch_name: Option<&str>,
+) -> anyhow::Result<Option<StackId>> {
     let stack_id = if let Some(branch_name) = branch_name {
         crate::legacy::commits::stacks(ctx)?
             .iter()

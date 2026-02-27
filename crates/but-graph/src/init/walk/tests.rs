@@ -29,9 +29,21 @@ fn gen_then_time_total_ordering_is_transitive_with_mixed_generations() {
     // B(gen=MAX) > C(gen=5) → B < C (reversed)
     // C(gen=5) > A(gen=3)  → C < A (reversed)
     // Order: B < C < A — fully transitive.
-    assert_eq!(ab, Ordering::Greater, "A should sort after B (B has None → u32::MAX)");
-    assert_eq!(bc, Ordering::Less, "B should sort before C (B has None → u32::MAX)");
-    assert_eq!(ac, Ordering::Greater, "A should sort after C (gen 5 > gen 3)");
+    assert_eq!(
+        ab,
+        Ordering::Greater,
+        "A should sort after B (B has None → u32::MAX)"
+    );
+    assert_eq!(
+        bc,
+        Ordering::Less,
+        "B should sort before C (B has None → u32::MAX)"
+    );
+    assert_eq!(
+        ac,
+        Ordering::Greater,
+        "A should sort after C (gen 5 > gen 3)"
+    );
 }
 
 #[test]
@@ -69,7 +81,11 @@ fn gen_then_time_both_some_sorts_by_generation_then_time() {
 fn gen_then_time_both_none_sorts_by_time() {
     let recent = gtt(None, 300);
     let old = gtt(None, 100);
-    assert_eq!(recent.cmp(&old), Ordering::Less, "Higher time sorts first (reversed).");
+    assert_eq!(
+        recent.cmp(&old),
+        Ordering::Less,
+        "Higher time sorts first (reversed)."
+    );
     assert_eq!(
         gtt(None, 100).cmp(&gtt(None, 100)),
         Ordering::Equal,

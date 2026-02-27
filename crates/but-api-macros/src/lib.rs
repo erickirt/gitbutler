@@ -84,7 +84,8 @@ pub fn but_api(attr: TokenStream, item: TokenStream) -> TokenStream {
                     json_ty,
                     json_ident,
                     from_mode: _,
-                }) = json_ty_by_name.get(&ident.ident.to_string())
+                }) =
+                    json_ty_by_name.get(&ident.ident.to_string())
                 {
                     let name = json_ident.as_ref().unwrap_or(name);
                     (name, quote! { pub #name: #json_ty })
@@ -428,7 +429,10 @@ fn build_json_type_mapping<'a>(
             // Extract the referenced type
             let inner = &r.elem;
             let syn::Type::Path(tp) = &**inner else {
-                return Err(syn::Error::new_spanned(inner, "Expected a type path inside reference"));
+                return Err(syn::Error::new_spanned(
+                    inner,
+                    "Expected a type path inside reference",
+                ));
             };
 
             (&tp.path, true)
@@ -440,7 +444,10 @@ fn build_json_type_mapping<'a>(
 
         let segments = &path.segments;
         if segments.is_empty() {
-            return Err(syn::Error::new_spanned(ty, "Unexpected empty type path in reference"));
+            return Err(syn::Error::new_spanned(
+                ty,
+                "Unexpected empty type path in reference",
+            ));
         }
 
         let last = &segments.last().unwrap().ident;
@@ -482,7 +489,10 @@ fn extract_ok_type(output: &syn::ReturnType) -> syn::Result<syn::Type> {
     let ty = match output {
         syn::ReturnType::Type(_, ty) => ty.as_ref(),
         _ => {
-            return Err(syn::Error::new_spanned(output, "function must return a type"));
+            return Err(syn::Error::new_spanned(
+                output,
+                "function must return a type",
+            ));
         }
     };
 
@@ -497,11 +507,17 @@ fn extract_ok_type(output: &syn::ReturnType) -> syn::Result<syn::Type> {
         .ok_or_else(|| syn::Error::new_spanned(tp, "unexpected empty type path"))?;
 
     if last.ident != "Result" {
-        return Err(syn::Error::new_spanned(last, "expected Result<T> or Result<T, E>"));
+        return Err(syn::Error::new_spanned(
+            last,
+            "expected Result<T> or Result<T, E>",
+        ));
     }
 
     let syn::PathArguments::AngleBracketed(args) = &last.arguments else {
-        return Err(syn::Error::new_spanned(last, "expected Result<T> or Result<T, E>"));
+        return Err(syn::Error::new_spanned(
+            last,
+            "expected Result<T> or Result<T, E>",
+        ));
     };
 
     if args.args.is_empty() {
@@ -731,7 +747,9 @@ fn build_napi_params<'a>(
             } else {
                 // Fallback: use serde_json::Value with ts_arg_type for proper TS typing
                 let ts_type_str = type_to_ts_name(&pat_ty.ty);
-                params.push(quote! { #[napi(ts_arg_type = #ts_type_str)] #param_name: ::serde_json::Value });
+                params.push(
+                    quote! { #[napi(ts_arg_type = #ts_type_str)] #param_name: ::serde_json::Value },
+                );
                 let actual_ty = match &*pat_ty.ty {
                     syn::Type::Reference(r) => &*r.elem,
                     other => other,
@@ -895,7 +913,9 @@ fn type_to_ts_name(ty: &syn::Type) -> String {
                 // Primitive type mappings
                 "String" | "str" => "string".to_string(),
                 "bool" => "boolean".to_string(),
-                "u8" | "u16" | "u32" | "i8" | "i16" | "i32" | "f32" | "f64" | "usize" | "isize" => "number".to_string(),
+                "u8" | "u16" | "u32" | "i8" | "i16" | "i32" | "f32" | "f64" | "usize" | "isize" => {
+                    "number".to_string()
+                }
                 "i64" | "u64" | "i128" | "u128" => "number".to_string(),
                 // Unit type
                 "()" => "void".to_string(),
@@ -921,8 +941,10 @@ fn type_to_ts_name(ty: &syn::Type) -> String {
                 "HashMap" | "BTreeMap" => {
                     if let syn::PathArguments::AngleBracketed(args) = &last.arguments {
                         let mut iter = args.args.iter();
-                        if let (Some(syn::GenericArgument::Type(k)), Some(syn::GenericArgument::Type(v))) =
-                            (iter.next(), iter.next())
+                        if let (
+                            Some(syn::GenericArgument::Type(k)),
+                            Some(syn::GenericArgument::Type(v)),
+                        ) = (iter.next(), iter.next())
                         {
                             let key_name = type_to_ts_name(k);
                             let val_name = type_to_ts_name(v);

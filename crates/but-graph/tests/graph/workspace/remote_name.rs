@@ -1,6 +1,8 @@
 use but_graph::Graph;
 
-use crate::init::utils::{add_workspace, add_workspace_without_target, read_only_in_memory_scenario, standard_options};
+use crate::init::utils::{
+    add_workspace, add_workspace_without_target, read_only_in_memory_scenario, standard_options,
+};
 
 #[test]
 fn with_target_ref_extracts_remote_name() -> anyhow::Result<()> {

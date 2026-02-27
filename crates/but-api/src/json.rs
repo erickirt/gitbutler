@@ -110,15 +110,21 @@ mod hex_hash {
         fn hex_hash() {
             let hex_str = "5c69907b1244089142905dba380371728e2e8160";
             let expected = gix::ObjectId::from_str(hex_str).expect("valid SHA1 hex-string");
-            let actual = serde_json::from_str::<HexHash>(&format!("\"{hex_str}\"")).expect("input is valid");
+            let actual =
+                serde_json::from_str::<HexHash>(&format!("\"{hex_str}\"")).expect("input is valid");
             assert_eq!(actual.0, expected);
 
             let actual = serde_json::to_string(&actual);
-            assert_eq!(actual.unwrap(), "\"5c69907b1244089142905dba380371728e2e8160\"");
+            assert_eq!(
+                actual.unwrap(),
+                "\"5c69907b1244089142905dba380371728e2e8160\""
+            );
         }
     }
 }
 pub use hex_hash::{HexHash, HexHashString};
+
+use crate::commit::{CommitCreateResult, MoveChangesResult};
 
 mod error {
     //! Utilities to control which errors show in the frontend.
@@ -238,7 +244,11 @@ mod error {
         #[test]
         fn no_context_or_code_shows_root_error() {
             let err = anyhow!("err msg");
-            assert_eq!(format!("{err:#}"), "err msg", "just one error on display here");
+            assert_eq!(
+                format!("{err:#}"),
+                "err msg",
+                "just one error on display here"
+            );
             assert_eq!(
                 json(err),
                 "{\"code\":\"errors.unknown\",\"message\":\"err msg\"}",
@@ -321,7 +331,9 @@ mod error {
 
         #[test]
         fn find_nested_code() {
-            let err = anyhow!("bottom msg").context("top msg").context(Code::Validation);
+            let err = anyhow!("bottom msg")
+                .context("top msg")
+                .context(Code::Validation);
             assert_eq!(
                 format!("{err:#}"),
                 "errors.validation: top msg: bottom msg",
@@ -425,4 +437,42 @@ impl From<gix::refs::Reference> for Reference {
 pub struct UIMoveChangesResult {
     /// Commits that have been mapped from one thing to another
     pub replaced_commits: Vec<(HexHash, HexHash)>,
+}
+
+impl From<MoveChangesResult> for UIMoveChangesResult {
+    fn from(value: MoveChangesResult) -> Self {
+        Self {
+            replaced_commits: value
+                .replaced_commits
+                .into_iter()
+                .map(|(old, new)| (old.into(), new.into()))
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+/// UI type for creating a commit in the rebase graph.
+pub struct UICommitCreateResult {
+    /// The new commit if one was created.
+    pub new_commit: Option<HexHash>,
+    /// Paths that contained at least one rejected hunk, matching legacy rejection reporting semantics.
+    pub paths_to_rejected_changes: Vec<(
+        but_core::tree::create_tree::RejectionReason,
+        but_serde::BStringForFrontend,
+    )>,
+}
+
+impl From<CommitCreateResult> for UICommitCreateResult {
+    fn from(value: CommitCreateResult) -> Self {
+        Self {
+            new_commit: value.new_commit.map(Into::into),
+            paths_to_rejected_changes: value
+                .rejected_specs
+                .into_iter()
+                .map(|(r, d)| (r, d.path.into()))
+                .collect(),
+        }
+    }
 }

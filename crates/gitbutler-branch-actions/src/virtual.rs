@@ -81,7 +81,8 @@ impl<'repo, 'cache, 'graph> IsCommitIntegrated<'repo, 'cache, 'graph> {
         let remote_head = remote_branch.get().peel_to_commit()?;
         let upstream_tree_id = git2_repo.find_commit(remote_head.id())?.tree_id();
 
-        let upstream_commits = git2_repo.log(remote_head.id(), LogUntil::Commit(target.sha), true)?;
+        let upstream_commits =
+            git2_repo.log(remote_head.id(), LogUntil::Commit(target.sha), true)?;
         let upstream_change_ids = upstream_commits
             .iter()
             .filter_map(|commit| {
@@ -93,7 +94,11 @@ impl<'repo, 'cache, 'graph> IsCommitIntegrated<'repo, 'cache, 'graph> {
             })
             .sorted()
             .collect();
-        let upstream_commits = upstream_commits.iter().map(|commit| commit.id()).sorted().collect();
+        let upstream_commits = upstream_commits
+            .iter()
+            .map(|commit| commit.id())
+            .sorted()
+            .collect();
         Ok(Self {
             gix_repo,
             graph,
@@ -120,7 +125,10 @@ impl IsCommitIntegrated<'_, '_, '_> {
         let gix_commit = self.gix_repo.find_commit(commit.id().to_gix())?;
 
         if let Some(change_id) = gix_commit.change_id()
-            && self.upstream_change_ids.binary_search(&change_id.to_string()).is_ok()
+            && self
+                .upstream_change_ids
+                .binary_search(&change_id.to_string())
+                .is_ok()
         {
             return Ok(true);
         }
@@ -129,9 +137,11 @@ impl IsCommitIntegrated<'_, '_, '_> {
             return Ok(true);
         }
 
-        let merge_base_id =
-            self.gix_repo
-                .merge_base_with_graph(self.target_commit_id, commit.id().to_gix(), self.graph)?;
+        let merge_base_id = self.gix_repo.merge_base_with_graph(
+            self.target_commit_id,
+            commit.id().to_gix(),
+            self.graph,
+        )?;
         if merge_base_id.to_git2().eq(&commit.id()) {
             // if merge branch is the same as branch head and there are upstream commits
             // then it's integrated
@@ -225,5 +235,7 @@ pub(crate) fn update_commit_message(
         .commit_mapping
         .iter()
         .find_map(|(_base, old, new)| (*old == commit_id.to_gix()).then_some(new.to_git2()))
-        .ok_or(anyhow!("Failed to find the updated commit id after rebasing"))
+        .ok_or(anyhow!(
+            "Failed to find the updated commit id after rebasing"
+        ))
 }

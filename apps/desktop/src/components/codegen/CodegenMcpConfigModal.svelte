@@ -1,15 +1,15 @@
 <script lang="ts">
-	import emptyFolderSvg from '$lib/assets/empty-state/empty-folder.svg?raw';
-	import mcpLogoSvg from '$lib/assets/unsized-logos/mcp.svg?raw';
+	import emptyFolderSvg from "$lib/assets/empty-state/empty-folder.svg?raw";
+	import mcpLogoSvg from "$lib/assets/unsized-logos/mcp.svg?raw";
 	import {
 		CardGroup,
 		EmptyStatePlaceholder,
 		Link,
 		Modal,
 		ScrollableContainer,
-		Toggle
-	} from '@gitbutler/ui';
-	import type { ClaudeConfig, McpServer } from '$lib/codegen/types';
+		Toggle,
+	} from "@gitbutler/ui";
+	import type { ClaudeConfig, McpServer } from "$lib/codegen/types";
 
 	type Props = {
 		claudeConfig: ClaudeConfig;
@@ -30,7 +30,7 @@
 	bind:this={modal}
 	width={480}
 	title={Object.entries(claudeConfig.mcpServers).length > 0
-		? 'MCP server configuration'
+		? "MCP server configuration"
 		: undefined}
 >
 	<ScrollableContainer>
@@ -80,7 +80,7 @@
 
 		{#snippet caption()}
 			{#if server.command}
-				<span>{server.command} {server.args?.join(' ')}</span>
+				<span>{server.command} {server.args?.join(" ")}</span>
 			{/if}
 			{#if server.url}
 				<span>{server.url}</span>

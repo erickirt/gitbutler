@@ -112,7 +112,9 @@ fn transaction_rollback() -> anyhow::Result<()> {
 fn file_write_lock(path: &str, owner: &str) -> FileWriteLock {
     FileWriteLock {
         path: path.to_string(),
-        created_at: chrono::DateTime::from_timestamp(1000000, 0).unwrap().naive_utc(),
+        created_at: chrono::DateTime::from_timestamp(1000000, 0)
+            .unwrap()
+            .naive_utc(),
         owner: owner.to_string(),
     }
 }

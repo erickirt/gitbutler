@@ -43,7 +43,10 @@ impl TryFrom<but_db::ForgeReview> for ForgeReview {
     type Error = anyhow::Error;
     fn try_from(value: but_db::ForgeReview) -> anyhow::Result<Self, Self::Error> {
         fn to_iso_8601(datetime: &Option<chrono::NaiveDateTime>) -> Option<String> {
-            datetime.map(|dt| chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(dt, chrono::Utc).to_rfc3339())
+            datetime.map(|dt| {
+                chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(dt, chrono::Utc)
+                    .to_rfc3339()
+            })
         }
         if value.struct_version != ForgeReview::struct_version() {
             return Err(anyhow::Error::msg(format!(
@@ -89,12 +92,25 @@ pub(crate) fn reviews_from_cache(db: &but_db::DbHandle) -> anyhow::Result<Vec<Fo
     Ok(reviews)
 }
 
-pub(crate) fn cache_reviews(db: &mut but_db::DbHandle, reviews: &[ForgeReview]) -> anyhow::Result<()> {
+pub(crate) fn cache_reviews(
+    db: &mut but_db::DbHandle,
+    reviews: &[ForgeReview],
+) -> anyhow::Result<()> {
     let db_reviews: Vec<but_db::ForgeReview> = reviews
         .iter()
         .map(|r| r.clone().try_into())
-        .collect::<anyhow::Result<Vec<but_db::ForgeReview>>>()?;
-    db.forge_reviews_mut()?.set_all(db_reviews).map_err(Into::into)
+        .collect::<anyhow::Result<Vec<but_db::ForgeReview>>>(
+    )?;
+    db.forge_reviews_mut()?
+        .set_all(db_reviews)
+        .map_err(Into::into)
+}
+
+pub(crate) fn upsert_review(db: &mut but_db::DbHandle, review: &ForgeReview) -> anyhow::Result<()> {
+    let db_review: but_db::ForgeReview = review.clone().try_into()?;
+    db.forge_reviews_mut()?
+        .upsert(db_review)
+        .map_err(Into::into)
 }
 
 use super::CiCheck;
@@ -213,7 +229,10 @@ impl TryFrom<but_db::CiCheck> for CiCheck {
     }
 }
 
-pub(crate) fn ci_checks_from_cache(db: &but_db::DbHandle, reference: &str) -> anyhow::Result<Vec<CiCheck>> {
+pub(crate) fn ci_checks_from_cache(
+    db: &but_db::DbHandle,
+    reference: &str,
+) -> anyhow::Result<Vec<CiCheck>> {
     let db_checks = db.ci_checks().list_for_reference(reference)?;
     let checks: Vec<CiCheck> = db_checks
         .into_iter()
@@ -222,7 +241,11 @@ pub(crate) fn ci_checks_from_cache(db: &but_db::DbHandle, reference: &str) -> an
     Ok(checks)
 }
 
-pub(crate) fn cache_ci_checks(db: &mut but_db::DbHandle, reference: &str, checks: &[CiCheck]) -> anyhow::Result<()> {
+pub(crate) fn cache_ci_checks(
+    db: &mut but_db::DbHandle,
+    reference: &str,
+    checks: &[CiCheck],
+) -> anyhow::Result<()> {
     let db_checks: Vec<but_db::CiCheck> = checks
         .iter()
         .map(|c| c.clone().try_into())

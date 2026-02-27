@@ -1,7 +1,11 @@
 use but_ctx::Context;
 use uuid::Uuid;
 
-pub(crate) fn obtain_or_insert(ctx: &mut Context, session_id: Uuid, file_path: String) -> anyhow::Result<()> {
+pub(crate) fn obtain_or_insert(
+    ctx: &mut Context,
+    session_id: Uuid,
+    file_path: String,
+) -> anyhow::Result<()> {
     let owner = session_id.to_string();
     let mut db = ctx.db.get_mut()?;
     let mut locks_mut = db.file_write_locks_mut();

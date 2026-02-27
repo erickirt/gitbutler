@@ -3,14 +3,19 @@ use but_api_macros::but_api;
 use but_core::ui::TreeChange;
 use but_ctx::Context;
 use but_hunk_assignment::{AssignmentRejection, HunkAssignmentRequest, WorktreeChanges};
-use but_hunk_dependency::ui::{HunkDependencies, hunk_dependencies_for_workspace_changes_by_worktree_dir};
+use but_hunk_dependency::ui::{
+    HunkDependencies, hunk_dependencies_for_workspace_changes_by_worktree_dir,
+};
 use tracing::instrument;
 
 /// Provide a unified diff for `change`, but fail if `change` is a [type-change](but_core::ModeFlags::TypeChange)
 /// or if it involves a change to a [submodule](gix::object::Kind::Commit).
 #[but_api]
 #[instrument(err(Debug))]
-pub fn tree_change_diffs(ctx: &Context, change: TreeChange) -> anyhow::Result<Option<but_core::UnifiedPatch>> {
+pub fn tree_change_diffs(
+    ctx: &Context,
+    change: TreeChange,
+) -> anyhow::Result<Option<but_core::UnifiedPatch>> {
     let change: but_core::TreeChange = change.into();
     let repo = ctx.repo.get()?;
     change.unified_patch(&repo, ctx.settings.context_lines)
@@ -32,8 +37,11 @@ pub fn changes_in_worktree(ctx: &mut Context) -> anyhow::Result<WorktreeChanges>
     let (mut guard, repo, ws, mut db) = ctx.workspace_mut_and_db_mut()?;
     let changes = but_core::diff::worktree_changes(&repo)?;
 
-    let dependencies =
-        hunk_dependencies_for_workspace_changes_by_worktree_dir(&repo, &ws, Some(changes.changes.clone()));
+    let dependencies = hunk_dependencies_for_workspace_changes_by_worktree_dir(
+        &repo,
+        &ws,
+        Some(changes.changes.clone()),
+    );
     let mut trans = db.immediate_transaction()?;
 
     // If the dependencies calculation failed, we still want to try to get assignments
@@ -74,7 +82,10 @@ pub fn changes_in_worktree(ctx: &mut Context) -> anyhow::Result<WorktreeChanges>
         assignments,
         assignments_error: assignments_error.map(|err| serde_error::Error::new(&*err)),
         dependencies: dependencies.as_ref().ok().cloned(),
-        dependencies_error: dependencies.as_ref().err().map(|err| serde_error::Error::new(&**err)),
+        dependencies_error: dependencies
+            .as_ref()
+            .err()
+            .map(|err| serde_error::Error::new(&**err)),
     })
 }
 
@@ -86,7 +97,13 @@ pub fn assign_hunk(
 ) -> anyhow::Result<Vec<AssignmentRejection>> {
     let context_lines = ctx.settings.context_lines;
     let (_guard, repo, ws, mut db) = ctx.workspace_and_db_mut()?;
-    let rejections =
-        but_hunk_assignment::assign(db.hunk_assignments_mut()?, &repo, &ws, assignments, None, context_lines)?;
+    let rejections = but_hunk_assignment::assign(
+        db.hunk_assignments_mut()?,
+        &repo,
+        &ws,
+        assignments,
+        None,
+        context_lines,
+    )?;
     Ok(rejections)
 }

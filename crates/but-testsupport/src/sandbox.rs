@@ -67,13 +67,23 @@ impl Sandbox {
     }
 
     /// A utility to init a scenario if the legacy feature is set, or open a repo otherwise.
-    pub fn open_or_init_scenario_with_target_and_default_settings(name: &str) -> anyhow::Result<Sandbox> {
-        Self::open_or_init_scenario_with_target_inner(name, Creation::CopyFromReadOnly, InitMetadata::Allow)
+    pub fn open_or_init_scenario_with_target_and_default_settings(
+        name: &str,
+    ) -> anyhow::Result<Sandbox> {
+        Self::open_or_init_scenario_with_target_inner(
+            name,
+            Creation::CopyFromReadOnly,
+            InitMetadata::Allow,
+        )
     }
 
     /// Open a repository without any additional setup and default application settings.
     pub fn open_with_default_settings(name: &str) -> anyhow::Result<Sandbox> {
-        Self::open_or_init_scenario_with_target_inner(name, Creation::CopyFromReadOnly, InitMetadata::Disallow)
+        Self::open_or_init_scenario_with_target_inner(
+            name,
+            Creation::CopyFromReadOnly,
+            InitMetadata::Disallow,
+        )
     }
 
     /// Provide a scenario with `name` for writing, and `but setup` already invoked to add the project,
@@ -83,17 +93,27 @@ impl Sandbox {
     /// TODO: we shouldn't have to add the project for interaction - it's only useful for listing.
     /// TODO: there should be no need for the target.
     pub fn init_scenario_with_target_and_default_settings(name: &str) -> anyhow::Result<Sandbox> {
-        Self::open_or_init_scenario_with_target_inner(name, Creation::CopyFromReadOnly, InitMetadata::Allow)
+        Self::open_or_init_scenario_with_target_inner(
+            name,
+            Creation::CopyFromReadOnly,
+            InitMetadata::Allow,
+        )
     }
 
     /// Provide a scenario with `name` for writing, with target added.
     pub fn open_scenario_with_target_and_default_settings(name: &str) -> anyhow::Result<Sandbox> {
-        Self::open_or_init_scenario_with_target_inner(name, Creation::CopyFromReadOnly, InitMetadata::Allow)
+        Self::open_or_init_scenario_with_target_inner(
+            name,
+            Creation::CopyFromReadOnly,
+            InitMetadata::Allow,
+        )
     }
 
     /// Like [`Self::init_scenario_with_target_and_default_settings`], Execute the script at `name` instead of
     /// copying it - necessary if Git places absolute paths.
-    pub fn init_scenario_with_target_and_default_settings_slow(name: &str) -> anyhow::Result<Sandbox> {
+    pub fn init_scenario_with_target_and_default_settings_slow(
+        name: &str,
+    ) -> anyhow::Result<Sandbox> {
         Self::open_or_init_scenario_with_target_inner(name, Creation::Execute, InitMetadata::Allow)
     }
 
@@ -154,12 +174,20 @@ impl Sandbox {
             .insert("[HASH]", regex::Regex::new(r#"\b[a-f0-9]{12}\b"#).unwrap())
             .unwrap();
         redactions
-            .insert("[SHORTHASH]", regex::Regex::new(r#"[a-f0-9]{7}\b"#).unwrap())
+            .insert(
+                "[SHORTHASH]",
+                regex::Regex::new(r#"[a-f0-9]{7}\b"#).unwrap(),
+            )
             .unwrap();
         redactions
-            .insert("[MICROHASH]", regex::Regex::new(r#"\b[a-f0-9]{5}\b"#).unwrap())
+            .insert(
+                "[MICROHASH]",
+                regex::Regex::new(r#"\b[a-f0-9]{5}\b"#).unwrap(),
+            )
             .unwrap();
-        Assert::new().action_env("SNAPSHOTS").redact_with(redactions)
+        Assert::new()
+            .action_env("SNAPSHOTS")
+            .redact_with(redactions)
     }
 
     /// Create an assert with custom redactions. Adapt as needed.
@@ -179,15 +207,23 @@ impl Sandbox {
         redactions
             .insert(
                 "[RFC_TIMESTAMP]",
-                regex::Regex::new(r#"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?\+\d{2}:\d{2}"#).unwrap(),
+                regex::Regex::new(
+                    r#"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?\+\d{2}:\d{2}"#,
+                )
+                .unwrap(),
             )
             .unwrap();
-        Assert::new().action_env("SNAPSHOTS").redact_with(redactions)
+        Assert::new()
+            .action_env("SNAPSHOTS")
+            .redact_with(redactions)
     }
 
     /// Print the paths to our directories, and keep them.
     pub fn debug(mut self) -> ! {
-        eprintln!("projects_root: {:?}", self.project_root.take().unwrap().keep());
+        eprintln!(
+            "projects_root: {:?}",
+            self.project_root.take().unwrap().keep()
+        );
         #[cfg(feature = "sandbox-but-api")]
         eprintln!("app_root: {:?}", self.app_root.take().unwrap().keep());
         todo!("Check the directories manually")
@@ -195,12 +231,18 @@ impl Sandbox {
 
     /// Open a repository on the projects-directory.
     pub fn open_repo(&self) -> anyhow::Result<gix::Repository> {
-        Ok(gix::open_opts(self.projects_root(), gix::open::Options::isolated())?)
+        Ok(gix::open_opts(
+            self.projects_root(),
+            gix::open::Options::isolated(),
+        )?)
     }
 
     /// Create a metadata instance on the project.
     pub fn meta(&self) -> anyhow::Result<impl but_core::RefMetadata> {
-        VirtualBranchesTomlMetadata::from_path(self.projects_root().join(".git/gitbutler/virtual_branches.toml"))
+        VirtualBranchesTomlMetadata::from_path(
+            self.projects_root()
+                .join(".git/gitbutler/virtual_branches.toml"),
+        )
     }
 
     /// Return a context configured to interact with this repository.
@@ -216,7 +258,13 @@ impl Sandbox {
     }
 
     /// Return the graph at `HEAD`, along with the `(graph, repo, meta)` repository and metadata used to create it.
-    pub fn graph_at_head(&self) -> anyhow::Result<(but_graph::Graph, gix::Repository, impl but_core::RefMetadata)> {
+    pub fn graph_at_head(
+        &self,
+    ) -> anyhow::Result<(
+        but_graph::Graph,
+        gix::Repository,
+        impl but_core::RefMetadata,
+    )> {
         let repo = self.open_repo()?;
         let meta = self.meta()?;
         let graph = but_graph::Graph::from_head(&repo, &meta, Default::default())?;
@@ -265,7 +313,8 @@ impl Sandbox {
     /// Write `data` to `path` in our projects root, creating a new file.
     pub fn file(&self, path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> &Self {
         let path = self.projects_root().join(path);
-        std::fs::create_dir_all(path.parent().unwrap()).expect("parent directory has nothing in its way");
+        std::fs::create_dir_all(path.parent().unwrap())
+            .expect("parent directory has nothing in its way");
         std::fs::OpenOptions::new()
             .create(true)
             .truncate(true)
@@ -304,14 +353,42 @@ impl Sandbox {
 /// Invocations
 impl Sandbox {
     /// Invoke an isolated `git` with the given `args`, which will be split automatically.
-    pub fn invoke_git(&self, args: &str) -> &Self {
+    /// Return its trimmed `stdout` for consumption.
+    ///
+    /// # Use `gix::Repository` if you can
+    ///
+    /// This method should only be used if there is no convenient way to do this via [`Self::open_repo()`].
+    pub fn invoke_git(&self, args: &str) -> String {
         let cmd = snapbox::cmd::Command::new(gix::path::env::exe_invocation());
-        isolate_snapbox_cmd(cmd)
+        let output = isolate_snapbox_cmd(cmd)
             .current_dir(self.projects_root())
             .args(shell_words::split(args).expect("statically known args must split correctly"))
-            .assert()
-            .success();
-        self
+            .output()
+            .expect("git should execute");
+        assert!(
+            output.status.success(),
+            "git {args} failed with {status:?}",
+            status = output.status
+        );
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    }
+
+    /// Invoke an isolated `git` with the given `args`, assert it fails, and return the trimmed stdout.
+    ///
+    /// Use this when the command is expected to fail for a specific `reason`.
+    pub fn invoke_git_fails(&self, args: &str, reason: &str) -> String {
+        let cmd = snapbox::cmd::Command::new(gix::path::env::exe_invocation());
+        let output = isolate_snapbox_cmd(cmd)
+            .current_dir(self.projects_root())
+            .args(shell_words::split(args).expect("statically known args must split correctly"))
+            .output()
+            .expect("git should execute");
+        assert!(
+            !output.status.success(),
+            "git {args} should fail because: {reason}; got status {status:?}",
+            status = output.status
+        );
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
     }
 
     /// Invoke the given `script` in `bash` in this sandbox
@@ -348,7 +425,8 @@ impl Sandbox {
         use but_settings::{
             AppSettings,
             app_settings::{
-                Claude, ExtraCsp, FeatureFlags, Fetch, GitHubOAuthAppSettings, Reviews, TelemetrySettings, UiSettings,
+                Claude, ExtraCsp, FeatureFlags, Fetch, GitHubOAuthAppSettings, Reviews,
+                TelemetrySettings, UiSettings,
             },
         };
         let settings = AppSettings {
@@ -370,7 +448,7 @@ impl Sandbox {
                 undo: true,
                 rules: true,
                 single_branch: true,
-                watch_mode: "modern".into(),
+                watch_mode: "auto".into(),
             },
             extra_csp: ExtraCsp {
                 hosts: vec![],

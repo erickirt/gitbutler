@@ -38,9 +38,12 @@ fn forcepush_allowed() -> anyhow::Result<()> {
     .unwrap();
 
     let mut guard = ctx.exclusive_worktree_access();
-    let stack_entry =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let stack_entry = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     // create commit
@@ -74,7 +77,10 @@ fn forcepush_allowed() -> anyhow::Result<()> {
         }];
         gitbutler_branch_actions::amend(ctx, stack_entry.id, commit_id, to_amend).unwrap();
 
-        let (_, b) = stack_details(ctx).into_iter().find(|s| s.0 == stack_entry.id).unwrap();
+        let (_, b) = stack_details(ctx)
+            .into_iter()
+            .find(|s| s.0 == stack_entry.id)
+            .unwrap();
         assert_eq!(b.branch_details[0].commits.len(), 1);
         assert_eq!(
             list_commit_files(ctx, b.branch_details[0].commits[0].id.to_git2())?.len(),
@@ -98,16 +104,22 @@ fn non_locked_hunk() -> anyhow::Result<()> {
     drop(guard);
 
     let mut guard = ctx.exclusive_worktree_access();
-    let stack_entry =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let stack_entry = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     // create commit
     fs::write(repo.path().join("file.txt"), "content").unwrap();
     let commit_oid = super::create_commit(ctx, stack_entry.id, "commit one").unwrap();
 
-    let (_, b) = stack_details(ctx).into_iter().find(|s| s.0 == stack_entry.id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|s| s.0 == stack_entry.id)
+        .unwrap();
     assert_eq!(b.branch_details[0].commits.len(), 1);
 
     {
@@ -126,7 +138,10 @@ fn non_locked_hunk() -> anyhow::Result<()> {
         }];
         gitbutler_branch_actions::amend(ctx, stack_entry.id, commit_oid, to_amend).unwrap();
 
-        let (_, b) = stack_details(ctx).into_iter().find(|s| s.0 == stack_entry.id).unwrap();
+        let (_, b) = stack_details(ctx)
+            .into_iter()
+            .find(|s| s.0 == stack_entry.id)
+            .unwrap();
         assert_eq!(b.branch_details[0].commits.len(), 1);
         assert_eq!(
             list_commit_files(ctx, b.branch_details[0].commits[0].id.to_git2())?.len(),
@@ -150,16 +165,22 @@ fn non_existing_ownership() {
     drop(guard);
 
     let mut guard = ctx.exclusive_worktree_access();
-    let stack_entry =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let stack_entry = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     // create commit
     fs::write(repo.path().join("file.txt"), "content").unwrap();
     let commit_oid = super::create_commit(ctx, stack_entry.id, "commit one").unwrap();
 
-    let (_, b) = stack_details(ctx).into_iter().find(|s| s.0 == stack_entry.id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|s| s.0 == stack_entry.id)
+        .unwrap();
     assert_eq!(b.branch_details[0].commits.len(), 1);
 
     {

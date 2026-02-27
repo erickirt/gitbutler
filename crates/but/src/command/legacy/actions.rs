@@ -10,7 +10,14 @@ pub(crate) fn handle_changes(
     handler: impl Into<but_action::ActionHandler>,
     change_description: &str,
 ) -> anyhow::Result<()> {
-    let response = but_action::handle_changes(ctx, change_description, None, handler.into(), Source::ButCli, None)?;
+    let response = but_action::handle_changes(
+        ctx,
+        change_description,
+        None,
+        handler.into(),
+        Source::ButCli,
+        None,
+    )?;
     print_json_or_human(&response, out)
 }
 
@@ -22,7 +29,12 @@ impl From<crate::args::actions::Handler> for but_action::ActionHandler {
     }
 }
 
-pub(crate) fn list_actions(ctx: &Context, out: &mut OutputChannel, offset: i64, limit: i64) -> anyhow::Result<()> {
+pub(crate) fn list_actions(
+    ctx: &Context,
+    out: &mut OutputChannel,
+    offset: i64,
+    limit: i64,
+) -> anyhow::Result<()> {
     let response = but_action::list_actions(ctx, offset, limit)?;
     print_json_or_human(&response, out)
 }

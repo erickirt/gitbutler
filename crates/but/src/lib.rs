@@ -30,8 +30,8 @@ use clap::Parser;
 
 pub mod args;
 use args::{
-    Args, OutputFormat, Subcommands, actions, alias as alias_args, branch, claude, cursor, forge, metrics,
-    update as update_args, worktree,
+    Args, OutputFormat, Subcommands, actions, alias as alias_args, branch, claude, cursor, forge,
+    metrics, update as update_args, worktree,
 };
 use but_settings::AppSettings;
 use colored::Colorize;
@@ -39,7 +39,9 @@ use gix::date::time::CustomFormat;
 
 use crate::{
     setup::{BackgroundSync, InitCtxOptions},
-    utils::{OneshotMetricsContext, OutputChannel, ResultErrorExt, ResultJsonExt, ResultMetricsExt},
+    utils::{
+        OneshotMetricsContext, OutputChannel, ResultErrorExt, ResultJsonExt, ResultMetricsExt,
+    },
 };
 
 mod id;
@@ -79,14 +81,18 @@ pub async fn handle_args(args: impl Iterator<Item = OsString>) -> Result<()> {
     // The `but push --help` output is different if gerrit mode is enabled, hence the special handling
     let args_vec: Vec<String> = std::env::args().collect();
     // TODO: handle this as part of clap, it can be told to not generate all help.
-    if args_vec.iter().any(|arg| arg == "push") && args_vec.iter().any(|arg| arg == "--help" || arg == "-h") {
+    if args_vec.iter().any(|arg| arg == "push")
+        && args_vec.iter().any(|arg| arg == "--help" || arg == "-h")
+    {
         let mut out = OutputChannel::new_without_pager_non_json(OutputFormat::Human);
         command::push::help::print(&mut out)?;
         return Ok(());
     }
 
     // Handle `but help -h` and `but help --help` to show the grouped help output
-    if args_vec.iter().any(|arg| arg == "help") && args_vec.iter().any(|arg| arg == "--help" || arg == "-h") {
+    if args_vec.iter().any(|arg| arg == "help")
+        && args_vec.iter().any(|arg| arg == "--help" || arg == "-h")
+    {
         let mut out = OutputChannel::new_without_pager_non_json(OutputFormat::Human);
         command::help::print_grouped(&mut out)?;
         return Ok(());
@@ -94,13 +100,19 @@ pub async fn handle_args(args: impl Iterator<Item = OsString>) -> Result<()> {
 
     let mut args: Args = Args::parse_from(args);
     let app_settings = AppSettings::load_from_default_path_creating_without_customization()?;
-    let output_format = if args.json { OutputFormat::Json } else { args.format };
+    let output_format = if args.json {
+        OutputFormat::Json
+    } else {
+        args.format
+    };
     // Determine if pager should be used based on the command
     let use_pager = match args.cmd {
         #[cfg(feature = "legacy")]
         Some(Subcommands::Diff { tui, .. }) => !tui,
         #[cfg(feature = "legacy")]
-        Some(Subcommands::Stage { ref file_or_hunk, .. }) => file_or_hunk.is_some(),
+        Some(Subcommands::Stage {
+            ref file_or_hunk, ..
+        }) => file_or_hunk.is_some(),
         _ => false,
     };
     let mut out = OutputChannel::new_with_optional_pager(output_format, use_pager);
@@ -208,7 +220,10 @@ async fn match_subcommand(
     let metrics_ctx = cmd.to_metrics_context(&app_settings);
 
     match cmd {
-        Subcommands::Metrics { command_name, props } => {
+        Subcommands::Metrics {
+            command_name,
+            props,
+        } => {
             let mut event = utils::metrics::Event::new(command_name.into());
             if let Ok(props) = utils::metrics::Props::from_json_string(&props) {
                 props.update_event(&mut event);
@@ -238,9 +253,12 @@ async fn match_subcommand(
                 Some(alias_args::Subcommands::List) | None => {
                     command::alias::list(&*ctx.repo.get()?, out).emit_metrics(metrics_ctx)
                 }
-                Some(alias_args::Subcommands::Add { name, value, global }) => {
-                    command::alias::add(&mut ctx, out, &name, &value, global).emit_metrics(metrics_ctx)
-                }
+                Some(alias_args::Subcommands::Add {
+                    name,
+                    value,
+                    global,
+                }) => command::alias::add(&mut ctx, out, &name, &value, global)
+                    .emit_metrics(metrics_ctx),
                 Some(alias_args::Subcommands::Remove { name, global }) => {
                     command::alias::remove(&mut ctx, out, &name, global).emit_metrics(metrics_ctx)
                 }
@@ -249,9 +267,11 @@ async fn match_subcommand(
         Subcommands::Config(args::config::Platform { cmd }) => {
             // Handle subcommands that don't require a repo context
             match &cmd {
-                Some(args::config::Subcommands::Metrics { status }) => command::config::metrics_config(out, *status)
-                    .await
-                    .emit_metrics(metrics_ctx),
+                Some(args::config::Subcommands::Metrics { status }) => {
+                    command::config::metrics_config(out, *status)
+                        .await
+                        .emit_metrics(metrics_ctx)
+                }
                 Some(args::config::Subcommands::Forge { cmd: forge_cmd }) => {
                     command::config::forge_config(out, forge_cmd.clone())
                         .await
@@ -318,7 +338,10 @@ async fn match_subcommand(
         }
         #[cfg(feature = "legacy")]
         Subcommands::Actions(actions::Platform { cmd }) => match cmd {
-            Some(actions::Subcommands::HandleChanges { description, handler }) => {
+            Some(actions::Subcommands::HandleChanges {
+                description,
+                handler,
+            }) => {
                 let mut ctx = setup::init_ctx(&args, InitCtxOptions::default(), out)?;
                 command::legacy::actions::handle_changes(&mut ctx, out, handler, &description)
             }
@@ -332,15 +355,21 @@ async fn match_subcommand(
             use but_claude::hooks::OutputClaudeJson;
             let ctx = setup::init_ctx(&args, InitCtxOptions::default(), out)?;
             match cmd {
-                claude::Subcommands::PreTool => but_claude::hooks::handle_pre_tool_call(ctx, std::io::stdin().lock())
-                    .output_claude_json()
-                    .emit_metrics(metrics_ctx),
-                claude::Subcommands::PostTool => but_claude::hooks::handle_post_tool_call(ctx, std::io::stdin().lock())
-                    .output_claude_json()
-                    .emit_metrics(metrics_ctx),
-                claude::Subcommands::Stop => but_claude::hooks::handle_stop(ctx, std::io::stdin().lock())
-                    .output_claude_json()
-                    .emit_metrics(metrics_ctx),
+                claude::Subcommands::PreTool => {
+                    but_claude::hooks::handle_pre_tool_call(ctx, std::io::stdin().lock())
+                        .output_claude_json()
+                        .emit_metrics(metrics_ctx)
+                }
+                claude::Subcommands::PostTool => {
+                    but_claude::hooks::handle_post_tool_call(ctx, std::io::stdin().lock())
+                        .output_claude_json()
+                        .emit_metrics(metrics_ctx)
+                }
+                claude::Subcommands::Stop => {
+                    but_claude::hooks::handle_stop(ctx, std::io::stdin().lock())
+                        .output_claude_json()
+                        .emit_metrics(metrics_ctx)
+                }
                 claude::Subcommands::Last { offset } => {
                     let message = but_claude::db::get_user_message(&ctx, Some(offset as i64))?;
                     match message {
@@ -360,7 +389,10 @@ async fn match_subcommand(
                                 println!(
                                     "{} {}",
                                     "Timestamp:".bold(),
-                                    msg.created_at().format("%Y-%m-%d %H:%M:%S").to_string().cyan()
+                                    msg.created_at()
+                                        .format("%Y-%m-%d %H:%M:%S")
+                                        .to_string()
+                                        .cyan()
                                 );
                                 match msg.content() {
                                     but_claude::MessagePayload::User(input) => {
@@ -386,14 +418,18 @@ async fn match_subcommand(
         }
         #[cfg(feature = "legacy")]
         Subcommands::Cursor(cursor::Platform { cmd }) => match cmd {
-            cursor::Subcommands::AfterEdit => but_cursor::handle_after_edit(std::io::stdin().lock())
-                .await
-                .output_json(true)
-                .emit_metrics(metrics_ctx),
-            cursor::Subcommands::Stop { nightly } => but_cursor::handle_stop(nightly, std::io::stdin().lock())
-                .await
-                .output_json(true)
-                .emit_metrics(metrics_ctx),
+            cursor::Subcommands::AfterEdit => {
+                but_cursor::handle_after_edit(std::io::stdin().lock())
+                    .await
+                    .output_json(true)
+                    .emit_metrics(metrics_ctx)
+            }
+            cursor::Subcommands::Stop { nightly } => {
+                but_cursor::handle_stop(nightly, std::io::stdin().lock())
+                    .await
+                    .output_json(true)
+                    .emit_metrics(metrics_ctx)
+            }
         },
         #[cfg(feature = "legacy")]
         Subcommands::Pull { check } => {
@@ -409,7 +445,8 @@ async fn match_subcommand(
             writeln!(
                 progress,
                 "{}",
-                "Assuming you meant to check for upstream work, running `but pull --check`".yellow()
+                "Assuming you meant to check for upstream work, running `but pull --check`"
+                    .yellow()
             )?;
             let ctx = setup::init_ctx(&args, InitCtxOptions::default(), out)?;
             command::legacy::pull::handle(&ctx, out, true)
@@ -439,9 +476,11 @@ async fn match_subcommand(
                 },
                 out,
             )?;
-            command::legacy::status::worktree(&mut ctx, out, show_files, verbose, sync_prs, upstream, !no_hint)
-                .await
-                .emit_metrics(metrics_ctx)
+            command::legacy::status::worktree(
+                &mut ctx, out, show_files, verbose, sync_prs, upstream, !no_hint,
+            )
+            .await
+            .emit_metrics(metrics_ctx)
         }
         #[cfg(feature = "legacy")]
         Subcommands::Rub { source, target } => {
@@ -462,7 +501,11 @@ async fn match_subcommand(
             result.show_root_cause_error_then_exit_without_destructors(output)
         }
         #[cfg(feature = "legacy")]
-        Subcommands::Diff { target, tui, no_tui } => {
+        Subcommands::Diff {
+            target,
+            tui,
+            no_tui,
+        } => {
             let mut ctx = setup::init_ctx(
                 &args,
                 InitCtxOptions {
@@ -493,6 +536,12 @@ async fn match_subcommand(
                     .emit_metrics(metrics_ctx)
                     .show_root_cause_error_then_exit_without_destructors(output)
             }
+        }
+        Subcommands::Edit { file } => {
+            let path = args.current_dir.join(&file);
+            tui::editor::edit_file(&path)
+                .emit_metrics(metrics_ctx)
+                .show_root_cause_error_then_exit_without_destructors(output)
         }
         #[cfg(feature = "legacy")]
         Subcommands::Show { commit, verbose } => {
@@ -614,17 +663,19 @@ async fn match_subcommand(
                         use but_api::legacy::workspace;
 
                         let stack_entries = workspace::stacks(&ctx, None)?;
-                        let stacks: Vec<(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)> =
-                            stack_entries
-                                .iter()
-                                .filter_map(|s| {
-                                    s.id.and_then(|id| {
-                                        workspace::stack_details(&ctx, Some(id))
-                                            .ok()
-                                            .map(|details| (id, details))
-                                    })
+                        let stacks: Vec<(
+                            but_core::ref_metadata::StackId,
+                            but_workspace::ui::StackDetails,
+                        )> = stack_entries
+                            .iter()
+                            .filter_map(|s| {
+                                s.id.and_then(|id| {
+                                    workspace::stack_details(&ctx, Some(id))
+                                        .ok()
+                                        .map(|details| (id, details))
                                 })
-                                .collect();
+                            })
+                            .collect();
 
                         // Find the first stack with branches and convert BString to String
                         let branch_name = stacks
@@ -646,8 +697,13 @@ async fn match_subcommand(
                         TargetSpec::Owned(s, side) => (s.as_str(), *side),
                     };
 
-                    command::legacy::commit::insert_blank_commit(&mut ctx, out, target_str, insert_side)
-                        .emit_metrics(metrics_ctx)
+                    command::legacy::commit::insert_blank_commit(
+                        &mut ctx,
+                        out,
+                        target_str,
+                        insert_side,
+                    )
+                    .emit_metrics(metrics_ctx)
                 }
                 None => {
                     // Handle the regular `but commit` command
@@ -664,13 +720,15 @@ async fn match_subcommand(
                     }
 
                     // Read message from file if provided, otherwise use message option
-                    let commit_message =
-                        match &commit_args.message_file {
-                            Some(path) => Some(std::fs::read_to_string(path).with_context(|| {
-                                format!("Failed to read commit message from file: {}", path.display())
-                            })?),
-                            None => commit_args.message.clone(),
-                        };
+                    let commit_message = match &commit_args.message_file {
+                        Some(path) => Some(std::fs::read_to_string(path).with_context(|| {
+                            format!(
+                                "Failed to read commit message from file: {}",
+                                path.display()
+                            )
+                        })?),
+                        None => commit_args.message.clone(),
+                    };
                     command::legacy::commit::commit(
                         &mut ctx,
                         out,
@@ -708,8 +766,14 @@ async fn match_subcommand(
                 },
                 out,
             )?;
-            command::legacy::reword::reword_target(&mut ctx, out, &target, message.as_deref(), format)
-                .emit_metrics(metrics_ctx)
+            command::legacy::reword::reword_target(
+                &mut ctx,
+                out,
+                &target,
+                message.as_deref(),
+                format,
+            )
+            .emit_metrics(metrics_ctx)
         }
         #[cfg(feature = "legacy")]
         Subcommands::Oplog(args::oplog::Platform { cmd }) => {
@@ -725,14 +789,17 @@ async fn match_subcommand(
                         .emit_metrics(metrics_ctx)
                 }
                 Some(args::oplog::Subcommands::Snapshot { message }) => {
-                    command::legacy::oplog::create_snapshot(&mut ctx, out, message.as_deref()).emit_metrics(metrics_ctx)
+                    command::legacy::oplog::create_snapshot(&mut ctx, out, message.as_deref())
+                        .emit_metrics(metrics_ctx)
                 }
                 Some(args::oplog::Subcommands::Restore { oplog_sha, force }) => {
-                    command::legacy::oplog::restore_to_oplog(&mut ctx, out, &oplog_sha, force).emit_metrics(metrics_ctx)
+                    command::legacy::oplog::restore_to_oplog(&mut ctx, out, &oplog_sha, force)
+                        .emit_metrics(metrics_ctx)
                 }
                 None => {
                     // Default to list when no subcommand is provided
-                    command::legacy::oplog::show_oplog(&mut ctx, out, None, None).emit_metrics(metrics_ctx)
+                    command::legacy::oplog::show_oplog(&mut ctx, out, None, None)
+                        .emit_metrics(metrics_ctx)
                 }
             }
         }
@@ -742,7 +809,11 @@ async fn match_subcommand(
             command::legacy::oplog::undo_last_operation(&mut ctx, out).emit_metrics(metrics_ctx)
         }
         #[cfg(feature = "legacy")]
-        Subcommands::Absorb { source, dry_run, new } => {
+        Subcommands::Absorb {
+            source,
+            dry_run,
+            new,
+        } => {
             let status_after = args.status_after;
             let mut ctx = setup::init_ctx(
                 &args,
@@ -753,8 +824,9 @@ async fn match_subcommand(
                 out,
             )?;
             out.begin_status_after(status_after);
-            let result = command::legacy::absorb::handle(&mut ctx, out, source.as_deref(), dry_run, new)
-                .emit_metrics(metrics_ctx);
+            let result =
+                command::legacy::absorb::handle(&mut ctx, out, source.as_deref(), dry_run, new)
+                    .emit_metrics(metrics_ctx);
             maybe_run_status_after(status_after, &result, &mut ctx, out).await;
             result
         }
@@ -772,11 +844,19 @@ async fn match_subcommand(
         }
         #[cfg(feature = "legacy")]
         Subcommands::Setup { init } => {
-            let repo = match but_api::legacy::projects::add_project_best_effort(args.current_dir.clone())? {
-                gitbutler_project::AddProjectOutcome::Added(project)
-                | gitbutler_project::AddProjectOutcome::AlreadyExists(project) => gix::open(project.git_dir())?,
-                _ => command::legacy::setup::find_or_initialize_repo(&args.current_dir, out, init)?,
-            };
+            let repo =
+                match but_api::legacy::projects::add_project_best_effort(args.current_dir.clone())?
+                {
+                    gitbutler_project::AddProjectOutcome::Added(project)
+                    | gitbutler_project::AddProjectOutcome::AlreadyExists(project) => {
+                        gix::open(project.git_dir())?
+                    }
+                    _ => command::legacy::setup::find_or_initialize_repo(
+                        &args.current_dir,
+                        out,
+                        init,
+                    )?,
+                };
             let mut ctx = but_ctx::Context::from_repo(repo)?;
             let mut guard = ctx.exclusive_worktree_access();
             command::legacy::setup::repo(&mut ctx, &args.current_dir, out, guard.write_permission())
@@ -825,19 +905,26 @@ async fn match_subcommand(
                     // Read message content from file or inline
                     let message_content = match &file {
                         Some(path) => Some(std::fs::read_to_string(path).with_context(|| {
-                            format!("Failed to read forge review message from file: {}", path.display())
+                            format!(
+                                "Failed to read forge review message from file: {}",
+                                path.display()
+                            )
                         })?),
                         None => message.clone(),
                     };
                     // Parse early to fail fast on invalid content
                     let review_message = match message_content {
-                        Some(content) => Some(command::legacy::forge::review::parse_review_message(&content)?),
+                        Some(content) => Some(
+                            command::legacy::forge::review::parse_review_message(&content)?,
+                        ),
                         None => None,
                     };
                     // Check for non-interactive environment
                     if !out.can_prompt() {
                         if branch.is_none() {
-                            anyhow::bail!("Non-interactive environment detected. Please specify a branch.");
+                            anyhow::bail!(
+                                "Non-interactive environment detected. Please specify a branch."
+                            );
                         }
                         if review_message.is_none() && !default {
                             anyhow::bail!(
@@ -861,8 +948,30 @@ async fn match_subcommand(
                     .emit_metrics(metrics_ctx)
                 }
                 Some(forge::pr::Subcommands::Template { template_path }) => {
-                    command::legacy::forge::review::set_review_template(&mut ctx, template_path, out)
-                        .context("Failed to set forge review template.")
+                    command::legacy::forge::review::set_review_template(
+                        &mut ctx,
+                        template_path,
+                        out,
+                    )
+                    .context("Failed to set forge review template.")
+                    .emit_metrics(metrics_ctx)
+                }
+                Some(forge::pr::Subcommands::AutoMerge { selector, off }) => {
+                    command::legacy::forge::review::enable_auto_merge(&mut ctx, selector, off, out)
+                        .await
+                        .context("Failed to set the auto-merge state.")
+                        .emit_metrics(metrics_ctx)
+                }
+                Some(forge::pr::Subcommands::SetDraft { selector }) => {
+                    command::legacy::forge::review::set_draftiness(&mut ctx, selector, true, out)
+                        .await
+                        .context("Failed to set reviews as draft.")
+                        .emit_metrics(metrics_ctx)
+                }
+                Some(forge::pr::Subcommands::SetReady { selector }) => {
+                    command::legacy::forge::review::set_draftiness(&mut ctx, selector, false, out)
+                        .await
+                        .context("Failed to set reviews as ready-for-review.")
                         .emit_metrics(metrics_ctx)
                 }
                 None => {
@@ -974,7 +1083,9 @@ async fn match_subcommand(
                 // Interactive mode: but stage [--branch <branch>]
                 use std::io::IsTerminal;
                 if !std::io::stdout().is_terminal() {
-                    anyhow::bail!("Interactive stage requires a terminal. Use: but stage <file_or_hunk> <branch>");
+                    anyhow::bail!(
+                        "Interactive stage requires a terminal. Use: but stage <file_or_hunk> <branch>"
+                    );
                 }
                 command::legacy::rub::handle_stage_tui(&mut ctx, out, branch.as_deref())
                     .context("Failed to stage.")
@@ -984,7 +1095,10 @@ async fn match_subcommand(
             result.show_root_cause_error_then_exit_without_destructors(output)
         }
         #[cfg(feature = "legacy")]
-        Subcommands::Unstage { file_or_hunk, branch } => {
+        Subcommands::Unstage {
+            file_or_hunk,
+            branch,
+        } => {
             let mut ctx = setup::init_ctx(
                 &args,
                 InitCtxOptions {
@@ -1053,14 +1167,18 @@ async fn match_subcommand(
                 out,
             )?;
             out.begin_status_after(status_after);
-            let result = command::legacy::rub::r#move::handle(&mut ctx, out, &source_commit, &target, after)
-                .context("Failed to move commit.")
-                .emit_metrics(metrics_ctx);
+            let result =
+                command::legacy::rub::r#move::handle(&mut ctx, out, &source_commit, &target, after)
+                    .context("Failed to move commit.")
+                    .emit_metrics(metrics_ctx);
             maybe_run_status_after(status_after, &result, &mut ctx, out).await;
             result.show_root_cause_error_then_exit_without_destructors(output)
         }
         #[cfg(feature = "legacy")]
-        Subcommands::Pick { source, target_branch } => {
+        Subcommands::Pick {
+            source,
+            target_branch,
+        } => {
             let mut ctx = setup::init_ctx(
                 &args,
                 InitCtxOptions {
@@ -1165,7 +1283,8 @@ async fn run_status_after(
 ) {
     if out.is_json() {
         out.start_json_buffering();
-        let status_result = command::legacy::status::worktree(ctx, out, false, false, false, false, false).await;
+        let status_result =
+            command::legacy::status::worktree(ctx, out, false, false, false, false, false).await;
         let status_json = out.take_json_buffer().unwrap_or(serde_json::Value::Null);
 
         let combined = match status_result {
@@ -1190,8 +1309,12 @@ async fn run_status_after(
         if let Some(human) = out.for_human() {
             writeln!(human).ok();
         }
-        if let Err(err) = command::legacy::status::worktree(ctx, out, false, false, false, false, true).await {
-            eprintln!("warning: --status-after failed: {err:#}. Run 'but status' separately to check workspace state.");
+        if let Err(err) =
+            command::legacy::status::worktree(ctx, out, false, false, false, false, true).await
+        {
+            eprintln!(
+                "warning: --status-after failed: {err:#}. Run 'but status' separately to check workspace state."
+            );
         }
     }
 }

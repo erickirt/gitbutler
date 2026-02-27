@@ -30,7 +30,6 @@ use ui::{info, success};
 
 #[cfg(target_os = "linux")]
 use crate::install_linux::download_and_install_app;
-
 #[cfg(target_os = "macos")]
 use crate::install_macos::download_and_install_app;
 
@@ -51,7 +50,10 @@ use crate::install_macos::download_and_install_app;
 ///
 /// Returns an error if any step fails. The function will attempt to rollback
 /// changes on installation failure.
-pub fn run_installation_with_version(version_request: VersionRequest, interactive: bool) -> Result<()> {
+pub fn run_installation_with_version(
+    version_request: VersionRequest,
+    interactive: bool,
+) -> Result<()> {
     let config = InstallerConfig::new_with_version(version_request)?;
     run_installation_impl(config, interactive)
 }
@@ -87,7 +89,10 @@ fn run_installation_impl(config: InstallerConfig, interactive: bool) -> Result<(
     // Display version information
     let channel = match &config.version_request {
         VersionRequest::Nightly => {
-            info(&format!("Installing latest nightly version: {}", release.version));
+            info(&format!(
+                "Installing latest nightly version: {}",
+                release.version
+            ));
             Some(Channel::Nightly)
         }
         VersionRequest::Specific(version) => {
@@ -113,7 +118,9 @@ fn run_installation_impl(config: InstallerConfig, interactive: bool) -> Result<(
     ui::println_empty();
     success(&format!(
         "✓ GitButler CLI installation completed! ({}{})",
-        channel.map(|c| format!("{} ", c.display_name())).unwrap_or_default(),
+        channel
+            .map(|c| format!("{} ", c.display_name()))
+            .unwrap_or_default(),
         release.version
     ));
     ui::println_empty();

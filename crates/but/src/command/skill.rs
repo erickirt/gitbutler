@@ -2,8 +2,7 @@ use std::{fmt::Write as _, path::PathBuf};
 
 use anyhow::{Context as _, Result};
 use but_ctx::Context;
-use cli_prompts::DisplayPrompt;
-use cli_prompts::prompts::AbortReason;
+use cli_prompts::{DisplayPrompt, prompts::AbortReason};
 use colored::Colorize;
 use serde::Serialize;
 
@@ -161,7 +160,10 @@ enum InstallScopeResolution {
     Fixed(InstallScope),
 }
 
-fn determine_install_scope_resolution(global: bool, local_scope_available: bool) -> InstallScopeResolution {
+fn determine_install_scope_resolution(
+    global: bool,
+    local_scope_available: bool,
+) -> InstallScopeResolution {
     if global {
         InstallScopeResolution::Fixed(InstallScope::Global)
     } else if local_scope_available {
@@ -213,10 +215,22 @@ pub struct SkillCheckResult {
 }
 
 /// Handle skill subcommands
-pub fn handle(ctx: Option<&mut Context>, out: &mut OutputChannel, cmd: skill::Subcommands) -> Result<()> {
+pub fn handle(
+    ctx: Option<&mut Context>,
+    out: &mut OutputChannel,
+    cmd: skill::Subcommands,
+) -> Result<()> {
     match cmd {
-        skill::Subcommands::Install { global, path, detect } => install_skill(ctx, out, global, path, detect),
-        skill::Subcommands::Check { global, local, update } => check_skills(ctx, out, global, local, update),
+        skill::Subcommands::Install {
+            global,
+            path,
+            detect,
+        } => install_skill(ctx, out, global, path, detect),
+        skill::Subcommands::Check {
+            global,
+            local,
+            update,
+        } => check_skills(ctx, out, global, local, update),
     }
 }
 
@@ -263,7 +277,8 @@ fn inject_version(content: &str, version: &str) -> String {
     if let Some(end_pos) = frontmatter_end {
         let frontmatter = &content[..end_pos];
         let rest = &content[end_pos..];
-        let updated_frontmatter = frontmatter.replace("version: 0.0.0", &format!("version: {version}"));
+        let updated_frontmatter =
+            frontmatter.replace("version: 0.0.0", &format!("version: {version}"));
         format!("{updated_frontmatter}{rest}")
     } else {
         // Fallback if frontmatter format is unexpected
@@ -294,9 +309,9 @@ fn is_gitbutler_skill(skill_md_path: &std::path::Path) -> bool {
         // Look for YAML frontmatter with "name: but" or the specific header
         let has_frontmatter_name = content.lines().any(|line| line.trim() == "name: but");
 
-        let has_gitbutler_header = content
-            .lines()
-            .any(|line| line.contains("# GitButler CLI Skill") || line.contains("GitButler CLI (`but` command)"));
+        let has_gitbutler_header = content.lines().any(|line| {
+            line.contains("# GitButler CLI Skill") || line.contains("GitButler CLI (`but` command)")
+        });
 
         has_frontmatter_name || has_gitbutler_header
     } else {
@@ -414,7 +429,8 @@ pub fn check_skill_status(
 
     for (path, format_name, scope) in installations {
         let skill_md_path = path.join("SKILL.md");
-        let installed_version = extract_installed_version(&skill_md_path).unwrap_or_else(|| "unknown".to_string());
+        let installed_version =
+            extract_installed_version(&skill_md_path).unwrap_or_else(|| "unknown".to_string());
 
         let up_to_date = installed_version == cli_version;
         if !up_to_date {
@@ -515,7 +531,10 @@ fn check_skills(
     Ok(())
 }
 
-fn print_human_check_output(writer: &mut dyn std::fmt::Write, result: &SkillCheckResult) -> Result<(), anyhow::Error> {
+fn print_human_check_output(
+    writer: &mut dyn std::fmt::Write,
+    result: &SkillCheckResult,
+) -> Result<(), anyhow::Error> {
     writeln!(writer)?;
     writeln!(writer, "CLI version: {}", result.cli_version.cyan())?;
     writeln!(writer)?;
@@ -527,16 +546,28 @@ fn print_human_check_output(writer: &mut dyn std::fmt::Write, result: &SkillChec
         return Ok(());
     }
 
-    writeln!(writer, "Found {} skill installation(s):", result.skills.len())?;
+    writeln!(
+        writer,
+        "Found {} skill installation(s):",
+        result.skills.len()
+    )?;
     writeln!(writer)?;
 
     for skill in &result.skills {
-        let status_icon = if skill.up_to_date { "✓".green() } else { "✗".red() };
+        let status_icon = if skill.up_to_date {
+            "✓".green()
+        } else {
+            "✗".red()
+        };
 
         let version_display = if skill.up_to_date {
             skill.installed_version.green().to_string()
         } else {
-            format!("{} → {}", skill.installed_version.red(), result.cli_version.green())
+            format!(
+                "{} → {}",
+                skill.installed_version.red(),
+                result.cli_version.green()
+            )
         };
 
         writeln!(
@@ -572,7 +603,8 @@ fn detect_install_path(ctx: Option<&mut Context>, global: bool) -> Result<PathBu
     let base_dirs: Vec<(PathBuf, &str)> = if global {
         // Only check global locations
         vec![(
-            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?,
+            dirs::home_dir()
+                .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?,
             "global",
         )]
     } else if let Some(ctx) = ctx {
@@ -582,12 +614,14 @@ fn detect_install_path(ctx: Option<&mut Context>, global: bool) -> Result<PathBu
             .workdir()
             .ok_or_else(|| anyhow::anyhow!("Not in a Git repository"))?
             .to_path_buf();
-        let global_dir = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
+        let global_dir = dirs::home_dir()
+            .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
         vec![(local_dir, "local"), (global_dir, "global")]
     } else {
         // No repo context, only check global
         vec![(
-            dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?,
+            dirs::home_dir()
+                .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?,
             "global",
         )]
     };
@@ -618,7 +652,9 @@ fn detect_install_path(ctx: Option<&mut Context>, global: bool) -> Result<PathBu
                 // Multiple installations in the same scope - error
                 let installations_list = scope_installations
                     .iter()
-                    .map(|(path, format)| format!("  • {} - {} ({})", format, path.display(), scope))
+                    .map(|(path, format)| {
+                        format!("  • {} - {} ({})", format, path.display(), scope)
+                    })
                     .collect::<Vec<_>>()
                     .join("\n");
 
@@ -640,7 +676,9 @@ fn detect_install_path(ctx: Option<&mut Context>, global: bool) -> Result<PathBu
         .collect::<Vec<_>>()
         .join("\n");
 
-    anyhow::bail!("Could not detect installation location. No existing skill found in:\n{checked_locations}")
+    anyhow::bail!(
+        "Could not detect installation location. No existing skill found in:\n{checked_locations}"
+    )
 }
 
 fn prompt_for_install_scope(progress: &mut impl std::io::Write) -> Result<InstallScope> {
@@ -656,11 +694,10 @@ fn prompt_for_install_scope(progress: &mut impl std::io::Write) -> Result<Instal
     match prompt.display() {
         Ok(InstallScopeOption::Local) => Ok(InstallScope::Local),
         Ok(InstallScopeOption::Global) => Ok(InstallScope::Global),
-        Err(AbortReason::Interrupt) => {
-            writeln!(progress)?;
-            Err(UserCancelled.into())
+        Err(AbortReason::Interrupt) => Err(UserCancelled.into()),
+        Err(AbortReason::Error(err)) => {
+            Err(anyhow::Error::from(err).context("Failed to read user selection"))
         }
-        Err(AbortReason::Error(err)) => Err(anyhow::Error::from(err).context("Failed to read user selection")),
     }
 }
 
@@ -745,14 +782,14 @@ fn prompt_for_install_path(
         })
         .collect();
 
-    let prompt = cli_prompts::prompts::Selection::new("Which format would you like to use?", options.into_iter());
+    let prompt = cli_prompts::prompts::Selection::new(
+        "Which format would you like to use?",
+        options.into_iter(),
+    );
 
     let selection: String = match prompt.display() {
         Ok(s) => s,
-        Err(AbortReason::Interrupt) => {
-            writeln!(progress)?;
-            return Err(UserCancelled.into());
-        }
+        Err(AbortReason::Interrupt) => return Err(UserCancelled.into()),
         Err(AbortReason::Error(err)) => {
             return Err(anyhow::Error::from(err).context("Failed to read user selection"));
         }
@@ -805,7 +842,9 @@ fn install_skill(
 ) -> Result<()> {
     // Validate that embedded files are not empty (catches build issues)
     if SKILL_FILES.iter().any(|f| f.content.is_empty()) {
-        anyhow::bail!("Skill files were not properly embedded at build time. Please report this as a bug.");
+        anyhow::bail!(
+            "Skill files were not properly embedded at build time. Please report this as a bug."
+        );
     }
 
     // Validate SKILL_FORMATS configuration (catches development errors)
@@ -814,7 +853,9 @@ fn install_skill(
         "SKILL_FORMATS must contain at least one format"
     );
     debug_assert!(
-        SKILL_FORMATS.iter().all(|f| !f.name.is_empty() && !f.path.is_empty()),
+        SKILL_FORMATS
+            .iter()
+            .all(|f| !f.name.is_empty() && !f.path.is_empty()),
         "SkillFormat name and path must not be empty"
     );
 
@@ -902,7 +943,11 @@ fn install_skill(
         "✓".green().bold()
     )?;
     writeln!(progress)?;
-    writeln!(progress, "  Location: {}", install_path.display().to_string().cyan())?;
+    writeln!(
+        progress,
+        "  Location: {}",
+        install_path.display().to_string().cyan()
+    )?;
     writeln!(progress)?;
     writeln!(progress, "  Files installed:")?;
     for file in SKILL_FILES {
@@ -1030,9 +1075,15 @@ mod tests {
 
         for format in SKILL_FORMATS {
             assert!(!format.name.is_empty(), "Format name cannot be empty");
-            assert!(!format.description.is_empty(), "Format description cannot be empty");
+            assert!(
+                !format.description.is_empty(),
+                "Format description cannot be empty"
+            );
             assert!(!format.path.is_empty(), "Format path cannot be empty");
-            assert!(!format.path.starts_with('/'), "Format path should be relative");
+            assert!(
+                !format.path.starts_with('/'),
+                "Format path should be relative"
+            );
         }
     }
 
@@ -1054,7 +1105,10 @@ mod tests {
     #[test]
     fn determine_install_scope_resolution_explicit_global_is_fixed_global() {
         let resolution = determine_install_scope_resolution(true, true);
-        assert_eq!(resolution, InstallScopeResolution::Fixed(InstallScope::Global));
+        assert_eq!(
+            resolution,
+            InstallScopeResolution::Fixed(InstallScope::Global)
+        );
     }
 
     #[test]
@@ -1066,7 +1120,10 @@ mod tests {
     #[test]
     fn determine_install_scope_resolution_no_repo_context_is_fixed_global() {
         let resolution = determine_install_scope_resolution(false, false);
-        assert_eq!(resolution, InstallScopeResolution::Fixed(InstallScope::Global));
+        assert_eq!(
+            resolution,
+            InstallScopeResolution::Fixed(InstallScope::Global)
+        );
     }
 
     #[test]
@@ -1118,7 +1175,12 @@ mod tests {
     fn get_base_dir_local_without_context_fails() {
         let result = get_base_dir(None, false);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Not in a git repository"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Not in a git repository")
+        );
     }
 
     // NOTE: detect_install_path is difficult to test in isolation because it depends on
@@ -1136,7 +1198,11 @@ mod tests {
         let skill_path = temp_dir.path().join("SKILL.md");
 
         // Test with valid GitButler skill content (frontmatter)
-        fs::write(&skill_path, "---\nname: but\nversion: 1.0.0\n---\n# Content").unwrap();
+        fs::write(
+            &skill_path,
+            "---\nname: but\nversion: 1.0.0\n---\n# Content",
+        )
+        .unwrap();
         assert!(
             is_gitbutler_skill(&skill_path),
             "Should recognize valid GitButler skill with frontmatter"
@@ -1162,7 +1228,10 @@ mod tests {
 
         // Test with random content
         fs::write(&skill_path, "Some random content").unwrap();
-        assert!(!is_gitbutler_skill(&skill_path), "Should reject non-GitButler content");
+        assert!(
+            !is_gitbutler_skill(&skill_path),
+            "Should reject non-GitButler content"
+        );
 
         // Test with nonexistent file
         let nonexistent = temp_dir.path().join("nonexistent.md");
@@ -1174,15 +1243,18 @@ mod tests {
 
     #[test]
     fn extract_installed_version_parses_frontmatter() {
-        let version = extract_installed_version_from_content("---\nname: but\nversion: 1.2.3\n---\n# Content");
+        let version = extract_installed_version_from_content(
+            "---\nname: but\nversion: 1.2.3\n---\n# Content",
+        );
         assert_eq!(version, Some("1.2.3".to_string()));
     }
 
     #[test]
     fn extract_installed_version_handles_different_order() {
         // version is not the first field
-        let version =
-            extract_installed_version_from_content("---\nname: but\nauthor: Test\nversion: 2.0.0\n---\n# Content");
+        let version = extract_installed_version_from_content(
+            "---\nname: but\nauthor: Test\nversion: 2.0.0\n---\n# Content",
+        );
         assert_eq!(version, Some("2.0.0".to_string()));
     }
 
@@ -1245,7 +1317,8 @@ mod tests {
     #[test]
     fn extract_installed_version_trims_whitespace() {
         // Version with extra whitespace
-        let version = extract_installed_version_from_content("---\nversion:   1.0.0   \n---\n# Content");
+        let version =
+            extract_installed_version_from_content("---\nversion:   1.0.0   \n---\n# Content");
         assert_eq!(version, Some("1.0.0".to_string()));
     }
 
@@ -1398,7 +1471,9 @@ mod tests {
     #[test]
     fn extract_installed_version_stops_at_frontmatter_end() {
         // Version appears both in frontmatter and body - should only get frontmatter version
-        let version = extract_installed_version_from_content("---\nversion: 1.0.0\n---\n\nversion: 2.0.0 in the body");
+        let version = extract_installed_version_from_content(
+            "---\nversion: 1.0.0\n---\n\nversion: 2.0.0 in the body",
+        );
         assert_eq!(version, Some("1.0.0".to_string()));
     }
 
@@ -1423,7 +1498,10 @@ mod tests {
     #[test]
     fn parse_yaml_value_handles_inline_comments() {
         assert_eq!(parse_yaml_value("1.0.0 # this is a comment"), "1.0.0");
-        assert_eq!(parse_yaml_value("1.0.0  # comment with extra space"), "1.0.0");
+        assert_eq!(
+            parse_yaml_value("1.0.0  # comment with extra space"),
+            "1.0.0"
+        );
     }
 
     #[test]
@@ -1434,13 +1512,16 @@ mod tests {
 
     #[test]
     fn extract_installed_version_handles_quoted_version() {
-        let version = extract_installed_version_from_content("---\nversion: \"1.2.3\"\n---\n# Content");
+        let version =
+            extract_installed_version_from_content("---\nversion: \"1.2.3\"\n---\n# Content");
         assert_eq!(version, Some("1.2.3".to_string()));
     }
 
     #[test]
     fn extract_installed_version_handles_version_with_comment() {
-        let version = extract_installed_version_from_content("---\nversion: 1.2.3 # installed version\n---\n# Content");
+        let version = extract_installed_version_from_content(
+            "---\nversion: 1.2.3 # installed version\n---\n# Content",
+        );
         assert_eq!(version, Some("1.2.3".to_string()));
     }
 }

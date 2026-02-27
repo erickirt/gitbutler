@@ -3,6 +3,7 @@
 use anyhow::Context as _;
 use bstr::ByteSlice as _;
 use but_core::{ChangeState, DiffSpec, HunkHeader};
+use gix::prelude::ObjectIdExt;
 
 use crate::tree_manipulation::hunk::{HunkSubstraction, subtract_hunks};
 
@@ -29,8 +30,8 @@ impl ChangesSource {
             ChangesSource::Commit { id } => {
                 let commit = repository.find_commit(*id)?;
                 if let Some(parent_id) = commit.parent_ids().next() {
-                    let parent = repository.find_commit(parent_id)?;
-                    Ok(parent.tree()?)
+                    let parent = but_core::Commit::from_id(parent_id)?;
+                    Ok(parent.tree_id_or_auto_resolution()?.object()?.into_tree())
                 } else {
                     Ok(repository.empty_tree())
                 }
@@ -41,7 +42,13 @@ impl ChangesSource {
 
     fn after<'a>(&self, repository: &'a gix::Repository) -> anyhow::Result<gix::Tree<'a>> {
         match self {
-            ChangesSource::Commit { id } => Ok(repository.find_commit(*id)?.tree()?),
+            ChangesSource::Commit { id } => {
+                let commit = but_core::Commit::from_id(id.attach(repository))?;
+                if commit.is_conflicted() {
+                    anyhow::bail!("The source of changes cannot have a conflicted 'after' side.");
+                }
+                Ok(repository.find_tree(commit.tree)?)
+            }
             ChangesSource::Tree { after_id, .. } => Ok(repository.find_tree(*after_id)?),
         }
     }
@@ -95,7 +102,10 @@ pub fn create_tree_without_diff(
     let mut builder = repository.edit_tree(after.id())?;
 
     for change in changes_to_discard {
-        let before_path = change.previous_path.clone().unwrap_or_else(|| change.path.clone());
+        let before_path = change
+            .previous_path
+            .clone()
+            .unwrap_or_else(|| change.path.clone());
         let before_entry = before.lookup_entry(before_path.clone().split_str("/"))?;
 
         let Some(after_entry) = after.lookup_entry(change.path.clone().split_str("/"))? else {
@@ -148,9 +158,14 @@ pub fn create_tree_without_diff(
                         },
                         context_lines,
                     )?
-                    .context("Cannot diff submodules - if this is encountered we should look into it")?;
+                    .context(
+                        "Cannot diff submodules - if this is encountered we should look into it",
+                    )?;
 
-                    let but_core::UnifiedPatch::Patch { hunks: diff_hunks, .. } = diff else {
+                    let but_core::UnifiedPatch::Patch {
+                        hunks: diff_hunks, ..
+                    } = diff
+                    else {
                         anyhow::bail!("expected a patch");
                     };
 
@@ -179,10 +194,15 @@ pub fn create_tree_without_diff(
                     // TODO: Validate that the hunks correspond with actual changes?
                     let before_blob = before_entry.object()?.into_blob();
 
-                    let new_hunks =
-                        new_hunks_after_removals(diff_hunks.into_iter().map(Into::into).collect(), good_hunk_headers)?;
-                    let new_after_contents =
-                        but_core::apply_hunks(before_blob.data.as_bstr(), after_blob.data.as_bstr(), &new_hunks)?;
+                    let new_hunks = new_hunks_after_removals(
+                        diff_hunks.into_iter().map(Into::into).collect(),
+                        good_hunk_headers,
+                    )?;
+                    let new_after_contents = but_core::apply_hunks(
+                        before_blob.data.as_bstr(),
+                        after_blob.data.as_bstr(),
+                        &new_hunks,
+                    )?;
                     let mode = if new_after_contents == before_blob.data {
                         before_entry.mode().kind()
                     } else {
@@ -263,7 +283,11 @@ fn revert_file_to_before_state(
     if let Some(before_entry) = before_entry {
         builder.remove(change.path.as_bstr())?;
         builder.upsert(
-            change.previous_path.clone().unwrap_or(change.path.clone()).as_bstr(),
+            change
+                .previous_path
+                .clone()
+                .unwrap_or(change.path.clone())
+                .as_bstr(),
             before_entry.mode().kind(),
             before_entry.object_id(),
         )?;

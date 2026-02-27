@@ -46,15 +46,19 @@
 //! Add a new optional string named 'note' to ClaudePermissionRequest in @crates/but-db/tests/db/table/claude.rs
 //! ```
 #![expect(clippy::inconsistent_digit_grouping)]
+#![deny(missing_docs)]
 
 #[cfg(feature = "poll")]
+/// Polling helpers to watch for database-backed state changes.
 pub mod poll;
 
 mod handle;
 mod table;
 mod transaction;
 
+/// Cache database helpers and typed accessors.
 pub mod cache;
+/// Migration helpers for applying and configuring database schema updates.
 pub mod migration;
 
 use std::path::PathBuf;
@@ -69,6 +73,7 @@ pub use table::{
     gerrit_metadata::GerritMeta,
     forge_reviews::ForgeReview,
     ci_checks::CiCheck,
+    virtual_branches::{VbBranchTarget, VbStack, VbStackHead, VbState, VirtualBranchesSnapshot, VirtualBranchesHandle, VirtualBranchesHandleMut},
 };
 
 /// The migrations to run, in any order, as ordering is maintained by their date number.
@@ -83,6 +88,7 @@ pub const MIGRATIONS: &[&[M<'static>]] = &[
     table::gerrit_metadata::M,
     table::forge_reviews::M,
     table::ci_checks::M,
+    table::virtual_branches::M,
 ];
 
 /// A migration and all the necessary data associated with it to perform it once.

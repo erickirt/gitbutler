@@ -8,7 +8,10 @@ fn status_json(env: &Sandbox) -> anyhow::Result<serde_json::Value> {
     serde_json::from_slice(&output.stdout).context("status output should be valid JSON")
 }
 
-fn find_branch<'a>(status: &'a serde_json::Value, branch_name: &str) -> anyhow::Result<&'a serde_json::Value> {
+fn find_branch<'a>(
+    status: &'a serde_json::Value,
+    branch_name: &str,
+) -> anyhow::Result<&'a serde_json::Value> {
     status["stacks"]
         .as_array()
         .context("status.stacks should be an array")?
@@ -25,7 +28,8 @@ fn find_branch<'a>(status: &'a serde_json::Value, branch_name: &str) -> anyhow::
 
 fn current_branch_name(env: &Sandbox) -> anyhow::Result<String> {
     let repo = env.open_repo()?;
-    repo.rev_parse_single("HEAD").context("HEAD should resolve")?;
+    repo.rev_parse_single("HEAD")
+        .context("HEAD should resolve")?;
     repo.head_name()?
         .map(|name| name.as_ref().shorten().to_string())
         .context("HEAD should point to a branch")
@@ -35,10 +39,14 @@ fn enter_edit_mode_with_conflicted_commit(env: &Sandbox) -> anyhow::Result<()> {
     env.but("branch new branchB").assert().success();
 
     env.file("test-file.txt", "line 1\nline 2\nline 3\n");
-    env.but("commit -m 'first commit' branchB").assert().success();
+    env.but("commit -m 'first commit' branchB")
+        .assert()
+        .success();
 
     env.file("test-file.txt", "line 1\nline 2\nline 3\nline 4\n");
-    env.but("commit -m 'second commit' branchB").assert().success();
+    env.but("commit -m 'second commit' branchB")
+        .assert()
+        .success();
 
     let status_before = status_json(env)?;
     let branch_before = find_branch(&status_before, "branchB")?;
@@ -50,7 +58,9 @@ fn enter_edit_mode_with_conflicted_commit(env: &Sandbox) -> anyhow::Result<()> {
         .and_then(|commit| commit["cliId"].as_str())
         .context("should find first commit cli id")?;
 
-    env.but(format!("rub {first_commit_cli_id} zz")).assert().success();
+    env.but(format!("rub {first_commit_cli_id} zz"))
+        .assert()
+        .success();
 
     let status_after = status_json(env)?;
     let branch_after = find_branch(&status_after, "branchB")?;
@@ -73,12 +83,18 @@ fn resolve_status_and_finish_work_in_edit_mode() -> anyhow::Result<()> {
     let env = Sandbox::init_scenario_with_target_and_default_settings("one-stack")?;
     enter_edit_mode_with_conflicted_commit(&env)?;
 
-    env.but("resolve status").assert().success().stderr_eq(str![""]);
+    env.but("resolve status")
+        .assert()
+        .success()
+        .stderr_eq(str![""]);
 
     env.file("test-file.txt", "resolved content\n");
     env.invoke_git("add test-file.txt");
 
-    env.but("resolve finish").assert().success().stderr_eq(str![""]);
+    env.but("resolve finish")
+        .assert()
+        .success()
+        .stderr_eq(str![""]);
 
     assert_eq!(current_branch_name(&env)?, "gitbutler/workspace");
     Ok(())
@@ -89,7 +105,10 @@ fn resolve_cancel_works_in_edit_mode() -> anyhow::Result<()> {
     let env = Sandbox::init_scenario_with_target_and_default_settings("one-stack")?;
     enter_edit_mode_with_conflicted_commit(&env)?;
 
-    env.but("resolve cancel --force").assert().stderr_eq(str![""]).success();
+    env.but("resolve cancel --force")
+        .assert()
+        .stderr_eq(str![""])
+        .success();
     assert_eq!(current_branch_name(&env)?, "gitbutler/workspace");
     Ok(())
 }
@@ -101,27 +120,22 @@ fn resolve_cancel_requires_force_when_changes_were_made() -> anyhow::Result<()> 
 
     env.file("test-file.txt", "resolved content with additional edits\n");
 
-    let cancel_output = env.but("resolve cancel").output()?;
-    let cancel_stderr = String::from_utf8_lossy(&cancel_output.stderr);
-    anyhow::ensure!(
-        !cancel_output.status.success(),
-        "resolve cancel should fail without force"
-    );
-    anyhow::ensure!(
-        cancel_stderr.contains("--force"),
-        "resolve cancel without force should explain how to proceed; stderr was: {cancel_stderr}"
-    );
+    env.but("resolve cancel")
+        .assert()
+        .failure()
+        .stderr_eq(str![[r#"
+Failed to handle conflict resolution. There are changes that differ from the original commit you were editing. Canceling will drop those changes.
 
-    let force_cancel_output = env.but("resolve cancel --force").output()?;
-    let force_cancel_stderr = String::from_utf8_lossy(&force_cancel_output.stderr);
-    anyhow::ensure!(
-        force_cancel_output.status.success(),
-        "resolve cancel --force should succeed"
-    );
-    anyhow::ensure!(
-        !force_cancel_stderr.contains("Setup required:"),
-        "resolve cancel --force should not fail setup checks"
-    );
+If you want to go through with this, please re-run with `--force`.
+
+If you want to keep the changes you have made, consider finishing the resolution and then moving the changes with the rub command.
+
+"#]]);
+
+    env.but("resolve cancel --force")
+        .assert()
+        .success()
+        .stderr_eq(str![""]);
 
     assert_eq!(current_branch_name(&env)?, "gitbutler/workspace");
     Ok(())

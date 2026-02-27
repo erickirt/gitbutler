@@ -1,2 +1,2 @@
-# This is useful to adapt to larger screens of today, for better use of horizontal screen space.
-max_width = 120
+# This is the Rust default as well.
+max_width = 100

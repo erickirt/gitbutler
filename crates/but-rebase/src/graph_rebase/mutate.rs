@@ -4,7 +4,9 @@ use anyhow::{Result, anyhow};
 use petgraph::{Direction, visit::EdgeRef};
 use serde::{Deserialize, Serialize};
 
-use crate::graph_rebase::{Edge, Editor, Pick, Selector, Step, ToCommitSelector, ToReferenceSelector, ToSelector};
+use crate::graph_rebase::{
+    Edge, Editor, Pick, Selector, Step, ToCommitSelector, ToReferenceSelector, ToSelector,
+};
 
 /// Describes where relative to the selector a step should be inserted
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -12,9 +14,13 @@ use crate::graph_rebase::{Edge, Editor, Pick, Selector, Step, ToCommitSelector, 
 pub enum InsertSide {
     /// When inserting above, any nodes that point to the selector will now
     /// point to the inserted node instead.
+    ///
+    /// IE: Any child commits will become a child of what is getting inserted.
     Above,
     /// When inserting below, any nodes that the selector points to will now be
     /// pointed to by the inserted node instead.
+    ///
+    /// IE: Any parent commits will become a parent of what is getting inserted.
     Below,
 }
 
@@ -49,6 +55,12 @@ impl ToReferenceSelector for &gix::refs::FullNameRef {
     }
 }
 
+impl ToReferenceSelector for gix::refs::FullName {
+    fn to_reference_selector(&self, editor: &Editor) -> Result<Selector> {
+        editor.select_reference(self.as_ref())
+    }
+}
+
 /// Operations for mutating the commit graph
 impl Editor {
     /// Get a selector to a particular commit in the graph
@@ -63,7 +75,9 @@ impl Editor {
     pub fn select_reference(&self, target: &gix::refs::FullNameRef) -> Result<Selector> {
         match self.try_select_reference(target) {
             Some(selector) => Ok(selector),
-            None => Err(anyhow!("Failed to find reference {target} in rebase editor")),
+            None => Err(anyhow!(
+                "Failed to find reference {target} in rebase editor"
+            )),
         }
     }
 
@@ -109,6 +123,55 @@ impl Editor {
         Ok(old)
     }
 
+    /// Connect all the children of A to all the parents of B
+    ///
+    /// This removes all the children edges of A and all the parent edges of B.
+    /// The intended usage is to 'remove' a segment from the graph.
+    ///
+    /// It's possible for both targets to be the same.
+    pub fn disconnect(
+        &mut self,
+        target_a: impl ToSelector,
+        target_b: impl ToSelector,
+    ) -> Result<()> {
+        let target_a = self
+            .history
+            .normalize_selector(target_a.to_selector(self)?)?;
+        let target_b = self
+            .history
+            .normalize_selector(target_b.to_selector(self)?)?;
+
+        // Edges to children.
+        let incoming_edges = self
+            .graph
+            .edges_directed(target_a.id, Direction::Incoming)
+            .map(|e| (e.id(), e.weight().to_owned(), e.source()))
+            .collect::<Vec<_>>();
+
+        // Edges to parents.
+        let outgoing_edges = self
+            .graph
+            .edges_directed(target_b.id, Direction::Outgoing)
+            .map(|e| (e.id(), e.weight().to_owned(), e.target()))
+            .collect::<Vec<_>>();
+
+        // Disconnect all parents from the target node.
+        for (edge_id, _, _) in &outgoing_edges {
+            self.graph.remove_edge(*edge_id);
+        }
+
+        // Connect all the children to all parents.
+        for (edge_id, _, edge_source) in incoming_edges {
+            self.graph.remove_edge(edge_id);
+            for (_, parent_edge_weight, parent_edge_target) in &outgoing_edges {
+                self.graph
+                    .add_edge(edge_source, *parent_edge_target, parent_edge_weight.clone());
+            }
+        }
+
+        Ok(())
+    }
+
     /// Inserts a new node relative to a selector
     ///
     /// When inserting above, any nodes that point to the selector will now
@@ -117,7 +180,12 @@ impl Editor {
     /// instead.
     ///
     /// Returns a selector to the inserted step
-    pub fn insert(&mut self, target: impl ToSelector, step: Step, side: InsertSide) -> Result<Selector> {
+    pub fn insert(
+        &mut self,
+        target: impl ToSelector,
+        step: Step,
+        side: InsertSide,
+    ) -> Result<Selector> {
         let target = self.history.normalize_selector(target.to_selector(self)?)?;
         match side {
             InsertSide::Above => {

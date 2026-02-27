@@ -19,7 +19,11 @@ use crate::{
 };
 
 /// Main entry point for config command
-pub async fn exec(ctx: &mut Context, out: &mut OutputChannel, cmd: Option<Subcommands>) -> Result<()> {
+pub async fn exec(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    cmd: Option<Subcommands>,
+) -> Result<()> {
     match cmd {
         Some(Subcommands::User { cmd }) => user_config(ctx, out, cmd).await,
         Some(Subcommands::Target { branch }) => target_config(ctx, out, branch).await,
@@ -65,7 +69,7 @@ async fn show_overview(ctx: &mut Context, out: &mut OutputChannel) -> Result<()>
     };
 
     // Get forge accounts
-    let known_accounts = but_api::github::list_known_github_accounts().await?;
+    let known_accounts = but_api::github::list_known_github_accounts()?;
     let forge_accounts: Vec<ForgeAccountInfo> = known_accounts
         .iter()
         .map(|account| ForgeAccountInfo {
@@ -143,7 +147,11 @@ async fn show_overview(ctx: &mut Context, out: &mut OutputChannel) -> Result<()>
             "  {}  - Target branch settings",
             "but config target".blue().dimmed()
         )?;
-        writeln!(out, "  {} - Metrics settings", "but config metrics".blue().dimmed())?;
+        writeln!(
+            out,
+            "  {} - Metrics settings",
+            "but config metrics".blue().dimmed()
+        )?;
         writeln!(
             out,
             "  {}      - UI preferences (TUI mode)",
@@ -153,7 +161,7 @@ async fn show_overview(ctx: &mut Context, out: &mut OutputChannel) -> Result<()>
         out.write_value(serde_json::json!(ConfigOverview {
             name: user_info.name,
             email: user_info.email,
-            editor: Some(user_info.editor),
+            editor: user_info.editor,
             target_branch,
             forge_accounts,
         }))?;
@@ -163,7 +171,10 @@ async fn show_overview(ctx: &mut Context, out: &mut OutputChannel) -> Result<()>
 }
 
 /// Handle metrics config subcommand (doesn't require repo context)
-pub(crate) async fn metrics_config(out: &mut OutputChannel, status: Option<MetricsStatus>) -> Result<()> {
+pub(crate) async fn metrics_config(
+    out: &mut OutputChannel,
+    status: Option<MetricsStatus>,
+) -> Result<()> {
     let app_settings_sync = load_app_settings_sync()?;
 
     match status {
@@ -175,7 +186,8 @@ pub(crate) async fn metrics_config(out: &mut OutputChannel, status: Option<Metri
                 writeln!(
                     out,
                     "  {}",
-                    "GitButler uses metrics to help us know what is useful and improve it.".dimmed()
+                    "GitButler uses metrics to help us know what is useful and improve it."
+                        .dimmed()
                 )?;
                 writeln!(
                     out,
@@ -188,7 +200,11 @@ pub(crate) async fn metrics_config(out: &mut OutputChannel, status: Option<Metri
                     out,
                     "  {}: {}",
                     "Metrics".dimmed(),
-                    if enabled { "enabled".green() } else { "disabled".red() }
+                    if enabled {
+                        "enabled".green()
+                    } else {
+                        "disabled".red()
+                    }
                 )?;
                 writeln!(out)?;
                 writeln!(out, "{}:", "To change metrics".dimmed())?;
@@ -208,17 +224,18 @@ pub(crate) async fn metrics_config(out: &mut OutputChannel, status: Option<Metri
                 app_non_anon_metrics_enabled: None,
             };
 
-            but_api::legacy::settings::update_telemetry(
-                &app_settings_sync,
-                but_api::legacy::settings::UpdateTelemetryParams { update },
-            )?;
+            app_settings_sync.update_telemetry(update)?;
 
             if let Some(out) = out.for_human() {
                 writeln!(
                     out,
                     "{} Metrics are now {}",
                     "✓".green(),
-                    if enabled { "enabled".green() } else { "disabled".red() }
+                    if enabled {
+                        "enabled".green()
+                    } else {
+                        "disabled".red()
+                    }
                 )?;
             } else if let Some(out) = out.for_shell() {
                 writeln!(out, "{enabled}")?;
@@ -242,7 +259,7 @@ pub(crate) fn load_app_settings_sync() -> Result<AppSettingsWithDiskSync> {
 struct UserConfigInfo {
     name: Option<String>,
     email: Option<String>,
-    editor: String,
+    editor: Option<String>,
     name_scope: Option<String>,
     email_scope: Option<String>,
     editor_scope: Option<String>,
@@ -255,7 +272,7 @@ fn get_user_config_info(config: &git2::Config) -> Result<UserConfigInfo> {
     let name_scope = get_config_scope(config, "user.name");
     let email_scope = get_config_scope(config, "user.email");
     let editor_scope = get_config_scope(config, "core.editor");
-    let editor = tui::get_text::get_editor_command()?;
+    let editor = tui::get_text::get_editor_command();
 
     Ok(UserConfigInfo {
         name,
@@ -293,7 +310,7 @@ fn write_user_config_human(out: &mut dyn std::fmt::Write, info: &UserConfigInfo)
         out,
         "  {}: {} {}",
         "Editor".dimmed(),
-        info.editor.cyan(),
+        info.editor.as_deref().unwrap_or("(built-in)").cyan(),
         format_scope(&info.editor_scope)
     )?;
     writeln!(out)?;
@@ -301,7 +318,11 @@ fn write_user_config_human(out: &mut dyn std::fmt::Write, info: &UserConfigInfo)
 }
 
 /// Handle user config subcommand
-async fn user_config(ctx: &mut Context, out: &mut OutputChannel, cmd: Option<UserSubcommand>) -> Result<()> {
+async fn user_config(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    cmd: Option<UserSubcommand>,
+) -> Result<()> {
     let repo = &*ctx.git2_repo.get()?;
 
     match cmd {
@@ -315,11 +336,17 @@ async fn user_config(ctx: &mut Context, out: &mut OutputChannel, cmd: Option<Use
                 writeln!(out)?;
                 write_user_config_human(out, &user_info)?;
                 writeln!(out, "{}:", "To set values".dimmed())?;
-                writeln!(out, "  {}", "but config user set name \"Your Name\"".blue().dimmed())?;
                 writeln!(
                     out,
                     "  {}",
-                    "but config user set --global email your@email.com".blue().dimmed()
+                    "but config user set name \"Your Name\"".blue().dimmed()
+                )?;
+                writeln!(
+                    out,
+                    "  {}",
+                    "but config user set --global email your@email.com"
+                        .blue()
+                        .dimmed()
                 )?;
             } else if let Some(out) = out.for_json() {
                 out.write_value(serde_json::json!(user_info))?;
@@ -390,7 +417,10 @@ async fn user_config(ctx: &mut Context, out: &mut OutputChannel, cmd: Option<Use
 }
 
 /// Handle forge config subcommand (doesn't require repo context)
-pub(crate) async fn forge_config(out: &mut OutputChannel, cmd: Option<ForgeSubcommand>) -> Result<()> {
+pub(crate) async fn forge_config(
+    out: &mut OutputChannel,
+    cmd: Option<ForgeSubcommand>,
+) -> Result<()> {
     match cmd {
         Some(ForgeSubcommand::Auth) => forge_auth(out).await,
         Some(ForgeSubcommand::ListUsers) => forge_show_overview(out).await,
@@ -401,8 +431,8 @@ pub(crate) async fn forge_config(out: &mut OutputChannel, cmd: Option<ForgeSubco
 
 /// Show overview of forge configuration (same as list-users)
 async fn forge_show_overview(out: &mut OutputChannel) -> Result<()> {
-    let known_gh_accounts = but_api::github::list_known_github_accounts().await?;
-    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts().await?;
+    let known_gh_accounts = but_api::github::list_known_github_accounts()?;
+    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts()?;
 
     if let Some(out) = out.for_human() {
         if known_gh_accounts.is_empty() && known_gl_accounts.is_empty() {
@@ -414,12 +444,22 @@ async fn forge_show_overview(out: &mut OutputChannel) -> Result<()> {
                 "but config forge auth".cyan()
             )?;
         } else {
-            let mut some_accounts_invalid = display_authenticated_github_accounts(&known_gh_accounts, out).await?;
-            some_accounts_invalid |= display_authenticated_gitlab_accounts(&known_gl_accounts, out).await?;
+            let mut some_accounts_invalid =
+                display_authenticated_github_accounts(&known_gh_accounts, out).await?;
+            some_accounts_invalid |=
+                display_authenticated_gitlab_accounts(&known_gl_accounts, out).await?;
 
             if some_accounts_invalid {
-                writeln!(out, "{}", "Some accounts have invalid or missing credentials.".yellow())?;
-                writeln!(out, "Re-authenticate using: {}", "but config forge auth".cyan())?;
+                writeln!(
+                    out,
+                    "{}",
+                    "Some accounts have invalid or missing credentials.".yellow()
+                )?;
+                writeln!(
+                    out,
+                    "Re-authenticate using: {}",
+                    "but config forge auth".cyan()
+                )?;
                 writeln!(out)?;
             }
 
@@ -479,13 +519,16 @@ fn extract_account_details(
     // Add GitHub accounts
     for account in &known_gh_accounts {
         let (username, account_type) = match account {
-            but_github::GithubAccountIdentifier::OAuthUsername { username } => (username.clone(), "OAuth".to_string()),
+            but_github::GithubAccountIdentifier::OAuthUsername { username } => {
+                (username.clone(), "OAuth".to_string())
+            }
             but_github::GithubAccountIdentifier::PatUsername { username } => {
                 (username.clone(), "Personal Access Token".to_string())
             }
-            but_github::GithubAccountIdentifier::Enterprise { username, host } => {
-                (format!("{username}@{host}"), "GitHub Enterprise".to_string())
-            }
+            but_github::GithubAccountIdentifier::Enterprise { username, host } => (
+                format!("{username}@{host}"),
+                "GitHub Enterprise".to_string(),
+            ),
         };
         accounts.push(ForgeAccount {
             provider: "GitHub".to_string(),
@@ -500,9 +543,10 @@ fn extract_account_details(
             but_gitlab::GitlabAccountIdentifier::PatUsername { username } => {
                 (username.clone(), "Personal Access Token".to_string())
             }
-            but_gitlab::GitlabAccountIdentifier::SelfHosted { username, host } => {
-                (format!("{username}@{host}"), "GitLab Self-Hosted".to_string())
-            }
+            but_gitlab::GitlabAccountIdentifier::SelfHosted { username, host } => (
+                format!("{username}@{host}"),
+                "GitLab Self-Hosted".to_string(),
+            ),
         };
         accounts.push(ForgeAccount {
             provider: "GitLab".to_string(),
@@ -534,12 +578,14 @@ async fn forge_auth(out: &mut OutputChannel) -> Result<()> {
 
     let auth_options = vec![ForgeProvider::GitHub, ForgeProvider::GitLab];
 
-    let auth_prompt =
-        cli_prompts::prompts::Selection::new("Select a forge provider to authenticate with", auth_options.into_iter());
+    let auth_prompt = cli_prompts::prompts::Selection::new(
+        "Select a forge provider to authenticate with",
+        auth_options.into_iter(),
+    );
 
-    let selected_option = auth_prompt
-        .display()
-        .map_err(|_| anyhow::anyhow!("Could not determine which forge provider to authenticate with"))?;
+    let selected_option = auth_prompt.display().map_err(|_| {
+        anyhow::anyhow!("Could not determine which forge provider to authenticate with")
+    })?;
 
     match selected_option {
         ForgeProvider::GitHub => github_auth(out).await,
@@ -614,9 +660,10 @@ async fn gitlab_self_hosted(mut inout: InputOutputChannel<'_>) -> Result<()> {
         .prompt("Now, please enter your GitLab Personal Access Token (PAT) and hit enter:")?
         .context("No PAT provided. Aborting authentication.")?;
     let pat = Sensitive(input);
-    let AuthStatusResponse { username, .. } = but_api::gitlab::store_gitlab_selfhosted_pat(pat, base_url)
-        .await
-        .map_err(|err| err.context("Authentication failed"))?;
+    let AuthStatusResponse { username, .. } =
+        but_api::gitlab::store_gitlab_selfhosted_pat(pat, base_url)
+            .await
+            .map_err(|err| err.context("Authentication failed"))?;
 
     writeln!(inout, "Authentication successful! Welcome, {username}.")?;
     Ok(())
@@ -648,7 +695,12 @@ async fn github_auth(out: &mut OutputChannel) -> Result<()> {
         .context("Human input required - run this in a terminal")?;
     let auth_method_prompt = cli_prompts::prompts::Selection::new(
         "Select an authentication method",
-        vec![AuthMethod::DeviceFlow, AuthMethod::Pat, AuthMethod::Enterprise].into_iter(),
+        vec![
+            AuthMethod::DeviceFlow,
+            AuthMethod::Pat,
+            AuthMethod::Enterprise,
+        ]
+        .into_iter(),
     );
 
     let selected_method = auth_method_prompt
@@ -688,12 +740,15 @@ async fn github_enterprise(mut inout: InputOutputChannel<'_>) -> Result<()> {
     let base_url = inout.prompt("Please enter your GitHub Enterprise API base URL (e.g., https://github.mycompany.com/api/v3) and hit enter:")?.context("No host provided. Aborting authentication.")?;
 
     let input = inout
-        .prompt("Now, please enter your GitHub Enterprise Personal Access Token (PAT) and hit enter:")?
+        .prompt(
+            "Now, please enter your GitHub Enterprise Personal Access Token (PAT) and hit enter:",
+        )?
         .context("No PAT provided. Aborting authentication.")?;
     let pat = Sensitive(input);
-    let AuthStatusResponse { login, .. } = but_api::github::store_github_enterprise_pat(pat, base_url)
-        .await
-        .map_err(|err| err.context("Authentication failed"))?;
+    let AuthStatusResponse { login, .. } =
+        but_api::github::store_github_enterprise_pat(pat, base_url)
+            .await
+            .map_err(|err| err.context("Authentication failed"))?;
 
     writeln!(inout, "Authentication successful! Welcome, {login}.")?;
     Ok(())
@@ -708,8 +763,9 @@ async fn github_oauth(mut inout: InputOutputChannel<'_>) -> Result<()> {
         code.user_code
     )?;
 
-    if inout.confirm_no_default("After completing authorization in your browser, press 'y' to continue.")?
-        != ConfirmOrEmpty::Yes
+    if inout.confirm_no_default(
+        "After completing authorization in your browser, press 'y' to continue.",
+    )? != ConfirmOrEmpty::Yes
     {
         anyhow::bail!("Authorization process aborted by user.")
     }
@@ -718,7 +774,11 @@ async fn github_oauth(mut inout: InputOutputChannel<'_>) -> Result<()> {
         .await
         .map_err(|err| err.context("Authentication failed"))?;
 
-    writeln!(inout, "Authentication successful! Welcome, {}.", status.login)?;
+    writeln!(
+        inout,
+        "Authentication successful! Welcome, {}.",
+        status.login
+    )?;
 
     Ok(())
 }
@@ -733,7 +793,9 @@ async fn display_authenticated_github_accounts(
     let mut some_accounts_invalid = false;
 
     for account in known_gh_accounts {
-        let account_status = but_api::github::check_github_credentials(account.clone()).await.ok();
+        let account_status = but_api::github::check_github_credentials(account.clone())
+            .await
+            .ok();
 
         let message = match account_status {
             Some(but_github::CredentialCheckResult::Valid) => "(valid credentials)".green().bold(),
@@ -768,7 +830,9 @@ async fn display_authenticated_gitlab_accounts(
     let mut some_accounts_invalid = false;
 
     for account in known_gl_accounts {
-        let account_status = but_api::gitlab::check_gitlab_credentials(account.clone()).await.ok();
+        let account_status = but_api::gitlab::check_gitlab_credentials(account.clone())
+            .await
+            .ok();
 
         let message = match account_status {
             Some(but_gitlab::CredentialCheckResult::Valid) => "(valid credentials)".green().bold(),
@@ -806,8 +870,12 @@ impl Display for AccountToForget {
 
 fn forget_account(account: &AccountToForget) -> Result<()> {
     match account {
-        AccountToForget::GitHub(gh_account) => but_api::github::forget_github_account(gh_account.clone()),
-        AccountToForget::GitLab(gl_account) => but_api::gitlab::forget_gitlab_account(gl_account.clone()),
+        AccountToForget::GitHub(gh_account) => {
+            but_api::github::forget_github_account(gh_account.clone())
+        }
+        AccountToForget::GitLab(gl_account) => {
+            but_api::gitlab::forget_gitlab_account(gl_account.clone())
+        }
     }
 }
 
@@ -815,8 +883,8 @@ fn forget_account(account: &AccountToForget) -> Result<()> {
 async fn forge_forget(username: Option<String>, out: &mut OutputChannel) -> Result<()> {
     use cli_prompts::DisplayPrompt;
 
-    let known_gh_accounts = but_api::github::list_known_github_accounts().await?;
-    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts().await?;
+    let known_gh_accounts = but_api::github::list_known_github_accounts()?;
+    let known_gl_accounts = but_api::gitlab::list_known_gitlab_accounts()?;
 
     // Gather all potential accounts to delete based on the provided username (or all if no username provided)
     let mut accounts_to_delete: Vec<AccountToForget> = Vec::new();
@@ -882,7 +950,11 @@ async fn forge_forget(username: Option<String>, out: &mut OutputChannel) -> Resu
 }
 
 /// Handle target config subcommand
-async fn target_config(ctx: &mut Context, out: &mut OutputChannel, branch: Option<String>) -> Result<()> {
+async fn target_config(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    branch: Option<String>,
+) -> Result<()> {
     match branch {
         None => {
             #[cfg(feature = "legacy")]
@@ -898,7 +970,11 @@ async fn target_config(ctx: &mut Context, out: &mut OutputChannel, branch: Optio
                         writeln!(out, "  {}: {}", "Remote".dimmed(), target_branch.remote_url)?;
                         writeln!(out, "  {}:    {}", "SHA".dimmed(), target_branch.base_sha)?;
                         writeln!(out, "\n{}:", "To change target branch".dimmed())?;
-                        writeln!(out, "  {}", "but config target <branch_name>".blue().dimmed())?;
+                        writeln!(
+                            out,
+                            "  {}",
+                            "but config target <branch_name>".blue().dimmed()
+                        )?;
                     } else if let Some(out) = out.for_json() {
                         out.write_value(serde_json::json!({
                             "branch": target_branch.branch_name.to_string(),
@@ -915,7 +991,11 @@ async fn target_config(ctx: &mut Context, out: &mut OutputChannel, branch: Optio
             if !ws.stacks.is_empty() {
                 // list the applied branches
                 if let Some(out) = out.for_human() {
-                    writeln!(out, "{}", "\nThe following branches are currently applied:\n".bold())?;
+                    writeln!(
+                        out,
+                        "{}",
+                        "\nThe following branches are currently applied:\n".bold()
+                    )?;
                     ws.stacks.iter().for_each(|stack| {
                         {
                             writeln!(
@@ -924,7 +1004,10 @@ async fn target_config(ctx: &mut Context, out: &mut OutputChannel, branch: Optio
                                 "•".dimmed(),
                                 stack
                                     .ref_name()
-                                    .map_or_else(|| "ANONYMOUS".to_string(), |rn| rn.shorten().to_string())
+                                    .map_or_else(
+                                        || "ANONYMOUS".to_string(),
+                                        |rn| rn.shorten().to_string()
+                                    )
                                     .cyan()
                             )
                             .ok();
@@ -943,7 +1026,12 @@ async fn target_config(ctx: &mut Context, out: &mut OutputChannel, branch: Optio
             }
 
             if let Some(out) = out.for_human() {
-                writeln!(out, "{} Changing target branch to '{}'", "✓".green(), new_branch.cyan())?;
+                writeln!(
+                    out,
+                    "{} Changing target branch to '{}'",
+                    "✓".green(),
+                    new_branch.cyan()
+                )?;
             }
 
             // from the new_branch string, we need to parse out the remote name and branch name
@@ -1001,8 +1089,9 @@ fn ui_config(ctx: &mut Context, out: &mut OutputChannel, cmd: Option<UiSubcomman
         }
         Some(UiSubcommand::Set { key, value, global }) => {
             let git_key = key.to_git_key();
-            let bool_value = parse_bool_value(&value)
-                .ok_or_else(|| anyhow::anyhow!("Invalid value '{value}'. Use true/false or 1/0."))?;
+            let bool_value = parse_bool_value(&value).ok_or_else(|| {
+                anyhow::anyhow!("Invalid value '{value}'. Use true/false or 1/0.")
+            })?;
 
             let mut config = if global {
                 let all = git2::Config::open_default()?;
@@ -1020,7 +1109,11 @@ fn ui_config(ctx: &mut Context, out: &mut OutputChannel, cmd: Option<UiSubcomman
                     "✓".green(),
                     git_key.green(),
                     "→".dimmed(),
-                    if bool_value { "true".cyan() } else { "false".cyan() }
+                    if bool_value {
+                        "true".cyan()
+                    } else {
+                        "false".cyan()
+                    }
                 )?;
                 if global {
                     writeln!(out, "  (configured globally)")?;

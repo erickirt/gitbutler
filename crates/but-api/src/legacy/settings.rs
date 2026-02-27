@@ -2,7 +2,9 @@
 use anyhow::Result;
 use but_settings::{
     AppSettingsWithDiskSync,
-    api::{ClaudeUpdate, FeatureFlagsUpdate, FetchUpdate, ReviewsUpdate, TelemetryUpdate, UiUpdate},
+    api::{
+        ClaudeUpdate, FeatureFlagsUpdate, FetchUpdate, ReviewsUpdate, TelemetryUpdate, UiUpdate,
+    },
 };
 use serde::Deserialize;
 
@@ -25,7 +27,10 @@ pub struct UpdateTelemetryParams {
     pub update: TelemetryUpdate,
 }
 
-pub fn update_telemetry(app_settings_sync: &AppSettingsWithDiskSync, params: UpdateTelemetryParams) -> Result<()> {
+pub fn update_telemetry(
+    app_settings_sync: &AppSettingsWithDiskSync,
+    params: UpdateTelemetryParams,
+) -> Result<()> {
     app_settings_sync.update_telemetry(params.update)
 }
 
@@ -61,7 +66,10 @@ pub struct UpdateClaudeParams {
     pub update: ClaudeUpdate,
 }
 
-pub fn update_claude(app_settings_sync: &AppSettingsWithDiskSync, params: UpdateClaudeParams) -> Result<()> {
+pub fn update_claude(
+    app_settings_sync: &AppSettingsWithDiskSync,
+    params: UpdateClaudeParams,
+) -> Result<()> {
     app_settings_sync.update_claude(params.update)
 }
 
@@ -71,7 +79,10 @@ pub struct UpdateReviewsParams {
     pub update: ReviewsUpdate,
 }
 
-pub fn update_reviews(app_settings_sync: &AppSettingsWithDiskSync, params: UpdateReviewsParams) -> Result<()> {
+pub fn update_reviews(
+    app_settings_sync: &AppSettingsWithDiskSync,
+    params: UpdateReviewsParams,
+) -> Result<()> {
     app_settings_sync.update_reviews(params.update)
 }
 
@@ -81,7 +92,10 @@ pub struct UpdateFetchParams {
     pub update: FetchUpdate,
 }
 
-pub fn update_fetch(app_settings_sync: &AppSettingsWithDiskSync, params: UpdateFetchParams) -> Result<()> {
+pub fn update_fetch(
+    app_settings_sync: &AppSettingsWithDiskSync,
+    params: UpdateFetchParams,
+) -> Result<()> {
     app_settings_sync.update_fetch(params.update)
 }
 
@@ -91,6 +105,9 @@ pub struct UpdateUiParams {
     pub update: UiUpdate,
 }
 
-pub fn update_ui(app_settings_sync: &AppSettingsWithDiskSync, params: UpdateUiParams) -> Result<()> {
+pub fn update_ui(
+    app_settings_sync: &AppSettingsWithDiskSync,
+    params: UpdateUiParams,
+) -> Result<()> {
     app_settings_sync.update_ui(params.update)
 }

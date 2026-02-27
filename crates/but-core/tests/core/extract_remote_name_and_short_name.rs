@@ -14,7 +14,10 @@ fn journey() -> anyhow::Result<()> {
     let remote_names = repo.remote_names();
     let rn = "refs/remotes/origin/feature".try_into()?;
     let (remote_name, short_name) = extract_remote_name_and_short_name(rn, &remote_names).unwrap();
-    assert_eq!(remote_name, "origin", "a normal remote can always be extracted");
+    assert_eq!(
+        remote_name, "origin",
+        "a normal remote can always be extracted"
+    );
     assert_eq!(short_name, "feature");
 
     let rn = "refs/remotes/nested/non-existing/feature".try_into()?;
@@ -34,7 +37,10 @@ fn journey() -> anyhow::Result<()> {
 
     let rn = "refs/remotes/nested/remote/feature/a".try_into()?;
     let (remote_name, short_name) = extract_remote_name_and_short_name(rn, &remote_names).unwrap();
-    assert_eq!(remote_name, "nested/remote", "this works because we know remote names");
+    assert_eq!(
+        remote_name, "nested/remote",
+        "this works because we know remote names"
+    );
     assert_eq!(short_name, "feature/a");
 
     let rn = "refs/remotes/nested/remote-b/feature/b".try_into()?;

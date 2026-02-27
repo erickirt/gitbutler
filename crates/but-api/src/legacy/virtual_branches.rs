@@ -8,11 +8,12 @@ use but_oxidize::ObjectIdExt;
 use but_workspace::legacy::ui::{StackEntryNoOpt, StackHeadInfo};
 use gitbutler_branch::{BranchCreateRequest, BranchUpdateRequest};
 use gitbutler_branch_actions::{
-    BaseBranch, BranchListing, BranchListingDetails, BranchListingFilter, MoveBranchResult, MoveCommitIllegalAction,
-    StackOrder,
+    BaseBranch, BranchListing, BranchListingDetails, BranchListingFilter, MoveBranchResult,
+    MoveCommitIllegalAction, StackOrder,
     branch_upstream_integration::IntegrationStrategy,
     upstream_integration::{
-        BaseBranchResolution, BaseBranchResolutionApproach, IntegrationOutcome, Resolution, StackStatuses,
+        BaseBranchResolution, BaseBranchResolutionApproach, IntegrationOutcome, Resolution,
+        StackStatuses,
     },
 };
 use gitbutler_project::FetchResult;
@@ -32,7 +33,10 @@ pub fn normalize_branch_name(name: String) -> Result<String> {
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn create_virtual_branch(ctx: &mut Context, branch: BranchCreateRequest) -> Result<StackEntryNoOpt> {
+pub fn create_virtual_branch(
+    ctx: &mut Context,
+    branch: BranchCreateRequest,
+) -> Result<StackEntryNoOpt> {
     let stack_entry = {
         let branch_name = match branch.name {
             Some(name) => normalize_name(&name)?,
@@ -58,14 +62,18 @@ pub fn create_virtual_branch(ctx: &mut Context, branch: BranchCreateRequest) -> 
             .find_segment_owner_indexes_by_refname(new_ref.as_ref())
             .context("BUG: didn't find a stack that was just created")?;
         let stack = &new_ws.stacks[stack_idx];
-        let tip = stack.segments[segment_idx].tip().unwrap_or(repo.object_hash().null());
+        let tip = stack.segments[segment_idx]
+            .tip()
+            .unwrap_or(repo.object_hash().null());
         let review_id = stack.segments[segment_idx]
             .metadata
             .as_ref()
             .and_then(|meta| meta.review.pull_request);
 
         let out = StackEntryNoOpt {
-            id: stack.id.context("BUG: all new stacks are created with an ID")?,
+            id: stack
+                .id
+                .context("BUG: all new stacks are created with an ID")?,
             heads: vec![StackHeadInfo {
                 name: new_ref.shorten().into(),
                 review_id,
@@ -85,7 +93,11 @@ pub fn create_virtual_branch(ctx: &mut Context, branch: BranchCreateRequest) -> 
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn delete_local_branch(ctx: &mut but_ctx::Context, refname: Refname, given_name: String) -> Result<()> {
+pub fn delete_local_branch(
+    ctx: &mut but_ctx::Context,
+    refname: Refname,
+    given_name: String,
+) -> Result<()> {
     gitbutler_branch_actions::delete_local_branch(ctx, &refname, given_name)?;
     Ok(())
 }
@@ -98,7 +110,9 @@ pub fn create_virtual_branch_from_branch(
     remote: Option<RemoteRefname>,
     pr_number: Option<usize>,
 ) -> Result<gitbutler_branch_actions::CreateBranchFromBranchOutcome> {
-    let outcome = gitbutler_branch_actions::create_virtual_branch_from_branch(ctx, &branch, remote, pr_number)?;
+    let outcome = gitbutler_branch_actions::create_virtual_branch_from_branch(
+        ctx, &branch, remote, pr_number,
+    )?;
     Ok(outcome.into())
 }
 
@@ -110,7 +124,12 @@ pub fn integrate_upstream_commits(
     series_name: String,
     integration_strategy: Option<IntegrationStrategy>,
 ) -> Result<()> {
-    gitbutler_branch_actions::integrate_upstream_commits(ctx, stack_id, series_name, integration_strategy)?;
+    gitbutler_branch_actions::integrate_upstream_commits(
+        ctx,
+        stack_id,
+        series_name,
+        integration_strategy,
+    )?;
     Ok(())
 }
 
@@ -120,7 +139,10 @@ pub fn get_initial_integration_steps_for_branch(
     ctx: &mut but_ctx::Context,
     stack_id: Option<StackId>,
     branch_name: String,
-) -> Result<Vec<gitbutler_branch_actions::branch_upstream_integration::InteractiveIntegrationStep>, Error> {
+) -> Result<
+    Vec<gitbutler_branch_actions::branch_upstream_integration::InteractiveIntegrationStep>,
+    Error,
+> {
     let steps = gitbutler_branch_actions::branch_upstream_integration::get_initial_integration_steps_for_branch(
         ctx,
         stack_id,
@@ -148,9 +170,12 @@ pub fn switch_back_to_workspace(ctx: &mut but_ctx::Context) -> Result<BaseBranch
 }
 
 #[instrument(skip(perm), err(Debug))]
-pub fn switch_back_to_workspace_with_perm(ctx: &mut but_ctx::Context, perm: &mut RepoExclusive) -> Result<BaseBranch> {
-    let base_branch =
-        gitbutler_branch_actions::base::get_base_branch_data(ctx).context("Failed to get base branch data")?;
+pub fn switch_back_to_workspace_with_perm(
+    ctx: &mut but_ctx::Context,
+    perm: &mut RepoExclusive,
+) -> Result<BaseBranch> {
+    let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)
+        .context("Failed to get base branch data")?;
 
     let branch_name = format!("refs/remotes/{}", base_branch.branch_name)
         .parse()
@@ -174,7 +199,11 @@ pub fn get_base_branch_data(ctx: &but_ctx::Context) -> Result<Option<BaseBranch>
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn set_base_branch(ctx: &mut but_ctx::Context, branch: String, push_remote: Option<String>) -> Result<BaseBranch> {
+pub fn set_base_branch(
+    ctx: &mut but_ctx::Context,
+    branch: String,
+    push_remote: Option<String>,
+) -> Result<BaseBranch> {
     let mut guard = ctx.exclusive_worktree_access();
     set_base_branch_with_perm(ctx, branch, push_remote, guard.write_permission())
 }
@@ -211,7 +240,10 @@ pub fn push_base_branch(ctx: &mut but_ctx::Context, with_force: bool) -> Result<
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn update_stack_order(ctx: &mut but_ctx::Context, stacks: Vec<BranchUpdateRequest>) -> Result<()> {
+pub fn update_stack_order(
+    ctx: &mut but_ctx::Context,
+    stacks: Vec<BranchUpdateRequest>,
+) -> Result<()> {
     gitbutler_branch_actions::update_stack_order(ctx, stacks)?;
     Ok(())
 }
@@ -238,7 +270,12 @@ pub fn unapply_stack(ctx: &mut Context, stack_id: StackId) -> Result<()> {
             .collect::<Vec<DiffSpec>>(),
     );
     drop((repo, ws, db));
-    gitbutler_branch_actions::unapply_stack(ctx, guard.write_permission(), stack_id, assigned_diffspec)?;
+    gitbutler_branch_actions::unapply_stack(
+        ctx,
+        guard.write_permission(),
+        stack_id,
+        assigned_diffspec,
+    )?;
     Ok(())
 }
 
@@ -250,27 +287,39 @@ pub fn amend_virtual_branch(
     commit_id: gix::ObjectId,
     worktree_changes: Vec<DiffSpec>,
 ) -> Result<String> {
-    let oid = gitbutler_branch_actions::amend(ctx, stack_id, commit_id.to_git2(), worktree_changes)?;
+    let oid =
+        gitbutler_branch_actions::amend(ctx, stack_id, commit_id.to_git2(), worktree_changes)?;
     Ok(oid.to_string())
 }
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn undo_commit(ctx: &mut but_ctx::Context, stack_id: StackId, commit_id: gix::ObjectId) -> Result<()> {
+pub fn undo_commit(
+    ctx: &mut but_ctx::Context,
+    stack_id: StackId,
+    commit_id: gix::ObjectId,
+) -> Result<()> {
     gitbutler_branch_actions::undo_commit(ctx, stack_id, commit_id.to_git2())?;
     Ok(())
 }
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn reorder_stack(ctx: &mut but_ctx::Context, stack_id: StackId, stack_order: StackOrder) -> Result<()> {
+pub fn reorder_stack(
+    ctx: &mut but_ctx::Context,
+    stack_id: StackId,
+    stack_order: StackOrder,
+) -> Result<()> {
     gitbutler_branch_actions::reorder_stack(ctx, stack_id, stack_order)?;
     Ok(())
 }
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn list_branches(ctx: &Context, filter: Option<BranchListingFilter>) -> Result<Vec<BranchListing>> {
+pub fn list_branches(
+    ctx: &Context,
+    filter: Option<BranchListingFilter>,
+) -> Result<Vec<BranchListing>> {
     let branches = gitbutler_branch_actions::list_branches(ctx, filter, None)?;
     Ok(branches)
 }
@@ -298,15 +347,22 @@ pub fn squash_commits(
         .map(|oid| git2::Oid::from_str(&oid))
         .collect::<Result<_, _>>()
         .map_err(|e| anyhow!(e))?;
-    gitbutler_branch_actions::squash_commits(ctx, stack_id, source_commit_ids, target_commit_id.to_git2())?;
+    gitbutler_branch_actions::squash_commits(
+        ctx,
+        stack_id,
+        source_commit_ids,
+        target_commit_id.to_git2(),
+    )?;
     Ok(())
 }
 
 #[but_api]
 #[instrument(err(Debug))]
 pub fn fetch_from_remotes(ctx: &Context, action: Option<String>) -> Result<BaseBranch> {
-    let project_data_last_fetched =
-        gitbutler_branch_actions::fetch_from_remotes(ctx, Some(action.unwrap_or_else(|| "unknown".to_string())))?;
+    let project_data_last_fetched = gitbutler_branch_actions::fetch_from_remotes(
+        ctx,
+        Some(action.unwrap_or_else(|| "unknown".to_string())),
+    )?;
 
     // Updates the project controller with the last fetched timestamp
     //
@@ -333,7 +389,12 @@ pub fn move_commit(
     target_stack_id: StackId,
     source_stack_id: StackId,
 ) -> Result<Option<MoveCommitIllegalAction>> {
-    gitbutler_branch_actions::move_commit(ctx, target_stack_id, commit_id.to_git2(), source_stack_id)
+    gitbutler_branch_actions::move_commit(
+        ctx,
+        target_stack_id,
+        commit_id.to_git2(),
+        source_stack_id,
+    )
 }
 
 #[but_api]
@@ -372,7 +433,12 @@ pub fn update_commit_message(
     commit_id: gix::ObjectId,
     message: String,
 ) -> Result<String> {
-    let new_commit_id = gitbutler_branch_actions::update_commit_message(ctx, stack_id, commit_id.to_git2(), &message)?;
+    let new_commit_id = gitbutler_branch_actions::update_commit_message(
+        ctx,
+        stack_id,
+        commit_id.to_git2(),
+        &message,
+    )?;
     Ok(new_commit_id.to_string())
 }
 
@@ -438,8 +504,11 @@ pub async fn resolve_upstream_integration(
     };
     let resolved_reviews = resolve_review_map(sync_ctx.clone(), &base_branch).await?;
     let mut ctx = sync_ctx.into_thread_local();
-    let new_target_id =
-        gitbutler_branch_actions::resolve_upstream_integration(&mut ctx, resolution_approach, &resolved_reviews)?;
+    let new_target_id = gitbutler_branch_actions::resolve_upstream_integration(
+        &mut ctx,
+        resolution_approach,
+        &resolved_reviews,
+    )?;
     let commit_id = git2::Oid::to_string(&new_target_id);
     Ok(commit_id)
 }
@@ -449,8 +518,8 @@ async fn resolve_review_map(
     ctx: ThreadSafeContext,
     base_branch: &BaseBranch,
 ) -> Result<HashMap<String, but_forge::ForgeReview>> {
-    let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
-    let Some(forge_repo_info) = base_branch.forge_repo_info.as_ref() else {
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    let Some(forge_repo_info) = forge_repo_info.as_ref() else {
         // No forge? No problem!
         // If there's no forge associated with the base branch, there can't be any reviews.
         // Return an empty map.
@@ -461,8 +530,8 @@ async fn resolve_review_map(
         local: None,
         applied: Some(true),
     });
+    let ctx = ctx.into_thread_local();
     let (branches, preferred_forge_user) = {
-        let ctx = ctx.into_thread_local();
         let preferred_forge_user = ctx.legacy_project.preferred_forge_user.clone();
         (list_branches(&ctx, filter)?, preferred_forge_user)
     };
@@ -472,11 +541,18 @@ async fn resolve_review_map(
         }
         acc
     });
+    let mut ctx = ctx;
     let mut resolved_reviews = HashMap::new();
+    let db = &mut *ctx.db.get_mut()?;
+    let storage = but_forge_storage::Controller::from_path(but_path::app_data_dir()?);
     for (key, pr_number) in reviews.drain() {
-        if let Ok(resolved) =
-            but_forge::get_forge_review(&preferred_forge_user, forge_repo_info, pr_number, &storage).await
-        {
+        if let Ok(resolved) = but_forge::get_forge_review(
+            &preferred_forge_user,
+            forge_repo_info,
+            pr_number,
+            db,
+            &storage,
+        ) {
             resolved_reviews.insert(key, resolved);
         }
     }

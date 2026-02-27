@@ -16,16 +16,19 @@ jobs:
   test:
     name: e2e-playwright
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     container:
-      image: ghcr.io/gitbutlerapp/ci-base-image:latest
+      image: ghcr.io/gitbutlerapp/ci-base-image@sha256:3eaeae1b07072796a53dc1e7585cdc1f462d0b11d10ecd3685c6fa8082d647dd
     timeout-minutes: 60
     env:
       DESKTOP_PORT: 3000
       BUTLER_PORT: 6978
-      VITE_E2E: 'true'
+      VITE_E2E: "true"
       VITE_BUTLER_PORT: 6978
-      VITE_BUTLER_HOST: 'localhost'
-      VITE_BUILD_TARGET: 'web'
+      VITE_BUTLER_HOST: "localhost"
+      VITE_BUILD_TARGET: "web"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

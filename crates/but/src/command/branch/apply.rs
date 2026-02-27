@@ -4,18 +4,20 @@ use gix::reference::Category;
 use crate::utils::OutputChannel;
 
 /// Apply a branch to the workspace, and return the full ref name to it.
-pub fn apply(ctx: Context, branch_name: &str, out: &mut OutputChannel) -> anyhow::Result<()> {
-    let repo = ctx.repo.get()?;
-
-    let reference = repo.find_reference(branch_name)?;
-    let mut outcome = but_api::branch::apply(&ctx, reference.name())?;
+pub fn apply(mut ctx: Context, branch_name: &str, out: &mut OutputChannel) -> anyhow::Result<()> {
+    let reference = {
+        let repo = ctx.repo.get()?;
+        repo.find_reference(branch_name)?.detach()
+    };
+    let mut outcome = but_api::branch::apply(&mut ctx, reference.name.as_ref())?;
 
     if let Some(out) = out.for_human() {
         // Since `applied_branches` is the actual applied branches, turning remotes into local branches,
         // hack it into submission while the legacy version exists that it has to match.
-        let special_case_remove_me_once_there_is_no_legacy_apply = outcome.applied_branches.len() == 1;
+        let special_case_remove_me_once_there_is_no_legacy_apply =
+            outcome.applied_branches.len() == 1;
         if special_case_remove_me_once_there_is_no_legacy_apply {
-            outcome.applied_branches = vec![reference.name().to_owned()];
+            outcome.applied_branches = vec![reference.name.clone()];
         }
         for name in outcome.applied_branches {
             let short_name = name.shorten();
@@ -27,11 +29,11 @@ pub fn apply(ctx: Context, branch_name: &str, out: &mut OutputChannel) -> anyhow
             }?;
         }
     } else if let Some(out) = out.for_shell() {
-        writeln!(out, "{reference_name}", reference_name = reference.name())?;
+        writeln!(out, "{reference}", reference = reference.name.shorten())?;
     }
 
     if let Some(out) = out.for_json() {
-        out.write_value(but_api::json::Reference::from(reference.inner))?;
+        out.write_value(but_api::json::Reference::from(reference))?;
     }
     Ok(())
 }

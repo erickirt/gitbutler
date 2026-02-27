@@ -66,7 +66,11 @@ struct ClaudeGetSessionDetailsParams {
 //       Maybe this could also be defined generically.
 fn json_response<F>(
     handler: F,
-) -> impl Fn(Json<serde_json::Value>) -> std::pin::Pin<Box<dyn Future<Output = Json<serde_json::Value>> + Send>> + Clone + Send
+) -> impl Fn(
+    Json<serde_json::Value>,
+) -> std::pin::Pin<Box<dyn Future<Output = Json<serde_json::Value>> + Send>>
++ Clone
++ Send
 where
     F: Fn(serde_json::Value) -> anyhow::Result<serde_json::Value> + Clone + Send + 'static,
 {
@@ -80,7 +84,11 @@ where
 /// `anyhow::Result<serde_json::Value>` into an axum handler.
 fn json_response_async<F, Fut>(
     handler: F,
-) -> impl Fn(Json<serde_json::Value>) -> std::pin::Pin<Box<dyn Future<Output = Json<serde_json::Value>> + Send>> + Clone + Send
+) -> impl Fn(
+    Json<serde_json::Value>,
+) -> std::pin::Pin<Box<dyn Future<Output = Json<serde_json::Value>> + Send>>
++ Clone
++ Send
 where
     F: Fn(serde_json::Value) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = anyhow::Result<serde_json::Value>> + Send + 'static,
@@ -159,9 +167,18 @@ pub async fn run() {
             "/git_remote_branches",
             post(json_response(legacy::git::git_remote_branches_cmd)),
         )
-        .route("/git_test_push", post(json_response(legacy::git::git_test_push_cmd)))
-        .route("/git_test_fetch", post(json_response(legacy::git::git_test_fetch_cmd)))
-        .route("/git_index_size", post(json_response(legacy::git::git_index_size_cmd)))
+        .route(
+            "/git_test_push",
+            post(json_response(legacy::git::git_test_push_cmd)),
+        )
+        .route(
+            "/git_test_fetch",
+            post(json_response(legacy::git::git_test_fetch_cmd)),
+        )
+        .route(
+            "/git_index_size",
+            post(json_response(legacy::git::git_index_size_cmd)),
+        )
         .route(
             "/delete_all_data",
             post(json_response(legacy::git::delete_all_data_cmd)),
@@ -186,12 +203,18 @@ pub async fn run() {
             "/commit_details_with_line_stats",
             post(json_response(diff::commit_details_with_line_stats_cmd)),
         )
-        .route("/branch_diff", post(json_response(but_api::branch::branch_diff_cmd)))
+        .route(
+            "/branch_diff",
+            post(json_response(but_api::branch::branch_diff_cmd)),
+        )
         .route(
             "/changes_in_worktree",
             post(json_response(legacy::diff::changes_in_worktree_cmd)),
         )
-        .route("/assign_hunk", post(json_response(legacy::diff::assign_hunk_cmd)))
+        .route(
+            "/assign_hunk",
+            post(json_response(legacy::diff::assign_hunk_cmd)),
+        )
         .route(
             "/cherry_apply_status",
             post(json_response(legacy::cherry_apply::cherry_apply_status_cmd)),
@@ -200,8 +223,14 @@ pub async fn run() {
             "/cherry_apply",
             post(json_response(legacy::cherry_apply::cherry_apply_cmd)),
         )
-        .route("/stacks", post(json_response(legacy::workspace::stacks_cmd)))
-        .route("/head_info", post(json_response(legacy::workspace::head_info_cmd)));
+        .route(
+            "/stacks",
+            post(json_response(legacy::workspace::stacks_cmd)),
+        )
+        .route(
+            "/head_info",
+            post(json_response(legacy::workspace::head_info_cmd)),
+        );
 
     #[cfg(unix)]
     let app = app.route(
@@ -600,12 +629,20 @@ pub async fn run() {
             post(json_response(github::forget_github_account_cmd)),
         )
         .route(
+            "/list_known_github_accounts",
+            post(json_response(github::list_known_github_accounts_cmd)),
+        )
+        .route(
             "/clear_all_github_tokens",
             post(json_response(github::clear_all_github_tokens_cmd)),
         )
         .route(
             "/forget_gitlab_account",
             post(json_response(gitlab::forget_gitlab_account_cmd)),
+        )
+        .route(
+            "/list_known_gitlab_accounts",
+            post(json_response(gitlab::list_known_gitlab_accounts_cmd)),
         )
         .route(
             "/clear_all_gitlab_tokens",
@@ -619,6 +656,10 @@ pub async fn run() {
         .route(
             "/pr_template",
             post(json_response(legacy::forge::pr_template_cmd)),
+        )
+        .route(
+            "/forge_provider",
+            post(json_response(legacy::forge::forge_provider_cmd)),
         )
         .route(
             "/install_cli",
@@ -682,6 +723,14 @@ pub async fn run() {
             post(json_response(commit::commit_reword_cmd)),
         )
         .route(
+            "/commit_create",
+            post(json_response(commit::commit_create_cmd)),
+        )
+        .route(
+            "/commit_amend",
+            post(json_response(commit::commit_amend_cmd)),
+        )
+        .route(
             "/commit_move_changes_between",
             post(json_response(commit::commit_move_changes_between_cmd)),
         )
@@ -719,9 +768,12 @@ pub async fn run() {
     let url = format!("{host}:{port}");
     let listener = tokio::net::TcpListener::bind(&url).await.unwrap();
     println!("Running at {url}");
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
 
 /// Handler that extracts the command from the URL path.
@@ -745,7 +797,10 @@ async fn post_handle_command_with_path(
     }
 }
 
-async fn handle_ws_request(ws: WebSocketUpgrade, broadcaster: Arc<Mutex<Broadcaster>>) -> impl IntoResponse {
+async fn handle_ws_request(
+    ws: WebSocketUpgrade,
+    broadcaster: Arc<Mutex<Broadcaster>>,
+) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_websocket(socket, broadcaster))
 }
 
@@ -791,30 +846,40 @@ async fn handle_command(
         // App settings (need app_settings_sync)
         "get_app_settings" => Ok(to_json_or_panic(app_settings_sync.get()?.clone())),
         "update_onboarding_complete" => deserialize_json(request.params).and_then(|params| {
-            legacy::settings::update_onboarding_complete(&app_settings_sync, params).map(|r| json!(r))
+            legacy::settings::update_onboarding_complete(&app_settings_sync, params)
+                .map(|r| json!(r))
         }),
-        "update_telemetry" => deserialize_json(request.params)
-            .and_then(|params| legacy::settings::update_telemetry(&app_settings_sync, params).map(|r| json!(r))),
+        "update_telemetry" => deserialize_json(request.params).and_then(|params| {
+            legacy::settings::update_telemetry(&app_settings_sync, params).map(|r| json!(r))
+        }),
         "update_telemetry_distinct_id" => deserialize_json(request.params).and_then(|params| {
-            legacy::settings::update_telemetry_distinct_id(&app_settings_sync, params).map(|r| json!(r))
+            legacy::settings::update_telemetry_distinct_id(&app_settings_sync, params)
+                .map(|r| json!(r))
         }),
-        "update_feature_flags" => deserialize_json(request.params)
-            .and_then(|params| legacy::settings::update_feature_flags(&app_settings_sync, params).map(|r| json!(r))),
-        "update_claude" => deserialize_json(request.params)
-            .and_then(|params| legacy::settings::update_claude(&app_settings_sync, params).map(|r| json!(r))),
-        "update_fetch" => deserialize_json(request.params)
-            .and_then(|params| legacy::settings::update_fetch(&app_settings_sync, params).map(|r| json!(r))),
-        "update_reviews" => deserialize_json(request.params)
-            .and_then(|params| legacy::settings::update_reviews(&app_settings_sync, params).map(|r| json!(r))),
+        "update_feature_flags" => deserialize_json(request.params).and_then(|params| {
+            legacy::settings::update_feature_flags(&app_settings_sync, params).map(|r| json!(r))
+        }),
+        "update_claude" => deserialize_json(request.params).and_then(|params| {
+            legacy::settings::update_claude(&app_settings_sync, params).map(|r| json!(r))
+        }),
+        "update_fetch" => deserialize_json(request.params).and_then(|params| {
+            legacy::settings::update_fetch(&app_settings_sync, params).map(|r| json!(r))
+        }),
+        "update_reviews" => deserialize_json(request.params).and_then(|params| {
+            legacy::settings::update_reviews(&app_settings_sync, params).map(|r| json!(r))
+        }),
         // Project management (need extra or app)
         "list_projects" => projects::list_projects(&extra).await,
-        "set_project_active" => projects::set_project_active(&app, &extra, app_settings_sync, request.params).await,
+        "set_project_active" => {
+            projects::set_project_active(&app, &extra, app_settings_sync, request.params).await
+        }
         // Async virtual branches commands (not yet migrated due to different pattern)
         "upstream_integration_statuses" => {
             let params = deserialize_json(request.params);
             match params {
                 Ok(params) => {
-                    let result = legacy::virtual_branches::upstream_integration_statuses_cmd(params).await;
+                    let result =
+                        legacy::virtual_branches::upstream_integration_statuses_cmd(params).await;
                     result.map(|r| json!(r))
                 }
                 Err(e) => Err(e),
@@ -834,7 +899,8 @@ async fn handle_command(
             let params = deserialize_json(request.params);
             match params {
                 Ok(params) => {
-                    let result = legacy::virtual_branches::resolve_upstream_integration_cmd(params).await;
+                    let result =
+                        legacy::virtual_branches::resolve_upstream_integration_cmd(params).await;
                     result.map(|r| json!(r))
                 }
                 Err(e) => Err(e),
@@ -875,7 +941,6 @@ async fn handle_command(
                 Err(e) => Err(e),
             }
         }
-        "list_known_github_accounts" => github::list_known_github_accounts().await.map(|r| json!(r)),
         "get_gh_user" => {
             let params = deserialize_json(request.params);
             match params {
@@ -907,7 +972,6 @@ async fn handle_command(
                 Err(e) => Err(e),
             }
         }
-        "list_known_gitlab_accounts" => gitlab::list_known_gitlab_accounts().await.map(|r| json!(r)),
         "get_gl_user" => {
             let params = deserialize_json(request.params);
             match params {
@@ -944,6 +1008,26 @@ async fn handle_command(
             match params {
                 Ok(params) => {
                     let result = legacy::forge::merge_review_cmd(params).await;
+                    result.map(|_| json!({"result": "success"}))
+                }
+                Err(e) => Err(e),
+            }
+        }
+        "set_review_auto_merge" => {
+            let params = deserialize_json(request.params);
+            match params {
+                Ok(params) => {
+                    let result = legacy::forge::set_review_auto_merge_cmd(params).await;
+                    result.map(|_| json!({"result": "success"}))
+                }
+                Err(e) => Err(e),
+            }
+        }
+        "set_review_draftiness" => {
+            let params = deserialize_json(request.params);
+            match params {
+                Ok(params) => {
+                    let result = legacy::forge::set_review_draftiness_cmd(params).await;
                     result.map(|_| json!({"result": "success"}))
                 }
                 Err(e) => Err(e),
@@ -1018,9 +1102,14 @@ async fn handle_command(
         "claude_get_session_details" => {
             let params = deserialize_json(request.params);
             match params {
-                Ok(ClaudeGetSessionDetailsParams { project_id, session_id }) => {
+                Ok(ClaudeGetSessionDetailsParams {
+                    project_id,
+                    session_id,
+                }) => {
                     let ctx = Context::new_from_legacy_project_id(project_id)?;
-                    let result = legacy::claude::claude_get_session_details(ctx.into_sync(), session_id).await;
+                    let result =
+                        legacy::claude::claude_get_session_details(ctx.into_sync(), session_id)
+                            .await;
                     result.map(|r| json!(r))
                 }
                 Err(e) => Err(e),

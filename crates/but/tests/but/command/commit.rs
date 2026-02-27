@@ -232,7 +232,10 @@ fn commit_empty_with_positional_target_defaults_to_before() -> anyhow::Result<()
     env.setup_metadata(&["A"])?;
 
     // Use positional argument without flag (should default to --before behavior)
-    env.but("commit empty 9477ae7").assert().success().stdout_eq(str![[r#"
+    env.but("commit empty 9477ae7")
+        .assert()
+        .success()
+        .stdout_eq(str![[r#"
 Created blank commit before commit 9477ae7
 
 "#]]);
@@ -258,7 +261,10 @@ fn commit_empty_with_after_flag() -> anyhow::Result<()> {
     env.setup_metadata(&["A"])?;
 
     // Insert empty commit after (at top of) branch A
-    env.but("commit empty --after A").assert().success().stdout_eq(str![[r#"
+    env.but("commit empty --after A")
+        .assert()
+        .success()
+        .stdout_eq(str![[r#"
 Created blank commit at the top of stack 'A'
 
 "#]]);
@@ -336,7 +342,10 @@ fn commit_empty_without_branches_fails() -> anyhow::Result<()> {
     let env = Sandbox::init_scenario_with_target_and_default_settings("first-commit")?;
 
     // Try to run without any arguments when there are no branches
-    env.but("commit empty").assert().failure().stderr_eq(str![[r#"
+    env.but("commit empty")
+        .assert()
+        .failure()
+        .stderr_eq(str![[r#"
 Error: No branches found. Create a branch first or specify a target explicitly.
 
 "#]]);
@@ -577,7 +586,10 @@ fn commit_empty_rejects_changes_flag() -> anyhow::Result<()> {
 
     // Try to use --changes with empty subcommand
     // --changes is not a valid flag for the empty subcommand, so clap rejects it
-    let output = env.but("commit empty --before A --changes ab").assert().failure();
+    let output = env
+        .but("commit empty --before A --changes ab")
+        .assert()
+        .failure();
 
     let stderr = std::str::from_utf8(&output.get_output().stderr)?;
     assert!(
@@ -597,7 +609,10 @@ fn commit_json_mode_requires_message_or_file() -> anyhow::Result<()> {
     env.file("new-file.txt", "test content");
 
     // Try to commit in JSON mode without -m or --message-file
-    env.but("commit --json").assert().failure().stderr_eq(str![[r#"
+    env.but("commit --json")
+        .assert()
+        .failure()
+        .stderr_eq(str![[r#"
 Error: In JSON mode, either --message (-m), --message-file, or --ai (-i) must be specified
 
 "#]]);
@@ -621,7 +636,10 @@ fn commit_json_mode_with_message_succeeds() -> anyhow::Result<()> {
     let json: serde_json::Value = serde_json::from_str(stdout)?;
 
     // Verify JSON structure
-    assert!(json["commit_id"].is_string(), "commit_id should be a string");
+    assert!(
+        json["commit_id"].is_string(),
+        "commit_id should be a string"
+    );
     assert!(json["branch"].is_string(), "branch should be a string");
     assert_eq!(json["branch"].as_str().unwrap(), "A");
 
@@ -650,7 +668,10 @@ fn commit_json_mode_with_file_succeeds() -> anyhow::Result<()> {
     let json: serde_json::Value = serde_json::from_str(stdout)?;
 
     // Verify JSON structure
-    assert!(json["commit_id"].is_string(), "commit_id should be a string");
+    assert!(
+        json["commit_id"].is_string(),
+        "commit_id should be a string"
+    );
     assert!(json["branch"].is_string(), "branch should be a string");
     assert_eq!(json["branch"].as_str().unwrap(), "A");
 
@@ -686,14 +707,20 @@ fn commit_json_mode_multiple_branches_with_branch_succeeds() -> anyhow::Result<(
     env.file("new-file.txt", "test content");
 
     // Commit in JSON mode with branch specified
-    let output = env.but("commit --json -m 'Test commit' B").assert().success();
+    let output = env
+        .but("commit --json -m 'Test commit' B")
+        .assert()
+        .success();
 
     // Parse JSON output
     let stdout = std::str::from_utf8(&output.get_output().stdout)?;
     let json: serde_json::Value = serde_json::from_str(stdout)?;
 
     // Verify JSON structure
-    assert!(json["commit_id"].is_string(), "commit_id should be a string");
+    assert!(
+        json["commit_id"].is_string(),
+        "commit_id should be a string"
+    );
     assert!(json["branch"].is_string(), "branch should be a string");
     assert_eq!(json["branch"].as_str().unwrap(), "B");
 
@@ -748,7 +775,11 @@ fn commit_with_specific_file_ids() -> anyhow::Result<()> {
 
     let has_file2 = status_after["unassignedChanges"]
         .as_array()
-        .map(|changes| changes.iter().any(|c| c["filePath"].as_str() == Some("file2.txt")))
+        .map(|changes| {
+            changes
+                .iter()
+                .any(|c| c["filePath"].as_str() == Some("file2.txt"))
+        })
         .unwrap_or(false);
     assert!(has_file2, "file2.txt should still be uncommitted");
 
@@ -771,7 +802,9 @@ fn commit_with_multiple_file_ids() -> anyhow::Result<()> {
     let status: serde_json::Value = serde_json::from_str(stdout)?;
 
     // Find CLI IDs for file1 and file2
-    let changes = status["unassignedChanges"].as_array().expect("should have changes");
+    let changes = status["unassignedChanges"]
+        .as_array()
+        .expect("should have changes");
     let file1_id = changes
         .iter()
         .find(|c| c["filePath"].as_str() == Some("file1.txt"))
@@ -784,9 +817,11 @@ fn commit_with_multiple_file_ids() -> anyhow::Result<()> {
         .expect("file2 should have ID");
 
     // Commit file1 and file2, leaving file3 uncommitted
-    env.but(format!("commit -m 'Add two files' --changes {file1_id},{file2_id}"))
-        .assert()
-        .success();
+    env.but(format!(
+        "commit -m 'Add two files' --changes {file1_id},{file2_id}"
+    ))
+    .assert()
+    .success();
 
     // Verify file3 is still uncommitted
     let status_after = env.but("status --json").assert().success();
@@ -795,10 +830,19 @@ fn commit_with_multiple_file_ids() -> anyhow::Result<()> {
 
     let remaining: Vec<&str> = status_after["unassignedChanges"]
         .as_array()
-        .map(|changes| changes.iter().filter_map(|c| c["filePath"].as_str()).collect())
+        .map(|changes| {
+            changes
+                .iter()
+                .filter_map(|c| c["filePath"].as_str())
+                .collect()
+        })
         .unwrap_or_default();
 
-    assert_eq!(remaining, vec!["file3.txt"], "Only file3 should remain uncommitted");
+    assert_eq!(
+        remaining,
+        vec!["file3.txt"],
+        "Only file3 should remain uncommitted"
+    );
 
     Ok(())
 }
@@ -846,10 +890,19 @@ fn commit_with_short_changes_flag() -> anyhow::Result<()> {
 
     let remaining: Vec<&str> = status_after["unassignedChanges"]
         .as_array()
-        .map(|changes| changes.iter().filter_map(|c| c["filePath"].as_str()).collect())
+        .map(|changes| {
+            changes
+                .iter()
+                .filter_map(|c| c["filePath"].as_str())
+                .collect()
+        })
         .unwrap_or_default();
 
-    assert_eq!(remaining, vec!["file2.txt"], "file2.txt should still be uncommitted");
+    assert_eq!(
+        remaining,
+        vec!["file2.txt"],
+        "file2.txt should still be uncommitted"
+    );
 
     Ok(())
 }
@@ -1007,7 +1060,12 @@ fn commit_with_multiple_hunk_ids_from_same_file() -> anyhow::Result<()> {
 
         let remaining: Vec<&str> = status_after["unassignedChanges"]
             .as_array()
-            .map(|changes| changes.iter().filter_map(|c| c["filePath"].as_str()).collect())
+            .map(|changes| {
+                changes
+                    .iter()
+                    .filter_map(|c| c["filePath"].as_str())
+                    .collect()
+            })
             .unwrap_or_default();
 
         assert!(
@@ -1066,16 +1124,21 @@ fn commit_single_hunk_leaves_other_hunks_uncommitted() -> anyhow::Result<()> {
         let first_hunk_id = &change_ids[0];
 
         // Commit only the first hunk
-        env.but(format!("commit -m 'First hunk only' --changes {first_hunk_id}"))
-            .assert()
-            .success();
+        env.but(format!(
+            "commit -m 'First hunk only' --changes {first_hunk_id}"
+        ))
+        .assert()
+        .success();
 
         // Verify there are still uncommitted changes (the second hunk)
         let diff_after = env.but("diff --json").assert().success();
         let stdout_after = std::str::from_utf8(&diff_after.get_output().stdout)?;
         let diff_after: serde_json::Value = serde_json::from_str(stdout_after)?;
 
-        let remaining_changes = diff_after["changes"].as_array().map(|c| c.len()).unwrap_or(0);
+        let remaining_changes = diff_after["changes"]
+            .as_array()
+            .map(|c| c.len())
+            .unwrap_or(0);
         assert!(
             remaining_changes >= 1,
             "Second hunk should still be uncommitted, found {remaining_changes} changes"

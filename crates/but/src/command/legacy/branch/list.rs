@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 
 use but_ctx::Context;
 use but_oxidize::{ObjectIdExt, OidExt};
@@ -6,41 +6,6 @@ use colored::Colorize;
 use gitbutler_branch_actions::BranchListingFilter;
 
 use crate::utils::OutputChannel;
-
-/// Generate a 2-character CLI ID from an index
-fn generate_cli_id(index: usize) -> String {
-    const CHARS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let base = CHARS.len();
-
-    let first = index / base;
-    let second = index % base;
-
-    format!("{}{}", CHARS[first] as char, CHARS[second] as char)
-}
-
-/// Store the ID map to a file for later lookup
-fn store_id_map(ctx: &Context, id_map: &HashMap<String, String>) -> Result<(), anyhow::Error> {
-    let gb_dir = ctx.project_data_dir();
-    let id_map_path = gb_dir.join("branch_id_map.json");
-    let json_data = serde_json::to_string_pretty(id_map)?;
-    std::fs::write(id_map_path, json_data)?;
-    Ok(())
-}
-
-/// Load the ID map from file
-pub fn load_id_map(project_data_dir: &Path) -> Result<HashMap<String, String>, anyhow::Error> {
-    let id_map_path = project_data_dir.join("branch_id_map.json");
-
-    if !id_map_path.exists() {
-        return Err(anyhow::anyhow!(
-            "Branch ID map not found. Run 'but branch' first to generate IDs."
-        ));
-    }
-
-    let json_data = std::fs::read_to_string(id_map_path)?;
-    let id_map: HashMap<String, String> = serde_json::from_str(&json_data)?;
-    Ok(id_map)
-}
 
 #[allow(clippy::too_many_arguments)]
 pub fn list(
@@ -53,6 +18,7 @@ pub fn list(
     filter: Option<String>,
     out: &mut OutputChannel,
     check_merge: bool,
+    show_empty: bool,
 ) -> Result<(), anyhow::Error> {
     let listing_filter = if local {
         Some(BranchListingFilter {
@@ -64,13 +30,49 @@ pub fn list(
     };
 
     let branch_review_map = if review {
-        crate::command::legacy::forge::review::get_review_map(ctx, Some(but_forge::CacheConfig::CacheOnly))?
+        crate::command::legacy::forge::review::get_review_map(
+            ctx,
+            Some(but_forge::CacheConfig::CacheOnly),
+        )?
     } else {
         HashMap::new()
     };
 
-    let mut applied_stacks =
-        but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let mut applied_stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
+
+    // Filter out empty branches unless --empty is requested
+    let target_oid_for_filter: Option<git2::Oid> = if !show_empty {
+        get_target_oid(ctx).ok()
+    } else {
+        None
+    };
+
+    if let Some(target_oid) = target_oid_for_filter {
+        // For applied stacks: remove heads that have no commits on them.
+        // heads[0] is topmost; head[i] is empty if its tip == heads[i+1].tip (non-last)
+        // or tip == target_oid (last/bottommost head).
+        for stack in &mut applied_stacks {
+            let tips: Vec<git2::Oid> = stack.heads.iter().map(|h| h.tip.to_git2()).collect();
+            let non_empty: Vec<bool> = tips
+                .iter()
+                .enumerate()
+                .map(|(i, &tip)| {
+                    let next_tip = tips.get(i + 1).copied().unwrap_or(target_oid);
+                    tip != next_tip
+                })
+                .collect();
+            let mut i = 0;
+            stack.heads.retain(|_| {
+                let keep = non_empty[i];
+                i += 1;
+                keep
+            });
+        }
+        applied_stacks.retain(|stack| !stack.heads.is_empty());
+    }
 
     // Apply name filter to applied stacks if provided
     if let Some(ref filter_str) = filter {
@@ -111,12 +113,43 @@ pub fn list(
     // Apply name filter if provided
     if let Some(ref filter_str) = filter {
         let filter_lower = filter_str.to_lowercase();
-        branches.retain(|branch| branch.name.to_string().to_lowercase().contains(&filter_lower));
+        branches.retain(|branch| {
+            branch
+                .name
+                .to_string()
+                .to_lowercase()
+                .contains(&filter_lower)
+        });
+    }
+
+    // Filter out branches with no commits ahead of target unless --empty is requested.
+    // A branch has 0 commits ahead when its tip equals the target, or when it is an
+    // ancestor of the target (all its commits are already in the target).
+    if let Some(target_oid) = target_oid_for_filter {
+        let git2_repo = ctx.git2_repo.get()?;
+        branches.retain(|branch| {
+            if branch.head == target_oid {
+                return false;
+            }
+            // graph_descendant_of(a, b) = "is a descended from b?"
+            // So graph_descendant_of(target, branch.head) = "is branch.head an ancestor of target?"
+            // If true, all branch commits are already in the target → 0 commits ahead.
+            !git2_repo
+                .graph_descendant_of(target_oid, branch.head)
+                .unwrap_or(false)
+        });
+        drop(git2_repo);
     }
 
     // Filter out dependabot branches unless --all is specified
     if !all {
-        branches.retain(|branch| !branch.name.to_string().to_lowercase().contains("dependabot"));
+        branches.retain(|branch| {
+            !branch
+                .name
+                .to_string()
+                .to_lowercase()
+                .contains("dependabot")
+        });
     }
 
     // Sort all branches by last commit date (most recent first)
@@ -144,32 +177,14 @@ pub fn list(
 
     // Check merge status if requested
     let merge_status_map: Option<HashMap<String, bool>> = if check_merge {
-        Some(check_branches_merge_cleanly(ctx, &applied_stacks, &branches_to_show)?)
+        Some(check_branches_merge_cleanly(
+            ctx,
+            &applied_stacks,
+            &branches_to_show,
+        )?)
     } else {
         None
     };
-
-    // Generate CLI IDs for all branches
-    let mut id_map = HashMap::new();
-    let mut index = 0;
-
-    // Add IDs for applied stacks
-    for stack in &applied_stacks {
-        for head in &stack.heads {
-            let cli_id = generate_cli_id(index);
-            id_map.insert(head.name.to_string(), cli_id);
-            index += 1;
-        }
-    }
-
-    // Add IDs for unapplied branches
-    for branch in &branches_to_show {
-        let cli_id = generate_cli_id(index);
-        id_map.insert(branch.name.to_string(), cli_id);
-        index += 1;
-    }
-
-    store_id_map(ctx, &id_map)?;
 
     if let Some(out) = out.for_json() {
         output_json(
@@ -192,7 +207,6 @@ pub fn list(
                 ctx,
                 commits_ahead_map.as_ref(),
                 merge_status_map.as_ref(),
-                &id_map,
                 out,
             )?;
         }
@@ -208,13 +222,15 @@ pub fn list(
                 &branch_review_map,
                 commits_ahead_map.as_ref(),
                 merge_status_map.as_ref(),
-                &id_map,
                 out,
             )?;
         }
 
         if more_count > 0 {
-            writeln!(out, "\n... and {more_count} more branches (use --all to show all)")?;
+            writeln!(
+                out,
+                "\n... and {more_count} more branches (use --all to show all)"
+            )?;
         }
     }
     Ok(())
@@ -244,8 +260,10 @@ fn output_json(
                 .iter()
                 .map(|head| {
                     let reviews = get_reviews_json(&head.name.to_string(), branch_review_map);
-                    let commits_ahead = commits_ahead_map.and_then(|map| map.get(&head.name.to_string()).copied());
-                    let merges_cleanly = merge_status_map.and_then(|map| map.get(&head.name.to_string()).copied());
+                    let commits_ahead =
+                        commits_ahead_map.and_then(|map| map.get(&head.name.to_string()).copied());
+                    let merges_cleanly =
+                        merge_status_map.and_then(|map| map.get(&head.name.to_string()).copied());
 
                     // Get commit information
                     let (last_commit_at, last_author) = match repo.find_commit(head.tip.to_git2()) {
@@ -289,8 +307,10 @@ fn output_json(
         .iter()
         .map(|branch| {
             let reviews = get_reviews_json(&branch.name.to_string(), branch_review_map);
-            let commits_ahead = commits_ahead_map.and_then(|map| map.get(&branch.name.to_string()).copied());
-            let merges_cleanly = merge_status_map.and_then(|map| map.get(&branch.name.to_string()).copied());
+            let commits_ahead =
+                commits_ahead_map.and_then(|map| map.get(&branch.name.to_string()).copied());
+            let merges_cleanly =
+                merge_status_map.and_then(|map| map.get(&branch.name.to_string()).copied());
             BranchOutput {
                 name: branch.name.to_string(),
                 reviews,
@@ -309,7 +329,11 @@ fn output_json(
     let output = BranchListOutput {
         applied_stacks: applied_stacks_output,
         branches: branches_output,
-        more_branches: if more_count > 0 { Some(more_count) } else { None },
+        more_branches: if more_count > 0 {
+            Some(more_count)
+        } else {
+            None
+        },
     };
 
     out.write_value(output)?;
@@ -349,7 +373,11 @@ fn check_branches_merge_cleanly(
     let target = stack.get_default_target()?;
 
     // Try to find the remote tracking branch (e.g., refs/remotes/origin/master)
-    let target_ref_name = format!("refs/remotes/{}/{}", target.branch.remote(), target.branch.branch());
+    let target_ref_name = format!(
+        "refs/remotes/{}/{}",
+        target.branch.remote(),
+        target.branch.branch()
+    );
     let target_commit = match repo.find_reference(&target_ref_name) {
         Ok(reference) => {
             let target_oid = reference.id();
@@ -445,7 +473,11 @@ fn calculate_commits_ahead(
     let target = stack.get_default_target()?;
 
     // Try to find the remote tracking branch (e.g., refs/remotes/origin/master)
-    let target_ref_name = format!("refs/remotes/{}/{}", target.branch.remote(), target.branch.branch());
+    let target_ref_name = format!(
+        "refs/remotes/{}/{}",
+        target.branch.remote(),
+        target.branch.branch()
+    );
     let target_oid = match repo.find_reference(&target_ref_name) {
         Ok(mut reference) => reference.peel_to_commit()?.id,
         Err(_) => {
@@ -466,7 +498,12 @@ fn calculate_commits_ahead(
         };
 
         // Walk from branch head to merge base
-        let traversal = match branch_oid.attach(&repo).ancestors().with_hidden(Some(merge_base)).all() {
+        let traversal = match branch_oid
+            .attach(&repo)
+            .ancestors()
+            .with_hidden(Some(merge_base))
+            .all()
+        {
             Ok(t) => t,
             Err(_) => continue,
         };
@@ -481,7 +518,10 @@ fn calculate_commits_ahead(
 fn format_date_for_display(timestamp_ms: u128) -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
 
     // Calculate days ago
     let age_ms = now.saturating_sub(timestamp_ms);
@@ -511,7 +551,6 @@ fn print_applied_branches_table(
     ctx: &Context,
     commits_ahead_map: Option<&HashMap<String, usize>>,
     merge_status_map: Option<&HashMap<String, bool>>,
-    id_map: &HashMap<String, String>,
     out: &mut (dyn std::fmt::Write + 'static),
 ) -> Result<(), anyhow::Error> {
     use crate::tui::{Table, table::Cell};
@@ -524,13 +563,14 @@ fn print_applied_branches_table(
     let repo = &*ctx.git2_repo.get()?;
 
     // Define column headers with fixed widths
+    // BRANCH is marked no_truncate so the name is always fully visible.
+    // AUTHOR is flexible and will shrink first when space is tight.
     let headers = vec![
-        Cell::new("ID").with_width(4),
         Cell::new("TYPE").with_width(7),
-        Cell::new("BRANCH"),
+        Cell::new("BRANCH").no_truncate(),
         Cell::new("AHEAD").with_width(6),
         Cell::new("DATE").with_width(10),
-        Cell::new("AUTHOR").with_width(18),
+        Cell::new("AUTHOR"),
     ];
 
     let mut table = Table::new(headers);
@@ -593,7 +633,8 @@ fn print_applied_branches_table(
             };
 
             // Get PR/review info
-            let reviews_str = if let Some(reviews) = branch_review_map.get(&branch.name.to_string()) {
+            let reviews_str = if let Some(reviews) = branch_review_map.get(&branch.name.to_string())
+            {
                 let review_numbers = reviews
                     .iter()
                     .map(|r| format!("{}{}", r.unit_symbol, r.number))
@@ -606,14 +647,7 @@ fn print_applied_branches_table(
 
             let branch_str = format!("{branch_with_prefix}{reviews_str}");
 
-            // Get CLI ID for this branch
-            let cli_id = id_map
-                .get(&branch.name.to_string())
-                .cloned()
-                .unwrap_or_else(|| "??".to_string());
-
             table.add_row(vec![
-                Cell::new(cli_id.dimmed().to_string()),
                 Cell::new(type_str),
                 Cell::new(branch_str),
                 Cell::new(ahead_str),
@@ -632,7 +666,6 @@ fn print_branches_table(
     branch_review_map: &HashMap<String, Vec<but_forge::ForgeReview>>,
     commits_ahead_map: Option<&HashMap<String, usize>>,
     merge_status_map: Option<&HashMap<String, bool>>,
-    id_map: &HashMap<String, String>,
     out: &mut (dyn std::fmt::Write + 'static),
 ) -> Result<(), anyhow::Error> {
     use crate::tui::{Table, table::Cell};
@@ -642,13 +675,14 @@ fn print_branches_table(
     }
 
     // Define column headers with fixed widths
+    // BRANCH is marked no_truncate so the name is always fully visible.
+    // AUTHOR is flexible and will shrink first when space is tight.
     let headers = vec![
-        Cell::new("ID").with_width(4),
         Cell::new("TYPE").with_width(7),
-        Cell::new("BRANCH"),
+        Cell::new("BRANCH").no_truncate(),
         Cell::new("AHEAD").with_width(6),
         Cell::new("DATE").with_width(10),
-        Cell::new("AUTHOR").with_width(18),
+        Cell::new("AUTHOR"),
     ];
 
     let mut table = Table::new(headers);
@@ -704,14 +738,7 @@ fn print_branches_table(
 
         let branch_str = format!("{}{}{}", merge_status_str, branch.name, reviews_str);
 
-        // Get CLI ID for this branch
-        let cli_id = id_map
-            .get(&branch.name.to_string())
-            .cloned()
-            .unwrap_or_else(|| "??".to_string());
-
         table.add_row(vec![
-            Cell::new(cli_id.dimmed().to_string()),
             Cell::new(type_str),
             Cell::new(branch_str),
             Cell::new(ahead_str),
@@ -722,4 +749,19 @@ fn print_branches_table(
 
     table.render(out)?;
     Ok(())
+}
+
+fn get_target_oid(ctx: &Context) -> anyhow::Result<git2::Oid> {
+    let handle = gitbutler_stack::VirtualBranchesHandle::new(ctx.project_data_dir());
+    let target = handle.get_default_target()?;
+    let git2_repo = ctx.git2_repo.get()?;
+    let target_ref = format!(
+        "refs/remotes/{}/{}",
+        target.branch.remote(),
+        target.branch.branch()
+    );
+    match git2_repo.find_reference(&target_ref) {
+        Ok(r) => Ok(r.peel(git2::ObjectType::Commit)?.id()),
+        Err(_) => Ok(target.sha),
+    }
 }

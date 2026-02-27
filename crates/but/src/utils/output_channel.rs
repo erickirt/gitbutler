@@ -1,9 +1,14 @@
 use std::io::{IsTerminal, Write};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use minus::ExitStrategy;
 
-use crate::{args::OutputFormat, utils::json_pretty_to_stdout};
+use crate::{
+    args::OutputFormat,
+    utils::{
+        json_pretty_to_stdout,
+        pager::{self, Pager},
+    },
+};
 
 /// Default value for a confirmation prompt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,7 +39,7 @@ pub struct OutputChannel {
     /// The output to use if there is no pager.
     stdout: std::io::Stdout,
     /// Possibly a pager we are using. If `Some`, the pager itself is used for output instead of `stdout`.
-    pager: Option<minus::Pager>,
+    pager: Option<Pager>,
     /// When `Some`, JSON values written via `write_value` are captured here instead of going to stdout.
     /// Used by `--status-after` to buffer mutation JSON before combining with status JSON.
     json_buffer: Option<serde_json::Value>,
@@ -120,7 +125,8 @@ impl OutputChannel {
     }
     /// Provide a write implementation for text output (human or shell), if the format setting permits.
     pub fn for_human_or_shell(&mut self) -> Option<&mut (dyn std::fmt::Write + 'static)> {
-        matches!(self.format, OutputFormat::Human | OutputFormat::Shell).then(|| self as &mut dyn std::fmt::Write)
+        matches!(self.format, OutputFormat::Human | OutputFormat::Shell)
+            .then(|| self as &mut dyn std::fmt::Write)
     }
     /// Provide a handle to receive a serde-serializable value to write to stdout.
     pub fn for_json(&mut self) -> Option<&mut Self> {
@@ -141,7 +147,9 @@ impl OutputChannel {
     ///
     /// Note that this is implied to be true if [Self::prepare_for_terminal_input()] returns `Some()`.
     pub fn can_prompt(&self) -> bool {
-        matches!(self.format, OutputFormat::Human) && std::io::stdin().is_terminal() && self.stdout.is_terminal()
+        matches!(self.format, OutputFormat::Human)
+            && std::io::stdin().is_terminal()
+            && self.stdout.is_terminal()
     }
 
     /// Before performing further output, obtain an input channel which always bypasses the pager when writing,
@@ -155,7 +163,9 @@ impl OutputChannel {
             return None;
         }
         if self.for_human().is_none() {
-            tracing::warn!("Stdin is a terminal, and output wasn't configured for human consumption");
+            tracing::warn!(
+                "Stdin is a terminal, and output wasn't configured for human consumption"
+            );
             return None;
         }
         Some(InputOutputChannel { out: self })
@@ -219,19 +229,32 @@ impl std::fmt::Write for OutputChannel {
         use std::io::Write;
         match self.format {
             OutputFormat::Human | OutputFormat::Shell => {
-                if let Some(out) = self.pager.as_mut() {
-                    out.write_str(s)
-                } else {
-                    self.stdout.write_all(s.as_bytes()).or_else(|err| {
-                        if err.kind() == std::io::ErrorKind::BrokenPipe {
-                            // Ignore broken pipes and keep writing.
-                            // This allows the caller to use `?` without having to think
-                            // about ignoring errors selectively.
-                            Ok(())
-                        } else {
-                            Err(std::fmt::Error)
-                        }
-                    })
+                match self.pager.as_mut() {
+                    Some(Pager::Builtin(pager)) => pager.write_str(s),
+                    Some(Pager::External(_, stdin)) => {
+                        stdin.write_all(s.as_bytes()).or_else(|err| {
+                            if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                // Ignore broken pipes and keep writing.
+                                // This allows the caller to use `?` without having to think
+                                // about ignoring errors selectively.
+                                Ok(())
+                            } else {
+                                Err(std::fmt::Error)
+                            }
+                        })
+                    }
+                    None => {
+                        self.stdout.write_all(s.as_bytes()).or_else(|err| {
+                            if err.kind() == std::io::ErrorKind::BrokenPipe {
+                                // Ignore broken pipes and keep writing.
+                                // This allows the caller to use `?` without having to think
+                                // about ignoring errors selectively.
+                                Ok(())
+                            } else {
+                                Err(std::fmt::Error)
+                            }
+                        })
+                    }
                 }
             }
             OutputFormat::Json | OutputFormat::None => {
@@ -252,7 +275,10 @@ impl std::fmt::Write for InputOutputChannel<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         use std::io::Write;
         // bypass the pager, fail on broken pipes (we are prompting)
-        self.out.stdout.write_all(s.as_bytes()).map_err(|_| std::fmt::Error)
+        self.out
+            .stdout
+            .write_all(s.as_bytes())
+            .map_err(|_| std::fmt::Error)
     }
 }
 
@@ -280,7 +306,8 @@ impl InputOutputChannel<'_> {
                         }
                     }
                     KeyEditAction::Submit => {
-                        self.out.stdout.write_all(b"\n")?;
+                        // In raw mode, '\n' may not return to column 0, so always emit CRLF.
+                        self.out.stdout.write_all(b"\r\n")?;
                         self.out.stdout.flush()?;
                         let trimmed = line.trim().to_owned();
                         return if trimmed.is_empty() {
@@ -290,7 +317,8 @@ impl InputOutputChannel<'_> {
                         };
                     }
                     KeyEditAction::EndOfInput => {
-                        self.out.stdout.write_all(b"\n")?;
+                        // Keep follow-up output aligned even after prompt cancellation.
+                        self.out.stdout.write_all(b"\r\n")?;
                         self.out.stdout.flush()?;
                         return Ok(ReadlineInput::EndOfInput);
                     }
@@ -337,7 +365,11 @@ impl InputOutputChannel<'_> {
     /// // Outputs:
     /// // Are you sure you want to do this? [Y/n]:
     /// ```
-    pub fn confirm(&mut self, prompt: impl AsRef<str>, default: ConfirmDefault) -> anyhow::Result<Confirm> {
+    pub fn confirm(
+        &mut self,
+        prompt: impl AsRef<str>,
+        default: ConfirmDefault,
+    ) -> anyhow::Result<Confirm> {
         let suffix = match default {
             ConfirmDefault::Yes => "[Y/n]",
             ConfirmDefault::No => "[y/N]",
@@ -361,23 +393,30 @@ impl InputOutputChannel<'_> {
 
     /// Prompt for y/n confirmation without a default.
     /// Automatically appends `[y/n]` to the prompt.
-    /// Returns `NoInput` if the user provides empty input.
+    /// Re-prompts on empty input and returns `NoInput` only if input is ended
+    /// (for example Ctrl-C, Ctrl-D, or Esc).
     ///
     /// ```ignore
     /// let result = inout.confirm_no_default("Are you sure you want to do this?")?;
     /// // Outputs:
     /// // Are you sure you want to do this? [y/n]:
     /// ```
-    pub fn confirm_no_default(&mut self, prompt: impl AsRef<str>) -> anyhow::Result<ConfirmOrEmpty> {
-        match self.readline(&format!("{} [y/n]: ", prompt.as_ref()))? {
-            ReadlineInput::Text(input) => {
-                if input.to_lowercase().starts_with('y') {
-                    Ok(ConfirmOrEmpty::Yes)
-                } else {
-                    Ok(ConfirmOrEmpty::No)
+    pub fn confirm_no_default(
+        &mut self,
+        prompt: impl AsRef<str>,
+    ) -> anyhow::Result<ConfirmOrEmpty> {
+        let prompt = format!("{} [y/n]: ", prompt.as_ref());
+        loop {
+            match self.readline(&prompt)? {
+                ReadlineInput::Text(input) => {
+                    if input.to_lowercase().starts_with('y') {
+                        return Ok(ConfirmOrEmpty::Yes);
+                    }
+                    return Ok(ConfirmOrEmpty::No);
                 }
+                ReadlineInput::Empty => continue,
+                ReadlineInput::EndOfInput => return Ok(ConfirmOrEmpty::NoInput),
             }
-            ReadlineInput::Empty | ReadlineInput::EndOfInput => Ok(ConfirmOrEmpty::NoInput),
         }
     }
 }
@@ -421,11 +460,17 @@ fn key_to_edit_action(key: KeyEvent, line_is_empty: bool) -> KeyEditAction {
         KeyCode::Backspace => KeyEditAction::Backspace,
         KeyCode::Tab => KeyEditAction::Insert('\t'),
         KeyCode::Esc => KeyEditAction::EndOfInput,
-        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => KeyEditAction::EndOfInput,
+        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+            KeyEditAction::EndOfInput
+        }
         KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) && line_is_empty => {
             KeyEditAction::EndOfInput
         }
-        KeyCode::Char(ch) if !key.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+        KeyCode::Char(ch)
+            if !key
+                .modifiers
+                .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+        {
             KeyEditAction::Insert(ch)
         }
         _ => KeyEditAction::Ignore,
@@ -463,18 +508,21 @@ impl OutputChannel {
     /// It's configured to print to stdout unless [`OutputFormat::Json`] is used, then it prints everything
     /// to a `/dev/null` equivalent, so callers never have to worry if they interleave JSON with other output.
     pub fn new_with_optional_pager(format: OutputFormat, use_pager: bool) -> Self {
+        let stdout = std::io::stdout();
+        let pager = if !use_pager
+            || !matches!(format, OutputFormat::Human)
+            || std::env::var_os("NOPAGER").is_some()
+            || !stdout.is_terminal()
+        {
+            None
+        } else {
+            pager::try_init_pager()
+        };
+
         OutputChannel {
             format,
-            stdout: std::io::stdout(),
-            pager: if !matches!(format, OutputFormat::Human) || std::env::var_os("NOPAGER").is_some() || !use_pager {
-                None
-            } else {
-                let pager = minus::Pager::new();
-                let msg = "can talk to newly created pager";
-                pager.set_exit_strategy(ExitStrategy::PagerQuit).expect(msg);
-                pager.set_prompt("GitButler").expect(msg);
-                Some(pager)
-            },
+            stdout,
+            pager,
             json_buffer: None,
         }
     }
@@ -505,8 +553,17 @@ impl Drop for OutputChannel {
         {
             eprintln!("warning: failed to flush buffered JSON on drop: {err}");
         }
-        if let Some(pager) = self.pager.take() {
-            minus::page_all(pager).ok();
+        match self.pager.take() {
+            Some(Pager::Builtin(pager)) => {
+                minus::page_all(pager).ok();
+            }
+            Some(Pager::External(mut child, child_stdin)) => {
+                // Drop the child process stdin to signal EOF to the pager, which should cause it
+                // to exit.
+                drop(child_stdin);
+                child.wait().ok();
+            }
+            None => (),
         }
     }
 }
@@ -520,7 +577,10 @@ mod tests {
     #[test]
     fn ctrl_c_ends_input() {
         assert_eq!(
-            key_to_edit_action(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL), true),
+            key_to_edit_action(
+                KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+                true
+            ),
             KeyEditAction::EndOfInput
         );
     }
@@ -528,11 +588,17 @@ mod tests {
     #[test]
     fn ctrl_d_only_ends_input_when_line_is_empty() {
         assert_eq!(
-            key_to_edit_action(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL), true),
+            key_to_edit_action(
+                KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL),
+                true
+            ),
             KeyEditAction::EndOfInput
         );
         assert_eq!(
-            key_to_edit_action(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL), false),
+            key_to_edit_action(
+                KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL),
+                false
+            ),
             KeyEditAction::Ignore
         );
     }

@@ -104,7 +104,12 @@ impl PendingRequests {
     ///
     /// This removes the request from storage and sends the decision to the waiting task.
     /// Returns `Ok(())` if the request was found and responded to, or an error if not found.
-    pub fn respond_permission(&self, id: &str, decision: PermissionDecision, use_wildcard: bool) -> anyhow::Result<()> {
+    pub fn respond_permission(
+        &self,
+        id: &str,
+        decision: PermissionDecision,
+        use_wildcard: bool,
+    ) -> anyhow::Result<()> {
         let mut permissions = self.permissions.lock().unwrap();
         let pending = permissions
             .remove(id)
@@ -152,7 +157,10 @@ impl PendingRequests {
     }
 
     /// Gets a pending question request by stack ID.
-    pub fn get_question_by_stack(&self, stack_id: &gitbutler_stack::StackId) -> Option<ClaudeAskUserQuestionRequest> {
+    pub fn get_question_by_stack(
+        &self,
+        stack_id: &gitbutler_stack::StackId,
+    ) -> Option<ClaudeAskUserQuestionRequest> {
         let questions = self.questions.lock().unwrap();
         questions
             .values()
@@ -169,7 +177,11 @@ impl PendingRequests {
     /// Responds to a pending question request with user answers.
     ///
     /// This removes the request from storage and sends the answers to the waiting task.
-    pub fn respond_question(&self, id: &str, answers: HashMap<String, String>) -> anyhow::Result<()> {
+    pub fn respond_question(
+        &self,
+        id: &str,
+        answers: HashMap<String, String>,
+    ) -> anyhow::Result<()> {
         let mut questions = self.questions.lock().unwrap();
         let pending = questions
             .remove(id)

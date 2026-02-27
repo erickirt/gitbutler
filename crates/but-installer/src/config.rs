@@ -64,7 +64,9 @@ impl Version {
 
         // Must contain at least one alphanumeric character
         if !version.chars().any(|c| c.is_alphanumeric()) {
-            bail!("Invalid version format: {version}. Version must contain at least one alphanumeric character.");
+            bail!(
+                "Invalid version format: {version}. Version must contain at least one alphanumeric character."
+            );
         }
 
         Ok(())
@@ -132,7 +134,10 @@ impl InstallerConfig {
         }
 
         // Get version from CLI argument (takes precedence) or GITBUTLER_VERSION env var
-        let version_string = args.get(1).cloned().or_else(|| env::var("GITBUTLER_VERSION").ok());
+        let version_string = args
+            .get(1)
+            .cloned()
+            .or_else(|| env::var("GITBUTLER_VERSION").ok());
 
         let version_request = VersionRequest::from_string(version_string)?;
         Self::new_with_version(version_request)
@@ -140,7 +145,8 @@ impl InstallerConfig {
 
     /// Create a new installer config with an explicit version request
     pub(crate) fn new_with_version(version_request: VersionRequest) -> Result<Self> {
-        let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("Failed to determine home directory"))?;
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| anyhow!("Failed to determine home directory"))?;
 
         // Detect platform
         let os = env::consts::OS;
@@ -165,7 +171,10 @@ impl InstallerConfig {
         match &self.version_request {
             VersionRequest::Nightly => "https://app.gitbutler.com/releases/nightly".to_string(),
             VersionRequest::Specific(version) => {
-                format!("https://app.gitbutler.com/releases/version/{}", version.as_str())
+                format!(
+                    "https://app.gitbutler.com/releases/version/{}",
+                    version.as_str()
+                )
             }
             VersionRequest::Release => "https://app.gitbutler.com/releases".to_string(),
         }
@@ -179,7 +188,10 @@ mod tests {
     #[test]
     fn test_version_request_from_string_valid() {
         // Valid versions
-        assert_eq!(VersionRequest::from_string(None).unwrap(), VersionRequest::Release);
+        assert_eq!(
+            VersionRequest::from_string(None).unwrap(),
+            VersionRequest::Release
+        );
         assert_eq!(
             VersionRequest::from_string(Some("nightly".to_string())).unwrap(),
             VersionRequest::Nightly

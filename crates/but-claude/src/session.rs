@@ -32,8 +32,8 @@ use tokio::{
 };
 
 use crate::{
-    Broadcaster, ClaudeMessage, ClaudeOutput, ClaudeUserParams, MessagePayload, PermissionMode, PromptAttachment,
-    SystemMessage, ThinkingLevel, Transcript, UserInput,
+    Broadcaster, ClaudeMessage, ClaudeOutput, ClaudeUserParams, MessagePayload, PermissionMode,
+    PromptAttachment, SystemMessage, ThinkingLevel, Transcript, UserInput,
     broadcaster::FrontendEvent,
     claude_mcp::ClaudeProjectConfig,
     claude_settings::ClaudeSettings,
@@ -93,7 +93,10 @@ impl Claudes {
                 .spawn_claude(ctx.clone(), broadcaster.clone(), stack_id, user_params)
                 .await;
 
-            if let Err(e) = claudes.maybe_compact_context(ctx, broadcaster, stack_id).await {
+            if let Err(e) = claudes
+                .maybe_compact_context(ctx, broadcaster, stack_id)
+                .await
+            {
                 tracing::error!(
                     stack_id = ?stack_id,
                     error = %e,
@@ -199,7 +202,9 @@ impl Claudes {
         stack_id: StackId,
         user_params: ClaudeUserParams,
     ) -> Result<()> {
-        use claude_agent_sdk_rs::{ClaudeAgentOptions, ClaudeClient, Message as SdkMessage, SystemPrompt};
+        use claude_agent_sdk_rs::{
+            ClaudeAgentOptions, ClaudeClient, Message as SdkMessage, SystemPrompt,
+        };
         use futures::stream::StreamExt;
 
         // Capture the start time to filter messages created during this session
@@ -225,7 +230,8 @@ impl Claudes {
             project_workdir,
         } = setup_session(&sync_ctx, stack_id)?;
 
-        let transcript_current_id = Transcript::current_valid_session_id(&project_workdir, &session).await?;
+        let transcript_current_id =
+            Transcript::current_valid_session_id(&project_workdir, &session).await?;
 
         // IMPORTANT: Two session IDs are used throughout this function:
         //
@@ -267,7 +273,8 @@ impl Claudes {
         .await?;
 
         // Configure SDK options
-        let dangerously_skip_permissions = sync_ctx.settings.claude.dangerously_allow_all_permissions;
+        let dangerously_skip_permissions =
+            sync_ctx.settings.claude.dangerously_allow_all_permissions;
         let permission_mode = if dangerously_skip_permissions {
             claude_agent_sdk_rs::PermissionMode::BypassPermissions
         } else {
@@ -315,7 +322,11 @@ impl Claudes {
         // Build MCP server configuration
         let cc_settings = ClaudeSettings::open(&project_workdir).await;
         let project_config = ClaudeProjectConfig::open(&cc_settings, &project_workdir).await;
-        let disabled_servers: Vec<&str> = user_params.disabled_mcp_servers.iter().map(String::as_str).collect();
+        let disabled_servers: Vec<&str> = user_params
+            .disabled_mcp_servers
+            .iter()
+            .map(String::as_str)
+            .collect();
         let mcp_servers = project_config.mcp_servers_for_sdk(&disabled_servers);
 
         // Build system prompt with branch info
@@ -325,10 +336,11 @@ impl Claudes {
             let branch_info = format_branch_info(&mut ctx, stack_id, guard.read_permission());
             format!("{}\n\n{}", system_prompt(), branch_info)
         };
-        let sdk_system_prompt = SystemPrompt::Preset(claude_agent_sdk_rs::SystemPromptPreset::with_append(
-            "claude_code",
-            system_prompt_append,
-        ));
+        let sdk_system_prompt =
+            SystemPrompt::Preset(claude_agent_sdk_rs::SystemPromptPreset::with_append(
+                "claude_code",
+                system_prompt_append,
+            ));
 
         // Build options
         // Only set model if useConfiguredModel is false
@@ -342,13 +354,17 @@ impl Claudes {
         // - summary_to_resume.is_some(): Don't resume, start fresh with summary context (use --session-id)
         // - transcript_current_id.is_some() && summary_to_resume.is_none(): Resume existing session (use --resume)
         // - Otherwise: Start new session (use --session-id)
-        let (resume, extra_args) = if summary_to_resume.is_none() && transcript_current_id.is_some() {
+        let (resume, extra_args) = if summary_to_resume.is_none() && transcript_current_id.is_some()
+        {
             // Resume existing session
             (Some(current_session_id.to_string()), HashMap::new())
         } else {
             // Start new session (or after compaction) - pass session-id via extra_args
             let mut args = HashMap::new();
-            args.insert("session-id".to_string(), Some(current_session_id.to_string()));
+            args.insert(
+                "session-id".to_string(),
+                Some(current_session_id.to_string()),
+            );
             (None, args)
         };
 
@@ -402,7 +418,9 @@ impl Claudes {
         let cli_path = if sync_ctx.settings.claude.executable.is_empty() {
             None
         } else {
-            Some(std::path::PathBuf::from(&sync_ctx.settings.claude.executable))
+            Some(std::path::PathBuf::from(
+                &sync_ctx.settings.claude.executable,
+            ))
         };
 
         let options = ClaudeAgentOptions {
@@ -572,6 +590,22 @@ impl Claudes {
                                     ).await?;
                                     break;
                                 }
+                                SdkMessage::RateLimitEvent(rate_limit) => {
+                                    tracing::info!(
+                                        stack_id = ?stack_id,
+                                        retry_after_ms = rate_limit.retry_after_ms,
+                                        "Rate limited by API"
+                                    );
+                                    send_message_with_lock(
+                                        &sync_ctx,
+                                        &broadcaster,
+                                        original_session_id,
+                                        stack_id,
+                                        MessagePayload::System(SystemMessage::RateLimited {
+                                            retry_after_ms: rate_limit.retry_after_ms,
+                                        }),
+                                    ).await?;
+                                }
                                 // System and StreamEvent messages are informational
                                 _ => {
                                     tracing::trace!(
@@ -708,7 +742,12 @@ fn setup_session(sync_ctx: &ThreadSafeContext, stack_id: StackId) -> Result<Sess
     };
 
     let original_session_id = rule.map(|r| r.session_id).unwrap_or(uuid::Uuid::new_v4());
-    let session = upsert_session(&mut ctx, original_session_id, stack_id, guard.write_permission())?;
+    let session = upsert_session(
+        &mut ctx,
+        original_session_id,
+        stack_id,
+        guard.write_permission(),
+    )?;
     let project_workdir = repo
         .workdir()
         .ok_or_else(|| anyhow::anyhow!("Repository has no working directory"))?
@@ -719,7 +758,9 @@ fn setup_session(sync_ctx: &ThreadSafeContext, stack_id: StackId) -> Result<Sess
     let messages = list_messages_by_session(&ctx, session.id)?;
     let summary_to_resume = if let Some(ClaudeMessage { payload, .. }) = messages.last() {
         match payload {
-            MessagePayload::System(SystemMessage::CompactFinished { summary }) => Some(summary.clone()),
+            MessagePayload::System(SystemMessage::CompactFinished { summary }) => {
+                Some(summary.clone())
+            }
             _ => None,
         }
     } else {
@@ -994,27 +1035,47 @@ fn group_assignments_by_file(
         .iter()
         .filter(|a| a.stack_id == Some(stack_id))
         .fold(HashMap::new(), |mut acc, assignment| {
-            acc.entry(assignment.path.as_str()).or_default().push(assignment);
+            acc.entry(assignment.path.as_str())
+                .or_default()
+                .push(assignment);
             acc
         })
 }
 
 /// Formats a file path with its associated line ranges
-fn format_file_with_line_ranges(output: &mut String, file_path: &str, hunks: &[&but_hunk_assignment::HunkAssignment]) {
+fn format_file_with_line_ranges(
+    output: &mut String,
+    file_path: &str,
+    hunks: &[&but_hunk_assignment::HunkAssignment],
+) {
     let line_ranges: Vec<String> = hunks
         .iter()
         .filter_map(|hunk| hunk.hunk_header.as_ref())
-        .map(|header| format!("{}-{}", header.new_start, header.new_start + header.new_lines))
+        .map(|header| {
+            format!(
+                "{}-{}",
+                header.new_start,
+                header.new_start + header.new_lines
+            )
+        })
         .collect();
 
     if line_ranges.is_empty() {
         output.push_str(&format!("- {file_path}\n"));
     } else {
-        output.push_str(&format!("- {} (lines: {})\n", file_path, line_ranges.join(", ")));
+        output.push_str(&format!(
+            "- {} (lines: {})\n",
+            file_path,
+            line_ranges.join(", ")
+        ));
     }
 }
 
-fn format_message_with_summary(summary: &str, message: &str, thinking_level: ThinkingLevel) -> String {
+fn format_message_with_summary(
+    summary: &str,
+    message: &str,
+    thinking_level: ThinkingLevel,
+) -> String {
     let message = format!(
         "<previous-conversation>
 This conversation is a continuation of a previous one.
@@ -1153,7 +1214,10 @@ fn validate_commit_id(commit_id: &str) -> Result<()> {
 
 /// Process file attachments by writing them to temporary files in the project directory
 /// and enhancing the message to reference these files
-async fn format_message_with_attachments(original_message: &str, attachments: &[PromptAttachment]) -> Result<String> {
+async fn format_message_with_attachments(
+    original_message: &str,
+    attachments: &[PromptAttachment],
+) -> Result<String> {
     if attachments.is_empty() {
         return Ok(original_message.to_string());
     }
@@ -1200,12 +1264,17 @@ fn create_can_use_tool_callback(
     auto_approve_tools: bool,
     session_id: uuid::Uuid,
 ) -> claude_agent_sdk_rs::CanUseToolCallback {
-    use claude_agent_sdk_rs::{PermissionResult, PermissionResultAllow, PermissionResultDeny, ToolPermissionContext};
-    use futures::FutureExt;
     use std::sync::Arc;
 
+    use claude_agent_sdk_rs::{
+        PermissionResult, PermissionResultAllow, PermissionResultDeny, ToolPermissionContext,
+    };
+    use futures::FutureExt;
+
     // Runtime permissions for this session
-    let runtime_permissions = Arc::new(std::sync::Mutex::new(crate::permissions::Permissions::default()));
+    let runtime_permissions = Arc::new(std::sync::Mutex::new(
+        crate::permissions::Permissions::default(),
+    ));
 
     Arc::new(
         move |tool_name: String, tool_input: serde_json::Value, context: ToolPermissionContext| {
@@ -1470,7 +1539,9 @@ async fn handle_ask_user_question(
     let receiver = crate::pending_requests::pending_requests().insert_question(request, session_id);
 
     // Send notification
-    if let Err(e) = crate::notifications::notify_permission_request(&sync_ctx.settings, "AskUserQuestion") {
+    if let Err(e) =
+        crate::notifications::notify_permission_request(&sync_ctx.settings, "AskUserQuestion")
+    {
         tracing::warn!("Failed to send AskUserQuestion notification: {}", e);
     }
 
@@ -1521,9 +1592,10 @@ fn create_pretool_use_hook(
     sync_ctx: ThreadSafeContext,
     stack_id: gitbutler_stack::StackId,
 ) -> claude_agent_sdk_rs::HookCallback {
+    use std::sync::Arc;
+
     use claude_agent_sdk_rs::{HookContext, HookInput, HookJsonOutput, SyncHookJsonOutput};
     use futures::FutureExt;
-    use std::sync::Arc;
 
     Arc::new(
         move |input: HookInput, _tool_use_id: Option<String>, _context: HookContext| {
@@ -1586,9 +1658,10 @@ fn create_pretool_use_hook(
 /// This is critical - without it, changes made by Claude won't be assigned to the stack
 /// and won't be committed when the session ends.
 fn create_post_tool_use_hook(sync_ctx: ThreadSafeContext) -> claude_agent_sdk_rs::HookCallback {
+    use std::sync::Arc;
+
     use claude_agent_sdk_rs::{HookContext, HookInput, HookJsonOutput, SyncHookJsonOutput};
     use futures::FutureExt;
-    use std::sync::Arc;
 
     Arc::new(
         move |input: HookInput, _tool_use_id: Option<String>, _context: HookContext| {
@@ -1720,9 +1793,10 @@ fn create_post_tool_use_hook(sync_ctx: ThreadSafeContext) -> claude_agent_sdk_rs
 /// Creates a Stop hook that handles commit creation when Claude finishes.
 /// This is the SDK equivalent of the binary's Stop hook configured via --settings.
 fn create_stop_hook(sync_ctx: ThreadSafeContext) -> claude_agent_sdk_rs::HookCallback {
+    use std::sync::Arc;
+
     use claude_agent_sdk_rs::{HookContext, HookInput, HookJsonOutput, SyncHookJsonOutput};
     use futures::FutureExt;
-    use std::sync::Arc;
 
     Arc::new(
         move |input: HookInput, _tool_use_id: Option<String>, _context: HookContext| {

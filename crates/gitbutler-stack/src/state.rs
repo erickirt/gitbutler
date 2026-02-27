@@ -5,7 +5,6 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use but_error::Code;
-use but_fs::read_toml_file_or_default;
 use but_meta::virtual_branches_legacy_types;
 use but_oxidize::{ObjectIdExt, OidExt as _, RepoExt};
 use git2::Repository;
@@ -45,7 +44,10 @@ impl From<virtual_branches_legacy_types::VirtualBranches> for VirtualBranches {
     ) -> Self {
         VirtualBranches {
             default_target: default_target.map(Into::into),
-            branch_targets: branch_targets.into_iter().map(|(k, v)| (k, v.into())).collect(),
+            branch_targets: branch_targets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
             branches: branches.into_iter().map(|(k, v)| (k, v.into())).collect(),
             last_pushed_base,
         }
@@ -63,7 +65,10 @@ impl From<VirtualBranches> for virtual_branches_legacy_types::VirtualBranches {
     ) -> Self {
         virtual_branches_legacy_types::VirtualBranches {
             default_target: default_target.map(Into::into),
-            branch_targets: branch_targets.into_iter().map(|(k, v)| (k, v.into())).collect(),
+            branch_targets: branch_targets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
             branches: branches.into_iter().map(|(k, v)| (k, v.into())).collect(),
             last_pushed_base,
         }
@@ -83,8 +88,12 @@ impl VirtualBranches {
     ///
     /// Errors if the file cannot be read or written.
     pub fn list_stacks_in_workspace(&self) -> Result<Vec<Stack>> {
-        self.list_all_stacks()
-            .map(|stacks| stacks.into_iter().filter(|stack| stack.in_workspace).collect())
+        self.list_all_stacks().map(|stacks| {
+            stacks
+                .into_iter()
+                .filter(|stack| stack.in_workspace)
+                .collect()
+        })
     }
 }
 
@@ -161,7 +170,10 @@ impl VirtualBranchesHandle {
         Ok(())
     }
 
-    pub fn find_by_source_refname_where_not_in_workspace(&self, refname: &Refname) -> Result<Option<Stack>> {
+    pub fn find_by_source_refname_where_not_in_workspace(
+        &self,
+        refname: &Refname,
+    ) -> Result<Option<Stack>> {
         let stacks = self.list_all_stacks()?;
         Ok(stacks.into_iter().find(|branch| {
             if branch.in_workspace {
@@ -176,7 +188,10 @@ impl VirtualBranchesHandle {
         }))
     }
 
-    pub fn find_by_top_reference_name_where_not_in_workspace(&self, refname: &str) -> Result<Option<Stack>> {
+    pub fn find_by_top_reference_name_where_not_in_workspace(
+        &self,
+        refname: &str,
+    ) -> Result<Option<Stack>> {
         let stacks = self.list_all_stacks()?;
         Ok(stacks.into_iter().find(|stack| {
             if stack.in_workspace {
@@ -237,21 +252,39 @@ impl VirtualBranchesHandle {
     ///
     /// Errors if the file cannot be read or written.
     pub fn list_stacks_in_workspace(&self) -> Result<Vec<Stack>> {
-        self.list_all_stacks()
-            .map(|branches| branches.into_iter().filter(|branch| branch.in_workspace).collect())
+        self.list_all_stacks().map(|branches| {
+            branches
+                .into_iter()
+                .filter(|branch| branch.in_workspace)
+                .collect()
+        })
     }
 
     /// Reads and parses the state file.
     ///
     /// If the file does not exist, it will be created.
     pub fn read_file(&self) -> Result<VirtualBranches> {
-        let data: virtual_branches_legacy_types::VirtualBranches = read_toml_file_or_default(&self.file_path)?;
+        let data = self.ensure_vb_storage_in_sync()?;
         Ok(data.into())
     }
 
     /// Write the given `virtual_branches` back to disk in one go.
     pub fn write_file(&self, virtual_branches: &VirtualBranches) -> Result<()> {
-        write(self.file_path.as_path(), virtual_branches)
+        let _ = self.ensure_vb_storage_in_sync()?;
+        let legacy = virtual_branches_legacy_types::VirtualBranches::from(virtual_branches.clone());
+        but_meta::legacy_storage::write_virtual_branches_and_sync(&self.file_path, &legacy)
+    }
+
+    /// Ensure TOML and DB are synchronized before proceeding with metadata operations.
+    fn ensure_vb_storage_in_sync(&self) -> Result<virtual_branches_legacy_types::VirtualBranches> {
+        but_meta::legacy_storage::read_synced_virtual_branches(&self.file_path)
+    }
+
+    /// Import TOML into DB and refresh sync metadata.
+    ///
+    /// This is primarily used for oplog restore, where TOML was restored externally.
+    pub fn import_toml_into_db_for_restore(&self) -> Result<()> {
+        but_meta::legacy_storage::import_toml_into_db(&self.file_path)
     }
 
     pub fn update_ordering(&self) -> Result<()> {
@@ -342,16 +375,25 @@ impl VirtualBranchesHandle {
     /// `default_target.sha`.
     ///
     /// This function will return `Ok(None)` if there is no default target.
-    pub fn upsert_last_pushed_base(&self, repository: &gix::Repository) -> Result<Option<gix::ObjectId>> {
+    pub fn upsert_last_pushed_base(
+        &self,
+        repository: &gix::Repository,
+    ) -> Result<Option<gix::ObjectId>> {
         let mut virtual_branches = self.read_file()?;
         let Some(default_target) = &virtual_branches.default_target else {
             return Ok(None);
         };
 
-        let base_tree_id = repository.find_commit(default_target.sha.to_gix())?.tree_id()?.detach();
+        let base_tree_id = repository
+            .find_commit(default_target.sha.to_gix())?
+            .tree_id()?
+            .detach();
 
         if let Some(last_pushed_base) = virtual_branches.last_pushed_base {
-            let last_pushed_tree = repository.find_commit(last_pushed_base)?.tree_id()?.detach();
+            let last_pushed_tree = repository
+                .find_commit(last_pushed_base)?
+                .tree_id()?
+                .detach();
 
             let up_to_date = repository
                 .find_commit(last_pushed_base)?
@@ -375,7 +417,11 @@ impl VirtualBranchesHandle {
         } else {
             // There was no previous last_pushed_base to point to, so we create
             // the first base which doesn't have any parents.
-            virtual_branches.last_pushed_base = Some(alter_parentage(repository, default_target.sha.to_gix(), &[])?);
+            virtual_branches.last_pushed_base = Some(alter_parentage(
+                repository,
+                default_target.sha.to_gix(),
+                &[],
+            )?);
         }
 
         self.write_file(&virtual_branches)?;
@@ -389,11 +435,6 @@ impl VirtualBranchesHandle {
         let virtual_branches = self.read_file()?;
         Ok(virtual_branches.last_pushed_base)
     }
-}
-
-fn write<P: AsRef<Path>>(file_path: P, virtual_branches: &VirtualBranches) -> Result<()> {
-    let v = virtual_branches_legacy_types::VirtualBranches::from(virtual_branches.clone());
-    but_fs::create_dirs_then_write(file_path, toml::to_string(&v)?).map_err(Into::into)
 }
 
 /// Re-commit a commit with altered parentage
@@ -412,9 +453,10 @@ fn alter_parentage(
     to_rewrite.parents = new_parents.into();
     to_rewrite.message = message.to_bstring();
     to_rewrite.extra_headers.retain(|entry| entry.0 != "gpgsig");
-    to_rewrite
-        .extra_headers
-        .push((LAST_PUSHED_BASE_VERSION_HEADER.into(), LAST_PUSHED_BASE_VERSION.into()));
+    to_rewrite.extra_headers.push((
+        LAST_PUSHED_BASE_VERSION_HEADER.into(),
+        LAST_PUSHED_BASE_VERSION.into(),
+    ));
     Ok(repository.write_object(to_rewrite)?.into())
 }
 

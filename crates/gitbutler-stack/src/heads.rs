@@ -69,9 +69,12 @@ pub fn add_head(
                 "Preceding head needs to be one that point to the same patch as new_head"
             ));
         }
-        let preceding_head: (StackBranch, gix::ObjectId) = (preceding_head.clone(), preceding_head.head_oid(repo)?);
+        let preceding_head: (StackBranch, gix::ObjectId) =
+            (preceding_head.clone(), preceding_head.head_oid(repo)?);
         if !existing_heads.contains(&preceding_head) {
-            return Err(anyhow!("Preceding head is set but does not exist for specified patch"));
+            return Err(anyhow!(
+                "Preceding head is set but does not exist for specified patch"
+            ));
         }
     }
     let archived_heads = existing_heads
@@ -145,5 +148,8 @@ pub fn add_head(
         // error - invalid state (an initialized stack must have at least one head)
         bail!("Error while adding head - there must be at least one head in an initialized stack");
     }
-    Ok(updated_heads.iter().map(|(h, _)| h.clone()).collect::<Vec<_>>())
+    Ok(updated_heads
+        .iter()
+        .map(|(h, _)| h.clone())
+        .collect::<Vec<_>>())
 }

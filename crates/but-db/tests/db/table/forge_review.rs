@@ -137,7 +137,9 @@ fn handles_optional_fields() -> anyhow::Result<()> {
         repo_owner: None,
         reviewers: "[]".to_string(),
         unit_symbol: "test".to_string(),
-        last_sync_at: chrono::DateTime::from_timestamp(1000000, 0).unwrap().naive_utc(),
+        last_sync_at: chrono::DateTime::from_timestamp(1000000, 0)
+            .unwrap()
+            .naive_utc(),
         struct_version: 1,
     };
 
@@ -146,6 +148,40 @@ fn handles_optional_fields() -> anyhow::Result<()> {
     let reviews = db.forge_reviews().list_all()?;
     assert_eq!(reviews.len(), 1);
     assert_eq!(reviews[0], review);
+
+    Ok(())
+}
+
+#[test]
+fn upsert_inserts_new_review() -> anyhow::Result<()> {
+    let mut db = in_memory_db();
+
+    let review = forge_review(1, "First PR", "feature-branch");
+    db.forge_reviews_mut()?.upsert(review.clone())?;
+
+    let reviews = db.forge_reviews().list_all()?;
+    assert_eq!(reviews, [review]);
+
+    Ok(())
+}
+
+#[test]
+fn upsert_updates_existing_review() -> anyhow::Result<()> {
+    let mut db = in_memory_db();
+
+    let review = forge_review(1, "First PR", "feature-branch");
+    db.forge_reviews_mut()?.upsert(review)?;
+
+    let mut updated_review = forge_review(1, "Updated PR title", "updated-branch");
+    updated_review.body = Some("Updated body".to_string());
+    updated_review.author = Some("updated-author".to_string());
+    updated_review.draft = true;
+    updated_review.sha = "updatedsha123".to_string();
+    updated_review.reviewers = "[\"alice\"]".to_string();
+    db.forge_reviews_mut()?.upsert(updated_review.clone())?;
+
+    let reviews = db.forge_reviews().list_all()?;
+    assert_eq!(reviews, [updated_review]);
 
     Ok(())
 }
@@ -162,8 +198,16 @@ fn forge_review(number: i64, title: &str, source_branch: &str) -> ForgeReview {
         source_branch: source_branch.to_string(),
         target_branch: "main".to_string(),
         sha: "abc123def456".to_string(),
-        created_at: Some(chrono::DateTime::from_timestamp(1000000, 0).unwrap().naive_utc()),
-        modified_at: Some(chrono::DateTime::from_timestamp(1000100, 0).unwrap().naive_utc()),
+        created_at: Some(
+            chrono::DateTime::from_timestamp(1000000, 0)
+                .unwrap()
+                .naive_utc(),
+        ),
+        modified_at: Some(
+            chrono::DateTime::from_timestamp(1000100, 0)
+                .unwrap()
+                .naive_utc(),
+        ),
         merged_at: None,
         closed_at: None,
         repository_ssh_url: Some("git@github.com:owner/repo.git".to_string()),
@@ -171,7 +215,9 @@ fn forge_review(number: i64, title: &str, source_branch: &str) -> ForgeReview {
         repo_owner: Some("owner".to_string()),
         reviewers: "[]".to_string(),
         unit_symbol: "test".to_string(),
-        last_sync_at: chrono::DateTime::from_timestamp(1000000, 0).unwrap().naive_utc(),
+        last_sync_at: chrono::DateTime::from_timestamp(1000000, 0)
+            .unwrap()
+            .naive_utc(),
         struct_version: 1,
     }
 }

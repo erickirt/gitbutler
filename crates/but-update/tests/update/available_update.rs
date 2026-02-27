@@ -57,12 +57,18 @@ fn returns_update_when_versions_differ() -> anyhow::Result<()> {
 
     // available_update should return Some because versions differ
     let result = but_update::available_update(&cache)?;
-    assert!(result.is_some(), "Expected Some(AvailableUpdate) when versions differ");
+    assert!(
+        result.is_some(),
+        "Expected Some(AvailableUpdate) when versions differ"
+    );
 
     let update = result.unwrap();
     assert_eq!(update.current_version, "0.0.0");
     assert_eq!(update.available_version, "1.2.3");
-    assert_eq!(update.release_notes, Some("Bug fixes and improvements".to_string()));
+    assert_eq!(
+        update.release_notes,
+        Some("Bug fixes and improvements".to_string())
+    );
     assert_eq!(update.url, Some("https://example.com/download".to_string()));
 
     Ok(())

@@ -21,12 +21,14 @@ pub fn ci_checks_for_ref_with_cache(
                     return Ok(cached);
                 }
             }
-            let checks = ci_checks_for_ref(preferred_forge_user, forge_repo_info, storage, reference)?;
+            let checks =
+                ci_checks_for_ref(preferred_forge_user, forge_repo_info, storage, reference)?;
             crate::db::cache_ci_checks(db, reference, &checks).ok();
             checks
         }
         crate::CacheConfig::NoCache => {
-            let checks = ci_checks_for_ref(preferred_forge_user, forge_repo_info, storage, reference)?;
+            let checks =
+                ci_checks_for_ref(preferred_forge_user, forge_repo_info, storage, reference)?;
             crate::db::cache_ci_checks(db, reference, &checks).ok();
             checks
         }
@@ -40,10 +42,14 @@ fn ci_checks_for_ref(
     storage: &but_forge_storage::Controller,
     reference: &str,
 ) -> anyhow::Result<Vec<CiCheck>> {
-    let crate::forge::ForgeRepoInfo { forge, owner, repo, .. } = forge_repo_info;
+    let crate::forge::ForgeRepoInfo {
+        forge, owner, repo, ..
+    } = forge_repo_info;
     match forge {
         ForgeName::GitHub => {
-            let preferred_account = preferred_forge_user.as_ref().and_then(|user| user.github().cloned());
+            let preferred_account = preferred_forge_user
+                .as_ref()
+                .and_then(|user| user.github().cloned());
             let gh = but_github::GitHubClient::from_storage(storage, preferred_account.as_ref())?;
 
             // Clone owned data for thread
@@ -191,7 +197,10 @@ impl From<but_github::CheckRun> for CiCheck {
             started_at,
             status,
             head_sha: value.head_sha.unwrap_or_default(),
-            url: value.url.or_else(|| value.html_url.clone()).unwrap_or_default(),
+            url: value
+                .url
+                .or_else(|| value.html_url.clone())
+                .unwrap_or_default(),
             html_url: value.html_url.clone().unwrap_or_default(),
             details_url: value.details_url.or(value.html_url).unwrap_or_default(),
             pull_requests: Vec::new(),

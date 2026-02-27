@@ -28,7 +28,7 @@
 
 	const notificationSettings = getNotificationSettingsInterest(
 		appState,
-		notificationSettingsService
+		notificationSettingsService,
 	);
 
 	const user = $derived(userService.user);
@@ -42,11 +42,11 @@
 
 	const downloadLink = $derived.by(() => {
 		switch (detectedOS) {
-			case 'Windows':
+			case "Windows":
 				return linksJson.downloads.windowsMsi.url;
-			case 'Linux':
+			case "Linux":
 				return linksJson.downloads.linuxAppimage.url;
-			case 'macOS':
+			case "macOS":
 			default:
 				return linksJson.downloads.appleSilicon.url;
 		}
@@ -54,7 +54,7 @@
 
 	async function refreshAccessToken() {
 		await userService.refreshAccessToken();
-		chipToasts.success('Access token refreshed successfully');
+		chipToasts.success("Access token refreshed successfully");
 	}
 
 	function logout() {
@@ -74,10 +74,10 @@
 
 	async function copyAccessToken() {
 		const response = await loginService.token();
-		if (response.type === 'success' && response.data) {
+		if (response.type === "success" && response.data) {
 			copyToClipboard(response.data);
 		} else {
-			chipToasts.error('Failed to get token');
+			chipToasts.error("Failed to get token");
 		}
 	}
 </script>
@@ -195,7 +195,7 @@
 						</p>
 					</div>
 
-					<Button style="gray" wide onclick={() => window.open(downloadLink, '_blank')}>
+					<Button style="gray" wide onclick={() => window.open(downloadLink, "_blank")}>
 						{downloadButtonText}
 					</Button>
 

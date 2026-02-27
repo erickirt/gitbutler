@@ -74,7 +74,10 @@ fn format_patch(patch: &UnifiedPatch, render_header: impl Fn(&mut String)) -> St
     match patch {
         UnifiedPatch::Binary => {
             render_header(&mut output);
-            output.push_str(&format!("   {}\n", "Binary file - no diff available".dimmed()));
+            output.push_str(&format!(
+                "   {}\n",
+                "Binary file - no diff available".dimmed()
+            ));
         }
         UnifiedPatch::TooLarge { size_in_bytes } => {
             render_header(&mut output);
@@ -117,7 +120,10 @@ fn fmt_hunk(hunk: &DiffHunk) -> String {
     // Calculate the width needed for line numbers
     let max_old_line = hunk.old_start + hunk.old_lines;
     let max_new_line = hunk.new_start + hunk.new_lines;
-    let width = std::cmp::max(max_old_line.to_string().len(), max_new_line.to_string().len());
+    let width = std::cmp::max(
+        max_old_line.to_string().len(),
+        max_new_line.to_string().len(),
+    );
 
     for line in hunk.diff.lines() {
         if line.is_empty() || line.starts_with(b"@@") {

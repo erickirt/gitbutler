@@ -1,7 +1,9 @@
 use snapbox::str;
 
 use crate::{
-    command::util::{commit_file_with_worktree_changes_as_two_hunks, commit_two_files_as_two_hunks_each},
+    command::util::{
+        commit_file_with_worktree_changes_as_two_hunks, commit_two_files_as_two_hunks_each,
+    },
     utils::{CommandExt, Sandbox},
 };
 
@@ -204,7 +206,7 @@ Uncommitted changes
 ...
               "changes": [
                 {
-                  "cliId": "1e:nk",
+                  "cliId": "76:nk",
                   "filePath": "a.txt",
                   "changeType": "modified"
                 }
@@ -685,7 +687,10 @@ fn status_after_json_wraps_mutation_and_status() -> anyhow::Result<()> {
     env.file("a.txt", "arbitrary text\n");
 
     // Use --json --status-after with a stage operation
-    let output = env.but("--json --status-after stage a.txt A").allow_json().output()?;
+    let output = env
+        .but("--json --status-after stage a.txt A")
+        .allow_json()
+        .output()?;
     assert!(output.status.success());
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
@@ -701,10 +706,16 @@ fn status_after_json_wraps_mutation_and_status() -> anyhow::Result<()> {
     );
 
     // The result should contain the mutation output (stage produces {"ok": true})
-    assert_eq!(json["result"]["ok"], true, "mutation result should indicate success");
+    assert_eq!(
+        json["result"]["ok"], true,
+        "mutation result should indicate success"
+    );
 
     // The status should have standard status fields
-    assert!(json["status"].get("stacks").is_some(), "status should contain 'stacks'");
+    assert!(
+        json["status"].get("stacks").is_some(),
+        "status should contain 'stacks'"
+    );
     assert!(
         json["status"].get("unassignedChanges").is_some(),
         "status should contain 'unassignedChanges'"
@@ -722,7 +733,10 @@ fn status_after_json_success_has_no_status_error_field() -> anyhow::Result<()> {
     env.setup_metadata(&["A", "B"])?;
     env.file("b.txt", "content\n");
 
-    let output = env.but("--json --status-after stage b.txt A").allow_json().output()?;
+    let output = env
+        .but("--json --status-after stage b.txt A")
+        .allow_json()
+        .output()?;
     assert!(output.status.success());
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;

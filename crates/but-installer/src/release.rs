@@ -26,7 +26,8 @@ pub(crate) fn fetch_release(config: &InstallerConfig) -> Result<Release> {
     let url = config.releases_url();
     let mut easy = create_client()?;
 
-    easy.url(&url).with_context(|| format!("Failed to set URL: {url}"))?;
+    easy.url(&url)
+        .with_context(|| format!("Failed to set URL: {url}"))?;
 
     let mut response_data = Vec::new();
     {
@@ -42,7 +43,9 @@ pub(crate) fn fetch_release(config: &InstallerConfig) -> Result<Release> {
             .with_context(|| format!("Failed to fetch release information from {url}"))?;
     }
 
-    let response_code = easy.response_code().context("Failed to get response code")?;
+    let response_code = easy
+        .response_code()
+        .context("Failed to get response code")?;
 
     if response_code != 200 {
         match &config.version_request {
@@ -67,10 +70,12 @@ pub(crate) fn fetch_release(config: &InstallerConfig) -> Result<Release> {
         .context("Failed to get effective URL")?
         .ok_or_else(|| anyhow!("Effective URL is missing"))?;
 
-    validate_api_url(effective_url)
-        .with_context(|| format!("Release API was redirected to an untrusted URL: {effective_url}"))?;
+    validate_api_url(effective_url).with_context(|| {
+        format!("Release API was redirected to an untrusted URL: {effective_url}")
+    })?;
 
-    let release: Release = serde_json::from_slice(&response_data).context("Failed to parse release information")?;
+    let release: Release =
+        serde_json::from_slice(&response_data).context("Failed to parse release information")?;
 
     // Verify we got the version we requested (skip check for nightly)
     if let crate::config::VersionRequest::Specific(ref requested) = config.version_request
@@ -89,14 +94,19 @@ pub(crate) fn fetch_release(config: &InstallerConfig) -> Result<Release> {
 /// Common URL validation logic for GitButler domains.
 ///
 /// Validates HTTPS protocol, parses URL, and checks the host against a predicate.
-fn validate_gitbutler_url(url: &str, url_type: &str, is_host_valid: impl Fn(&str) -> bool) -> Result<()> {
+fn validate_gitbutler_url(
+    url: &str,
+    url_type: &str,
+    is_host_valid: impl Fn(&str) -> bool,
+) -> Result<()> {
     // Only allow HTTPS URLs
     if !url.starts_with("https://") {
         bail!("{url_type} must use HTTPS: {url}");
     }
 
     // Extract host from URL
-    let url_parsed = url::Url::parse(url).with_context(|| format!("Invalid {} URL", url_type.to_lowercase()))?;
+    let url_parsed =
+        url::Url::parse(url).with_context(|| format!("Invalid {} URL", url_type.to_lowercase()))?;
     let host = url_parsed
         .host_str()
         .ok_or_else(|| anyhow!("No host in {} URL", url_type.to_lowercase()))?;

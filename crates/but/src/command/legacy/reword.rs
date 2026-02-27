@@ -23,7 +23,11 @@ pub(crate) fn reword_target(
     }
 
     if cli_ids.len() > 1 {
-        bail!("Target ID '{}' is ambiguous. Found {} matches", target, cli_ids.len());
+        bail!(
+            "Target ID '{}' is ambiguous. Found {} matches",
+            target,
+            cli_ids.len()
+        );
     }
 
     let cli_id = &cli_ids[0];
@@ -39,7 +43,10 @@ pub(crate) fn reword_target(
             edit_commit_message_by_id(ctx, *oid, out, message, format)?;
         }
         _ => {
-            bail!("Target must be a commit ID, not {}", cli_id.kind_for_humans());
+            bail!(
+                "Target must be a commit ID, not {}",
+                cli_id.kind_for_humans()
+            );
         }
     }
 
@@ -53,7 +60,10 @@ fn edit_branch_name(
     message: Option<&str>,
 ) -> Result<()> {
     // Find which stack this branch belongs to
-    let stacks = but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
     for stack_entry in &stacks {
         if stack_entry.heads.iter().all(|b| b.name != branch_name) {
             // Not found in this stack,
@@ -63,7 +73,12 @@ fn edit_branch_name(
         if let Some(sid) = stack_entry.id {
             let new_name = prepare_provided_message(message, "branch name")
                 .unwrap_or_else(|| get_branch_name_from_editor(branch_name))?;
-            but_api::legacy::stack::update_branch_name(ctx, sid, branch_name.to_owned(), new_name.clone())?;
+            but_api::legacy::stack::update_branch_name(
+                ctx,
+                sid,
+                branch_name.to_owned(),
+                new_name.clone(),
+            )?;
             if let Some(out) = out.for_human() {
                 writeln!(out, "Renamed branch '{branch_name}' to '{new_name}'")?;
             }
@@ -118,7 +133,8 @@ fn edit_commit_message_by_id(
         return Ok(());
     }
 
-    let new_commit_oid = but_api::commit::commit_reword_only(ctx, commit_oid, BString::from(new_message))?;
+    let new_commit_oid =
+        but_api::commit::commit_reword_only(ctx, commit_oid, BString::from(new_message))?;
 
     if let Some(out) = out.for_human() {
         let repo = ctx.repo.get()?;
@@ -133,7 +149,9 @@ fn edit_commit_message_by_id(
     Ok(())
 }
 
-fn get_changed_files_from_commit_details(commit_details: &but_core::diff::CommitDetails) -> Vec<String> {
+fn get_changed_files_from_commit_details(
+    commit_details: &but_core::diff::CommitDetails,
+) -> Vec<String> {
     let mut files = Vec::new();
 
     for change in &commit_details.diff_with_first_parent {
@@ -152,7 +170,10 @@ fn get_changed_files_from_commit_details(commit_details: &but_core::diff::Commit
     files
 }
 
-fn get_commit_message_from_editor(current_message: &str, changed_files: &[String]) -> Result<String> {
+fn get_commit_message_from_editor(
+    current_message: &str,
+    changed_files: &[String],
+) -> Result<String> {
     // Generate commit message template with current message
     let mut template = String::new();
     template.push_str(current_message);
@@ -170,7 +191,8 @@ fn get_commit_message_from_editor(current_message: &str, changed_files: &[String
     template.push_str("#\n");
 
     // Read the result and strip comments
-    let lossy_message = tui::get_text::from_editor_no_comments("commit_msg", &template)?.to_string();
+    let lossy_message =
+        tui::get_text::from_editor_no_comments("commit_msg", &template)?.to_string();
 
     if lossy_message.is_empty() {
         bail!("Aborting due to empty commit message");
@@ -189,7 +211,8 @@ fn get_branch_name_from_editor(current_name: &str) -> Result<String> {
     template.push_str("# with '#' will be ignored, and an empty name aborts the operation.\n");
     template.push_str("#\n");
 
-    let branch_name_lossy = tui::get_text::from_editor_no_comments("branch_name", &template)?.to_string();
+    let branch_name_lossy =
+        tui::get_text::from_editor_no_comments("branch_name", &template)?.to_string();
 
     if branch_name_lossy.is_empty() {
         bail!("Aborting due to empty branch name");

@@ -4,6 +4,10 @@ use but_ctx::Context;
 use but_hunk_assignment::AbsorptionTarget;
 use but_llm::LLMProvider;
 use but_settings::AppSettings;
+use gitbutler_oplog::{
+    OplogExt,
+    entry::{OperationKind, SnapshotDetails},
+};
 use gitbutler_project::ProjectId;
 use tauri::Emitter;
 use tracing::instrument;
@@ -66,18 +70,27 @@ pub fn auto_commit(
     let absorption_plan = but_api::legacy::absorb::absorption_plan(&mut ctx, target)?;
 
     let llm = if use_ai {
-        let git_config = gix::config::File::from_globals().map_err(|e| Error::from(anyhow::anyhow!(e)))?;
+        let git_config =
+            gix::config::File::from_globals().map_err(|e| Error::from(anyhow::anyhow!(e)))?;
         LLMProvider::from_git_config(&git_config)
     } else {
         None
     };
+
+    let mut guard = ctx.exclusive_worktree_access();
+    // Create snapshot for auto commit
+    let _snapshot = ctx
+        .create_snapshot(
+            SnapshotDetails::new(OperationKind::AutoCommit),
+            guard.write_permission(),
+        )
+        .ok(); // Ignore errors for snapshot creation
 
     let emitter = move |name: &str, payload: serde_json::Value| {
         app_handle.emit(name, payload).unwrap_or_else(|e| {
             tracing::error!("Failed to emit event '{}': {}", name, e);
         });
     };
-    let mut guard = ctx.exclusive_worktree_access();
     let repo = ctx.repo.get()?;
     let project_data_dir = ctx.project_data_dir();
     let settings = AppSettings::load_from_default_path_creating_without_customization()?;
@@ -103,15 +116,16 @@ pub fn auto_branch_changes(
     model: String,
 ) -> anyhow::Result<(), Error> {
     let project = gitbutler_project::get(project_id)?;
-    let changes: Vec<but_core::TreeChange> = changes.into_iter().map(|change| change.into()).collect();
+    let changes: Vec<but_core::TreeChange> =
+        changes.into_iter().map(|change| change.into()).collect();
     let mut ctx = Context::new_from_legacy_project(project.clone())?;
-    let git_config = gix::config::File::from_globals().map_err(|e| Error::from(anyhow::anyhow!(e)))?;
+    let git_config =
+        gix::config::File::from_globals().map_err(|e| Error::from(anyhow::anyhow!(e)))?;
     let llm = LLMProvider::from_git_config(&git_config);
 
     match llm {
-        Some(llm) => {
-            but_action::branch_changes(&mut ctx, &llm, changes, model).map_err(|e| Error::from(anyhow::anyhow!(e)))
-        }
+        Some(llm) => but_action::branch_changes(&mut ctx, &llm, changes, model)
+            .map_err(|e| Error::from(anyhow::anyhow!(e))),
         None => Err(Error::from(anyhow::anyhow!(
             "No valid credentials found for AI provider. Please configure your GitButler account credentials."
         ))),

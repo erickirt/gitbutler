@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import ScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
-	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
-	import CreateSnapshotModal from '$components/CreateSnapshotModal.svelte';
-	import FilePreviewPlaceholder from '$components/FilePreviewPlaceholder.svelte';
-	import FullviewLoading from '$components/FullviewLoading.svelte';
-	import LazyloadContainer from '$components/LazyloadContainer.svelte';
-	import Resizer from '$components/Resizer.svelte';
-	import SelectionView from '$components/SelectionView.svelte';
-	import SnapshotCard from '$components/SnapshotCard.svelte';
-	import emptyFolderSvg from '$lib/assets/empty-state/empty-folder.svg?raw';
-	import { HISTORY_SERVICE, createdOnDay } from '$lib/history/history';
-	import { FILE_SELECTION_MANAGER } from '$lib/selection/fileSelectionManager.svelte';
-	import { createSnapshotSelection, type SelectionId } from '$lib/selection/key';
-	import { inject } from '@gitbutler/core/context';
-	import { EmptyStatePlaceholder, Icon, Button } from '@gitbutler/ui';
-	import { focusable } from '@gitbutler/ui/focus/focusable';
-	import type { Snapshot } from '$lib/history/types';
+	import { page } from "$app/state";
+	import ScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
+	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
+	import CreateSnapshotModal from "$components/CreateSnapshotModal.svelte";
+	import FilePreviewPlaceholder from "$components/FilePreviewPlaceholder.svelte";
+	import FullviewLoading from "$components/FullviewLoading.svelte";
+	import LazyloadContainer from "$components/LazyloadContainer.svelte";
+	import Resizer from "$components/Resizer.svelte";
+	import SelectionView from "$components/SelectionView.svelte";
+	import SnapshotCard from "$components/SnapshotCard.svelte";
+	import emptyFolderSvg from "$lib/assets/empty-state/empty-folder.svg?raw";
+	import { HISTORY_SERVICE, createdOnDay } from "$lib/history/history";
+	import { FILE_SELECTION_MANAGER } from "$lib/selection/fileSelectionManager.svelte";
+	import { createSnapshotSelection, type SelectionId } from "$lib/selection/key";
+	import { inject } from "@gitbutler/core/context";
+	import { EmptyStatePlaceholder, Icon, Button } from "@gitbutler/ui";
+	import { focusable } from "@gitbutler/ui/focus/focusable";
+	import type { Snapshot } from "$lib/history/types";
 
 	// TODO: Refactor so we don't need non-null assertion.
 	const projectId = $derived(page.params.projectId!);
@@ -30,6 +30,7 @@
 	const historyService = inject(HISTORY_SERVICE);
 	const snapshotManager = $derived(historyService.snapshots(projectId));
 	const snapshots = $derived(snapshotManager.snapshots);
+	const [restore, restoration] = historyService.restoreSnapshot;
 
 	const loading = $derived(snapshotManager.loading);
 	const isAllLoaded = $derived(snapshotManager.isAllLoaded);
@@ -57,8 +58,8 @@
 		snapshots.forEach((snapshot, index) => idToIndexMap.set(snapshot.id, index));
 
 		const ranges = snapshots.flatMap((snapshot, startIndex) => {
-			if (snapshot.details?.operation === 'RestoreFromSnapshot') {
-				const restoredId = snapshot.details?.trailers.find((t) => t.key === 'restored_from')?.value;
+			if (snapshot.details?.operation === "RestoreFromSnapshot") {
+				const restoredId = snapshot.details?.trailers.find((t) => t.key === "restored_from")?.value;
 				if (restoredId !== undefined) {
 					const endIndex = idToIndexMap.get(restoredId);
 					if (endIndex !== undefined && startIndex <= endIndex) {
@@ -119,11 +120,15 @@
 								{projectId}
 								{entry}
 								isWithinRestore={withinRestoreItems.includes(entry.id)}
-								onRestoreClick={() => {
-									historyService.restoreSnapshot(projectId, entry.id);
-									// In some cases, restoring the snapshot doesn't update the UI correctly
-									// Until we have that figured out, we need to reload the page.
-									location.reload();
+								restoring={restoration.current.isLoading}
+								onRestoreClick={async () => {
+									try {
+										await restore({ projectId, sha: entry.id });
+									} finally {
+										// In some cases, restoring the snapshot doesn't update the UI correctly
+										// Until we have that figured out, we need to reload the page.
+										location.reload();
+									}
 								}}
 								onDiffClick={() => {
 									currentSelectionId = createSnapshotSelection({ snapshotId: entry.id });

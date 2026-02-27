@@ -8,12 +8,11 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, is_raw_mode_enabled, Clear, ClearType},
 };
 
+use super::{CommandBuffer, Engine};
 use crate::{
     input::Key,
     style::{Color, Formatting, FormattingOption},
 };
-
-use super::{CommandBuffer, Engine};
 
 struct RawMode(bool);
 
@@ -254,8 +253,9 @@ impl From<Color> for Cc {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crossterm::event::KeyCode;
+
+    use super::*;
 
     #[test]
     fn maps_ctrl_c_to_ctrl_key_variant() {

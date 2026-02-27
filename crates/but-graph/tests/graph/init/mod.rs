@@ -256,7 +256,8 @@ fn only_remote_advanced() -> anyhow::Result<()> {
 
 #[test]
 fn only_remote_advanced_with_special_branch_name() -> anyhow::Result<()> {
-    let (repo, meta) = read_only_in_memory_scenario("only-remote-advanced-with-special-branch-name")?;
+    let (repo, meta) =
+        read_only_in_memory_scenario("only-remote-advanced-with-special-branch-name")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 085535d (origin/main) RM2
     * dd9f8d9 (origin/split-segment) RM1
@@ -326,8 +327,16 @@ fn multi_root() -> anyhow::Result<()> {
                     └── ►:6[2]:D
                         └── ·f4955b6 (⌂|1)
     ");
-    assert_eq!(graph.tip_segments().count(), 1, "all leads to a single merge-commit");
-    assert_eq!(graph.base_segments().count(), 4, "there are 4 orphaned bases");
+    assert_eq!(
+        graph.tip_segments().count(),
+        1,
+        "all leads to a single merge-commit"
+    );
+    assert_eq!(
+        graph.base_segments().count(),
+        4,
+        "there are 4 orphaned bases"
+    );
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @"
     ⌂:0:main[🌳] <> ✓!
     └── ≡:0:main[🌳] {1}
@@ -383,7 +392,11 @@ fn four_diamond() -> anyhow::Result<()> {
                             └── →:7: (main)
     ");
 
-    assert_eq!(graph.num_segments(), 8, "just as many as are displayed in the tree");
+    assert_eq!(
+        graph.num_segments(),
+        8,
+        "just as many as are displayed in the tree"
+    );
     assert_eq!(graph.num_commits(), 8, "one commit per node");
     assert_eq!(
         graph.num_connections(),
@@ -418,7 +431,8 @@ fn stacked_rebased_remotes() -> anyhow::Result<()> {
     ");
 
     // A remote will always be able to find their non-remotes so they don't seem cut-off.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉►:0[0]:B[🌳] <> origin/B →:1:
@@ -448,7 +462,8 @@ fn stacked_rebased_remotes() -> anyhow::Result<()> {
 
     // The hard limit is always respected though, despite yielding an incorrect result overall.
     // That's why it's the *hard* limit.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_hard_limit(7))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_hard_limit(7))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 👉►:0[0]:B[🌳] <> origin/B →:1:
@@ -580,7 +595,8 @@ fn with_limits() -> anyhow::Result<()> {
 
     // There is no empty starting points, we always traverse the first commit as we really want
     // to get to remote processing there.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(0))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(0))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     └── 👉►:0[0]:C[🌳]
@@ -595,7 +611,8 @@ fn with_limits() -> anyhow::Result<()> {
     ");
 
     // A single commit, the merge commit.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     └── 👉►:0[0]:C[🌳]
@@ -616,7 +633,8 @@ fn with_limits() -> anyhow::Result<()> {
     ");
 
     // The merge commit, then we witness lane-duplication of the limit so we get more than requested.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(2))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(2))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     └── 👉►:0[0]:C[🌳]
@@ -763,7 +781,12 @@ fn with_limits() -> anyhow::Result<()> {
     ");
 
     // We can specify any target, despite not having a workspace setup.
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
 
     // This limits the reach of the stack naturally.
     insta::assert_snapshot!(graph_tree(&graph), @r"
@@ -875,7 +898,12 @@ fn commit_with_two_parents() -> anyhow::Result<()> {
     })
     .map_err(anyhow::Error::from_boxed)?;
 
-    let first_commit = repo.commit("HEAD", "base", repo.object_hash().empty_tree(), None::<gix::ObjectId>)?;
+    let first_commit = repo.commit(
+        "HEAD",
+        "base",
+        repo.object_hash().empty_tree(),
+        None::<gix::ObjectId>,
+    )?;
     let same_parent_twice = [first_commit.detach(), first_commit.into()];
     repo.commit(
         "HEAD",
@@ -909,8 +937,8 @@ mod with_workspace;
 pub(crate) mod utils;
 use gix_testtools::FixtureState;
 pub use utils::{
-    StackState, add_stack_with_segments, add_workspace, id_at, id_by_rev, read_only_in_memory_scenario,
-    standard_options,
+    StackState, add_stack_with_segments, add_workspace, id_at, id_by_rev,
+    read_only_in_memory_scenario, standard_options,
 };
 
 use crate::init::utils::{in_memory_meta, standard_options_with_extra_target};

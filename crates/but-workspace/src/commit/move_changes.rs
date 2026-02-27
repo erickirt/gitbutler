@@ -47,7 +47,8 @@ pub(crate) mod function {
         context_lines: u32,
     ) -> Result<MoveChangesOutcome> {
         let (source_selector, source_commit) = editor.find_selectable_commit(source_commit)?;
-        let (destination_selector, destination_commit) = editor.find_selectable_commit(destination_commit)?;
+        let (destination_selector, destination_commit) =
+            editor.find_selectable_commit(destination_commit)?;
 
         // Early return if source and destination are the same
         if source_commit.id == destination_commit.id {
@@ -91,7 +92,8 @@ pub(crate) mod function {
 
         // Rebase and get potentially rebased destination commit
         let mut editor = editor.rebase()?.to_editor();
-        let (_, rebased_destination_commit) = editor.find_selectable_commit(destination_selector)?;
+        let (_, rebased_destination_commit) =
+            editor.find_selectable_commit(destination_selector)?;
         let destination_tree_id = {
             if rebased_destination_commit.is_conflicted() {
                 bail!("Destination commit must not be conflicted")
@@ -123,7 +125,10 @@ pub(crate) mod function {
             editor.new_commit(commit, DateMode::CommitterUpdateAuthorKeep)?
         };
 
-        editor.replace(destination_selector, Step::new_pick(new_destination_commit_id))?;
+        editor.replace(
+            destination_selector,
+            Step::new_pick(new_destination_commit_id),
+        )?;
 
         let outcome = editor.rebase()?;
 

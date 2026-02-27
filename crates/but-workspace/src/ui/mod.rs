@@ -36,7 +36,10 @@ pub enum CommitState {
     /// This variant carries the remote commit id.
     /// The `remote_commit_id` may be the same as the `id` or it may be different if the local commit has been rebased or updated in another way.
     #[serde(with = "but_serde::object_id")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::object_id"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::object_id")
+    )]
     LocalAndRemote(#[cfg_attr(feature = "export-ts", ts(type = "string"))] gix::ObjectId),
     /// The commit is considered integrated.
     /// This should happen when this commit or the contents of this commit is already part of the base.
@@ -68,17 +71,26 @@ impl CommitState {
 pub struct Commit {
     /// The OID of the commit.
     #[serde(with = "but_serde::object_id")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::object_id"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::object_id")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub id: gix::ObjectId,
     /// The parent OIDs of the commit.
     #[serde(with = "but_serde::object_id_vec")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::object_id_vec"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::object_id_vec")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string[]"))]
     pub parent_ids: Vec<gix::ObjectId>,
     /// The message of the commit.
     #[serde(with = "but_serde::bstring_lossy")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::bstring"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::bstring")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub message: BString,
     /// Whether the commit is in a conflicted state.
@@ -162,12 +174,18 @@ impl std::fmt::Debug for Commit {
 pub struct UpstreamCommit {
     /// The OID of the commit.
     #[serde(with = "but_serde::object_id")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::object_id"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::object_id")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub id: gix::ObjectId,
     /// The message of the commit.
     #[serde(with = "but_serde::bstring_lossy")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::bstring"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::bstring")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub message: BString,
     /// Commit creation time in Epoch milliseconds.
@@ -215,23 +233,35 @@ pub enum PushStatus {
 pub struct BranchDetails {
     /// The name of the branch. This is the "given name" IE, just `foo` out of `refs/heads/foo`
     #[serde(with = "but_serde::bstring_lossy")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::bstring"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::bstring")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub name: BString,
     #[serde(with = "but_serde::fullname_lossy")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::ref_full_name"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::ref_full_name")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     /// The full reference of the branch
     pub reference: gix::refs::FullName,
     /// The id of the linked worktree that has the reference of `name` checked out.
     /// Note that we don't list the main worktree here.
     #[serde(with = "but_serde::bstring_opt_lossy")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::bstring_opt"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::bstring_opt")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string | null"))]
     pub linked_worktree_id: Option<BString>,
     /// Upstream reference, e.g. `refs/remotes/origin/base-branch-improvements`
     #[serde(with = "but_serde::bstring_opt_lossy")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::bstring_opt"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::bstring_opt")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string | null"))]
     pub remote_tracking_branch: Option<BString>,
     /// The pull(merge) request associated with the branch, or None if no such entity has not been created.
@@ -241,14 +271,20 @@ pub struct BranchDetails {
     /// This is the last commit in the branch, aka the tip of the branch.
     /// If this is the only branch in the stack or the top-most branch, this is the tip of the stack.
     #[serde(with = "but_serde::object_id")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::object_id"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::object_id")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub tip: gix::ObjectId,
     /// This is the base commit from the perspective of this branch.
     /// If the branch is part of a stack and is on top of another branch, this is the head of the branch below it.
     /// If this branch is at the bottom of the stack, this is the merge base of the stack.
     #[serde(with = "but_serde::object_id")]
-    #[cfg_attr(feature = "export-schema", schemars(schema_with = "but_schemars::object_id"))]
+    #[cfg_attr(
+        feature = "export-schema",
+        schemars(schema_with = "but_schemars::object_id")
+    )]
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub base_commit: gix::ObjectId,
     /// The pushable status for the branch.
@@ -335,7 +371,9 @@ impl From<&crate::ref_info::Commit> for ui::UpstreamCommit {
             id: *id,
             message: message.clone(),
             created_at: author.time.seconds as i128 * 1000,
-            author: author.to_ref(&mut gix::date::parse::TimeBuf::default()).into(),
+            author: author
+                .to_ref(&mut gix::date::parse::TimeBuf::default())
+                .into(),
         }
     }
 }
@@ -367,7 +405,9 @@ impl From<&LocalCommit> for ui::Commit {
             has_conflicts: *has_conflicts,
             state: (*relation).into(),
             created_at: author.time.seconds as i128 * 1000,
-            author: author.to_ref(&mut gix::date::parse::TimeBuf::default()).into(),
+            author: author
+                .to_ref(&mut gix::date::parse::TimeBuf::default())
+                .into(),
             gerrit_review_url: None,
         }
     }

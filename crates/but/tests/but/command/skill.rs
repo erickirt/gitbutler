@@ -39,7 +39,10 @@ fn skill_check_json_output_is_valid() -> anyhow::Result<()> {
     // Verify the expected structure
     assert!(json.get("cli_version").is_some(), "should have cli_version");
     assert!(json.get("skills").is_some(), "should have skills array");
-    assert!(json.get("outdated_count").is_some(), "should have outdated_count");
+    assert!(
+        json.get("outdated_count").is_some(),
+        "should have outdated_count"
+    );
 
     Ok(())
 }
@@ -101,7 +104,10 @@ fn skill_install_absolute_path_outside_repo_does_not_require_global() -> anyhow:
     let json: serde_json::Value = serde_json::from_slice(&output)?;
     assert_eq!(json.get("success").and_then(|v| v.as_bool()), Some(true));
     let expected_path = install_dir.display().to_string();
-    assert_eq!(json.get("path").and_then(|v| v.as_str()), Some(expected_path.as_str()));
+    assert_eq!(
+        json.get("path").and_then(|v| v.as_str()),
+        Some(expected_path.as_str())
+    );
 
     Ok(())
 }

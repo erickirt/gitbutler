@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { eventTimeStamp } from '@gitbutler/shared/branches/utils';
+	import { eventTimeStamp } from "@gitbutler/shared/branches/utils";
 
-	import { Icon } from '@gitbutler/ui';
-	import type { IssueUpdateEvent } from '@gitbutler/shared/patchEvents/types';
+	import { Icon } from "@gitbutler/ui";
+	import type { IssueUpdateEvent } from "@gitbutler/shared/patchEvents/types";
 
-	const UNKNOWN_AUTHOR = 'Unknown author';
+	const UNKNOWN_AUTHOR = "Unknown author";
 
 	interface Props {
 		event: IssueUpdateEvent;
@@ -30,7 +30,7 @@
 
 		{#if issueUpdate.resolved}
 			<div class="issue-update__status-icon">
-				<Icon name="tick-extrasmall" />
+				<Icon name="tick-small" />
 			</div>
 
 			<p class="text-12 issue-update__status">resolved</p>

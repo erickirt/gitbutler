@@ -44,10 +44,10 @@
 					<span>Latest release</span>
 					<span> • </span>
 					<span
-						>{new Date(latestRelease.released_at).toLocaleDateString('en-GB', {
-							day: 'numeric',
-							month: 'long',
-							year: 'numeric'
+						>{new Date(latestRelease.released_at).toLocaleDateString("en-GB", {
+							day: "numeric",
+							month: "long",
+							year: "numeric",
 						})}</span
 					>
 				</div>
@@ -276,7 +276,7 @@
 				transparent 2px,
 				transparent 6px
 			);
-			content: '';
+			content: "";
 			pointer-events: none;
 		}
 	}
@@ -397,10 +397,11 @@
 				transparent 2px,
 				transparent 6px
 			);
-			content: '';
+			content: "";
 			pointer-events: none;
 		}
 	}
+
 
 	.releases {
 		display: flex;

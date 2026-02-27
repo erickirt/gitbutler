@@ -8,7 +8,12 @@ fn less_than_two_commits() {
 
     let commit = test_repository.commit_tree(None, &[]);
 
-    assert!(test_repository.repository.merge_base_octopussy(&[commit.id()]).is_err());
+    assert!(
+        test_repository
+            .repository
+            .merge_base_octopussy(&[commit.id()])
+            .is_err()
+    );
 }
 
 #[test]
@@ -24,7 +29,10 @@ fn merge_base_of_two_linear_commits() {
     let b = test_repository.commit_tree(Some(&a), &[]);
 
     for permutation in [a.id(), b.id()].into_iter().permutations(2) {
-        let merge_base = test_repository.repository.merge_base_octopussy(&permutation).unwrap();
+        let merge_base = test_repository
+            .repository
+            .merge_base_octopussy(&permutation)
+            .unwrap();
 
         assert_eq!(merge_base, a.id());
     }
@@ -44,7 +52,10 @@ fn merge_base_of_three_linear_commits() {
     let c = test_repository.commit_tree(Some(&b), &[]);
 
     for permutation in [a.id(), b.id(), c.id()].into_iter().permutations(3) {
-        let merge_base = test_repository.repository.merge_base_octopussy(&permutation).unwrap();
+        let merge_base = test_repository
+            .repository
+            .merge_base_octopussy(&permutation)
+            .unwrap();
 
         assert_eq!(merge_base, a.id());
     }
@@ -64,7 +75,10 @@ fn merge_base_of_two_parallel_commits() {
     let b = test_repository.commit_tree(Some(&base), &[]);
 
     for permutation in [a.id(), b.id()].into_iter().permutations(2) {
-        let merge_base = test_repository.repository.merge_base_octopussy(&permutation).unwrap();
+        let merge_base = test_repository
+            .repository
+            .merge_base_octopussy(&permutation)
+            .unwrap();
 
         assert_eq!(merge_base, base.id());
     }
@@ -86,7 +100,10 @@ fn merge_base_of_three_parallel_commits() {
     let c = test_repository.commit_tree(Some(&base), &[]);
 
     for permutation in [a.id(), b.id(), c.id()].into_iter().permutations(3) {
-        let merge_base = test_repository.repository.merge_base_octopussy(&permutation).unwrap();
+        let merge_base = test_repository
+            .repository
+            .merge_base_octopussy(&permutation)
+            .unwrap();
 
         assert_eq!(merge_base, base.id());
     }
@@ -109,7 +126,10 @@ fn merge_base_of_three_forked_commits() {
     let c = test_repository.commit_tree(Some(&base), &[]);
 
     for permutation in [a.id(), b.id(), c.id()].into_iter().permutations(3) {
-        let merge_base = test_repository.repository.merge_base_octopussy(&permutation).unwrap();
+        let merge_base = test_repository
+            .repository
+            .merge_base_octopussy(&permutation)
+            .unwrap();
 
         assert_eq!(merge_base, base.id());
     }

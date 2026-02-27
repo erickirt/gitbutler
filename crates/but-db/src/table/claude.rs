@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 
@@ -150,7 +152,10 @@ pub struct ClaudeMut<'conn> {
 
 impl Claude<'_> {
     // Permission Requests
-    pub fn get_permission_request(&self, id: &str) -> rusqlite::Result<Option<ClaudePermissionRequest>> {
+    pub fn get_permission_request(
+        &self,
+        id: &str,
+    ) -> rusqlite::Result<Option<ClaudePermissionRequest>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, created_at, updated_at, tool_name, input, decision, use_wildcard \
              FROM claude_permission_requests WHERE id = ?1",
@@ -219,7 +224,10 @@ impl Claude<'_> {
         Ok(result)
     }
 
-    pub fn get_session_by_current_id(&self, current_id: &str) -> rusqlite::Result<Option<ClaudeSession>> {
+    pub fn get_session_by_current_id(
+        &self,
+        current_id: &str,
+    ) -> rusqlite::Result<Option<ClaudeSession>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, current_id, session_ids, created_at, updated_at, in_gui, approved_permissions, denied_permissions \
              FROM claude_sessions WHERE current_id = ?1",
@@ -244,7 +252,10 @@ impl Claude<'_> {
     }
 
     // Messages
-    pub fn list_messages_by_session(&self, session_id: &str) -> rusqlite::Result<Vec<ClaudeMessage>> {
+    pub fn list_messages_by_session(
+        &self,
+        session_id: &str,
+    ) -> rusqlite::Result<Vec<ClaudeMessage>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, session_id, created_at, content_type, content \
              FROM claude_messages WHERE session_id = ?1 ORDER BY created_at ASC",
@@ -292,7 +303,10 @@ impl Claude<'_> {
 
 impl ClaudeMut<'_> {
     // Permission Requests
-    pub fn insert_permission_request(&mut self, request: ClaudePermissionRequest) -> rusqlite::Result<()> {
+    pub fn insert_permission_request(
+        &mut self,
+        request: ClaudePermissionRequest,
+    ) -> rusqlite::Result<()> {
         self.conn.execute(
             "INSERT INTO claude_permission_requests (id, created_at, updated_at, tool_name, input, decision, use_wildcard) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -309,7 +323,11 @@ impl ClaudeMut<'_> {
         Ok(())
     }
 
-    pub fn set_permission_request_decision(&mut self, id: &str, decision: Option<String>) -> rusqlite::Result<()> {
+    pub fn set_permission_request_decision(
+        &mut self,
+        id: &str,
+        decision: Option<String>,
+    ) -> rusqlite::Result<()> {
         self.conn.execute(
             "UPDATE claude_permission_requests SET decision = ?1, updated_at = ?2 WHERE id = ?3",
             rusqlite::params![decision, chrono::Local::now().naive_local(), id],
@@ -355,7 +373,11 @@ impl ClaudeMut<'_> {
         Ok(())
     }
 
-    pub fn update_session_current_id(&mut self, id: &str, current_id: &str) -> rusqlite::Result<()> {
+    pub fn update_session_current_id(
+        &mut self,
+        id: &str,
+        current_id: &str,
+    ) -> rusqlite::Result<()> {
         self.conn.execute(
             "UPDATE claude_sessions SET current_id = ?1, updated_at = ?2 WHERE id = ?3",
             rusqlite::params![current_id, chrono::Local::now().naive_local(), id],
@@ -393,7 +415,8 @@ impl ClaudeMut<'_> {
     }
 
     pub fn delete_session(&mut self, id: &str) -> rusqlite::Result<()> {
-        self.conn.execute("DELETE FROM claude_sessions WHERE id = ?1", [id])?;
+        self.conn
+            .execute("DELETE FROM claude_sessions WHERE id = ?1", [id])?;
         Ok(())
     }
 
@@ -414,29 +437,36 @@ impl ClaudeMut<'_> {
     }
 
     pub fn delete_messages_by_session(&mut self, session_id: &str) -> rusqlite::Result<()> {
-        self.conn
-            .execute("DELETE FROM claude_messages WHERE session_id = ?1", [session_id])?;
+        self.conn.execute(
+            "DELETE FROM claude_messages WHERE session_id = ?1",
+            [session_id],
+        )?;
         Ok(())
     }
 
     pub fn delete_session_and_messages(&mut self, session_id: &str) -> rusqlite::Result<()> {
         // Here we'd have to use a savepoint, but the abstraction is a bit cumbersome
         // to use for *all other cases*, so we do a hand-rolled implementation here.
-        self.conn.execute("SAVEPOINT delete_session_and_messages", [])?;
+        self.conn
+            .execute("SAVEPOINT delete_session_and_messages", [])?;
         let result = (|| {
-            self.conn
-                .execute("DELETE FROM claude_messages WHERE session_id = ?1", [session_id])?;
+            self.conn.execute(
+                "DELETE FROM claude_messages WHERE session_id = ?1",
+                [session_id],
+            )?;
             self.conn
                 .execute("DELETE FROM claude_sessions WHERE id = ?1", [session_id])?;
             Ok(())
         })();
         match result {
             Ok(_) => {
-                self.conn.execute("RELEASE delete_session_and_messages", [])?;
+                self.conn
+                    .execute("RELEASE delete_session_and_messages", [])?;
                 Ok(())
             }
             Err(e) => {
-                self.conn.execute("ROLLBACK TO delete_session_and_messages", [])?;
+                self.conn
+                    .execute("ROLLBACK TO delete_session_and_messages", [])?;
                 Err(e)
             }
         }

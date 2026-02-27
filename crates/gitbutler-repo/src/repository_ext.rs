@@ -4,7 +4,9 @@ use anyhow::{Context as _, Result, anyhow, bail};
 use bstr::BString;
 use but_core::{GitConfigSettings, RepositoryExt as RepositoryExtGix, commit::Headers};
 use but_error::Code;
-use but_oxidize::{ObjectIdExt as _, OidExt, git2_signature_to_gix_signature, gix_to_git2_signature};
+use but_oxidize::{
+    ObjectIdExt as _, OidExt, git2_signature_to_gix_signature, gix_to_git2_signature,
+};
 use but_rebase::commit::sign_buffer;
 use but_status::create_wd_tree;
 use git2::Tree;
@@ -79,7 +81,9 @@ impl RepositoryExt for git2::Repository {
         let branch = self.find_branch(
             &name.simple_name(),
             match name {
-                Refname::Virtual(_) | Refname::Local(_) | Refname::Other(_) => git2::BranchType::Local,
+                Refname::Virtual(_) | Refname::Local(_) | Refname::Other(_) => {
+                    git2::BranchType::Local
+                }
                 Refname::Remote(_) => git2::BranchType::Remote,
             },
         );
@@ -94,7 +98,9 @@ impl RepositoryExt for git2::Repository {
         let branch = self.find_branch(
             &name.simple_name(),
             match name {
-                Refname::Virtual(_) | Refname::Local(_) | Refname::Other(_) => git2::BranchType::Local,
+                Refname::Virtual(_) | Refname::Local(_) | Refname::Other(_) => {
+                    git2::BranchType::Local
+                }
                 Refname::Remote(_) => git2::BranchType::Remote,
             },
         )?;
@@ -166,14 +172,17 @@ impl RepositoryExt for git2::Repository {
                     // If signing fails, set the "gitbutler.signCommits" config to false before erroring out
                     if repo
                         .config_snapshot()
-                        .boolean_filter("gitbutler.signCommits", |md| md.source != gix::config::Source::Local)
+                        .boolean_filter("gitbutler.signCommits", |md| {
+                            md.source != gix::config::Source::Local
+                        })
                         .is_none()
                     {
                         repo.set_git_settings(&GitConfigSettings {
                             gitbutler_sign_commits: Some(false),
                             ..Default::default()
                         })?;
-                        return Err(anyhow!("Failed to sign commit: {err}").context(Code::CommitSigningFailed));
+                        return Err(anyhow!("Failed to sign commit: {err}")
+                            .context(Code::CommitSigningFailed));
                     } else {
                         tracing::warn!(
                             "Commit signing failed but remains enabled as gitbutler.signCommits is explicitly enabled globally"
@@ -203,15 +212,20 @@ impl RepositoryExt for git2::Repository {
     }
 
     fn remotes_as_string(&self) -> Result<Vec<String>> {
-        Ok(self
-            .remotes()
-            .map(|string_array| string_array.iter().filter_map(|s| s.map(String::from)).collect())?)
+        Ok(self.remotes().map(|string_array| {
+            string_array
+                .iter()
+                .filter_map(|s| s.map(String::from))
+                .collect()
+        })?)
     }
 
     fn remote_branches(&self) -> Result<Vec<RemoteRefname>> {
         self.branches(Some(git2::BranchType::Remote))?
             .flatten()
-            .map(|(branch, _)| RemoteRefname::try_from(&branch).context("failed to convert branch to remote name"))
+            .map(|(branch, _)| {
+                RemoteRefname::try_from(&branch).context("failed to convert branch to remote name")
+            })
             .collect::<Result<Vec<_>>>()
     }
 
@@ -247,7 +261,8 @@ impl RepositoryExt for git2::Repository {
         let first_oid = ids[0];
 
         let output = ids[1..].iter().try_fold(first_oid, |base, oid| {
-            self.merge_base(base, *oid).context("Failed to find merge base")
+            self.merge_base(base, *oid)
+                .context("Failed to find merge base")
         })?;
 
         Ok(output)

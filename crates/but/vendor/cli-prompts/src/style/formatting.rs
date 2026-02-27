@@ -1,6 +1,5 @@
-use crate::engine::CommandBuffer;
-
 use super::color::Color;
+use crate::engine::CommandBuffer;
 
 /// Set of text formatting options
 #[derive(Clone, Copy)]

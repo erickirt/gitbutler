@@ -22,7 +22,10 @@ impl Controller {
     }
 
     /// Add a GitHub account if it does not already exist.
-    pub fn add_github_account(&self, account: &crate::settings::GitHubAccount) -> anyhow::Result<()> {
+    pub fn add_github_account(
+        &self,
+        account: &crate::settings::GitHubAccount,
+    ) -> anyhow::Result<()> {
         let mut settings = self.read_settings()?;
 
         if settings.github.known_accounts.iter().any(|a| a == account) {
@@ -50,7 +53,10 @@ impl Controller {
     }
 
     /// Remove a GitHub account.
-    pub fn remove_github_account(&self, account: &crate::settings::GitHubAccount) -> anyhow::Result<()> {
+    pub fn remove_github_account(
+        &self,
+        account: &crate::settings::GitHubAccount,
+    ) -> anyhow::Result<()> {
         let mut settings = self.read_settings()?;
 
         settings.github.known_accounts.retain(|a| a != account);
@@ -65,7 +71,10 @@ impl Controller {
     }
 
     /// Add a GitLab account if it does not already exist.
-    pub fn add_gitlab_account(&self, account: &crate::settings::GitLabAccount) -> anyhow::Result<()> {
+    pub fn add_gitlab_account(
+        &self,
+        account: &crate::settings::GitLabAccount,
+    ) -> anyhow::Result<()> {
         let mut settings = self.read_settings()?;
 
         if settings.gitlab.known_accounts.iter().any(|a| a == account) {
@@ -93,7 +102,10 @@ impl Controller {
     }
 
     /// Remove a GitLab account.
-    pub fn remove_gitlab_account(&self, account: &crate::settings::GitLabAccount) -> anyhow::Result<()> {
+    pub fn remove_gitlab_account(
+        &self,
+        account: &crate::settings::GitLabAccount,
+    ) -> anyhow::Result<()> {
         let mut settings = self.read_settings()?;
 
         settings.gitlab.known_accounts.retain(|a| a != account);

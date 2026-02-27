@@ -31,8 +31,16 @@ fn uint_id_to_short_id() -> anyhow::Result<()> {
     assert_eq!(UintId(720).to_short_id(), "g00");
     assert_eq!(UintId(1420).to_short_id(), "gz0");
     assert_eq!(UintId(26639).to_short_id(), "zzz");
-    assert_eq!(UintId(26640).to_short_id(), "00", "too big always yields this");
-    assert_eq!(UintId(26641).to_short_id(), "00", "too big always yields this");
+    assert_eq!(
+        UintId(26640).to_short_id(),
+        "00",
+        "too big always yields this"
+    );
+    assert_eq!(
+        UintId(26641).to_short_id(),
+        "00",
+        "too big always yields this"
+    );
     Ok(())
 }
 
@@ -45,10 +53,11 @@ fn commit_id_works_with_two_or_more_characters() -> anyhow::Result<()> {
     workspace_and_remote_commits_count: 1
     branches: [ no ]
     ");
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
 
     let expected = [CliId::Commit {
         commit_id: id1,
@@ -65,7 +74,10 @@ fn commit_id_works_with_two_or_more_characters() -> anyhow::Result<()> {
         "three characters work too"
     );
     assert_eq!(
-        id_map.parse("1", Box::new(changed_paths_fn)).unwrap_err().to_string(),
+        id_map
+            .parse("1", Box::new(changed_paths_fn))
+            .unwrap_err()
+            .to_string(),
         "Id needs to be at least 2 characters long: '1'",
         "one character isn't enough"
     );
@@ -124,10 +136,11 @@ fn commit_ids_become_longer_if_ambiguous() -> anyhow::Result<()> {
 fn branches_work_with_single_character() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("f", [id(1)], None, [])])];
     let id_map = IdMap::new(stacks, Vec::new())?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
     insta::assert_debug_snapshot!(id_map.debug_state(), @r"
     workspace_and_remote_commits_count: 1
     branches: [ g0 ]
@@ -161,10 +174,11 @@ fn branches_match_by_substring() -> anyhow::Result<()> {
     ])];
 
     let id_map = IdMap::new(stacks, Vec::new())?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
     insta::assert_debug_snapshot!(id_map.debug_state(), @r"
     workspace_and_remote_commits_count: 4
     branches: [ az, g0, h0, i0 ]
@@ -205,10 +219,11 @@ fn branches_match_by_substring() -> anyhow::Result<()> {
 fn branches_avoid_unassigned_area_id() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("zza", [id(1)], None, [])])];
     let id_map = IdMap::new(stacks, Vec::new())?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
     insta::assert_debug_snapshot!(id_map.debug_state(), @r"
     workspace_and_remote_commits_count: 1
     branches: [ za ]
@@ -238,10 +253,11 @@ fn branches_avoid_invalid_ids() -> anyhow::Result<()> {
     workspace_and_remote_commits_count: 2
     branches: [ ax, yz ]
     ");
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
 
     let expected = [CliId::Branch {
         name: "x-yz_/hi".into(),
@@ -271,10 +287,11 @@ fn branches_avoid_uncommitted_filenames() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("ghij", [id(1)], None, [])])];
     let hunk_assignments = vec![hunk_assignment("gh", None), hunk_assignment("hi", None)];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
     insta::assert_debug_snapshot!(id_map.debug_state(), @r"
     workspace_and_remote_commits_count: 1
     branches: [ ij ]
@@ -302,10 +319,11 @@ fn branch_cannot_generate_id() -> anyhow::Result<()> {
         stack([segment("supersubstring", [id(2)], None, [])]),
     ];
     let id_map = IdMap::new(stacks, Vec::new())?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
     insta::assert_debug_snapshot!(id_map.debug_state(), @r"
     workspace_and_remote_commits_count: 2
     branches: [ g0, up ]
@@ -507,14 +525,15 @@ fn ids_are_case_sensitive() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("h0", [id(10)], Some(id(9)), [])])];
     let hunk_assignments = vec![hunk_assignment("uncommitted.txt", None)];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(10) && parent_id == Some(id(9)) {
-                vec![tree_change_addition("committed.txt")]
-            } else {
-                bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(10) && parent_id == Some(id(9)) {
+            vec![tree_change_addition("committed.txt")]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
     insta::assert_debug_snapshot!(id_map.debug_state(), @r"
     workspace_and_remote_commits_count: 1
     branches: [ h0 ]
@@ -602,16 +621,20 @@ fn ids_are_case_sensitive() -> anyhow::Result<()> {
 #[test]
 fn uncommitted_files_disambiguate_between_themselves() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("foo", [id(1)], None, [])])];
-    let hunk_assignments = vec![hunk_assignment("foo23", None), hunk_assignment("foo242", None)];
+    let hunk_assignments = vec![
+        hunk_assignment("foo23", None),
+        hunk_assignment("foo242", None),
+    ];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(1) && parent_id.is_none() {
-                vec![]
-            } else {
-                bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(1) && parent_id.is_none() {
+            vec![]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
 
     // Ambiguous ID returns every possible match
     insta::assert_debug_snapshot!(id_map.parse("kp", Box::new(changed_paths_fn))?, @r#"
@@ -716,14 +739,15 @@ fn uncommitted_files_disambiguate_with_branch() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("fookpfoo", [id(1)], None, [])])];
     let hunk_assignments = vec![hunk_assignment("foo23", None)];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(1) && parent_id.is_none() {
-                vec![]
-            } else {
-                bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(1) && parent_id.is_none() {
+            vec![]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
 
     // Only the branch is returned
     insta::assert_debug_snapshot!(id_map.parse("kp", Box::new(changed_paths_fn))?, @r#"
@@ -770,14 +794,15 @@ fn longer_id_is_ok() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("foo", [id(1)], None, [])])];
     let hunk_assignments = vec![hunk_assignment("foo23", None)];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(1) && parent_id.is_none() {
-                vec![]
-            } else {
-                bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(1) && parent_id.is_none() {
+            vec![]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
 
     // "kp" would be sufficient (see the "id" field in the output), but "kpr" works too
     insta::assert_debug_snapshot!(id_map.parse("kpr", Box::new(changed_paths_fn))?, @r#"
@@ -813,14 +838,15 @@ fn reverse_hex_filename_is_its_own_id() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("foo", [id(1)], None, [])])];
     let hunk_assignments = vec![hunk_assignment("klmxyz", None)];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(1) && parent_id.is_none() {
-                vec![]
-            } else {
-                bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(1) && parent_id.is_none() {
+            vec![]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
 
     // "klmxyz" does not have an autogenerated ID
     insta::assert_debug_snapshot!(id_map.parse("kl", Box::new(changed_paths_fn))?, @r#"
@@ -856,14 +882,15 @@ fn branch_and_file_by_name() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("foo", [id(1)], None, [])])];
     let hunk_assignments = vec![hunk_assignment("foo", None)];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(1) && parent_id.is_none() {
-                vec![]
-            } else {
-                bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(1) && parent_id.is_none() {
+            vec![]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
 
     // Both branches and uncommitted, unassigned files match by name, and none
     // have priority over the other (i.e. if there is both a branch and a file
@@ -912,10 +939,11 @@ fn colon_uncommitted_filename() -> anyhow::Result<()> {
         hunk_assignment("assigned", Some(StackId::from_number_for_testing(1))),
     ];
     let id_map = IdMap::new(stacks, hunk_assignments)?;
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            bail!("unexpected IDs {commit_id} {parent_id:?}");
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
 
     // Short branch works
     insta::assert_debug_snapshot!(id_map.parse("gg@{stack}:assigned", Box::new(changed_paths_fn))?, @r#"
@@ -1009,25 +1037,266 @@ fn committed_files_are_deduplicated_by_commit_oid_path() -> anyhow::Result<()> {
 
     // Simulate a changed_paths function that returns the same file twice
     // (which could happen due to a bug in the caller or data source)
-    let changed_paths_fn =
-        |commit_id: gix::ObjectId, parent_id: Option<gix::ObjectId>| -> anyhow::Result<Vec<but_core::TreeChange>> {
-            Ok(if commit_id == id(2) && parent_id == Some(id(1)) {
-                vec![
-                    tree_change_addition("file.txt"),
-                    tree_change_addition("file.txt"), // Duplicate!
-                    tree_change_addition("other.txt"),
-                ]
-            } else {
-                anyhow::bail!("unexpected IDs {commit_id} {parent_id:?}");
-            })
-        };
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(2) && parent_id == Some(id(1)) {
+            vec![
+                tree_change_addition("file.txt"),
+                tree_change_addition("file.txt"), // Duplicate!
+                tree_change_addition("other.txt"),
+            ]
+        } else {
+            anyhow::bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
 
     // Verify we can look up both files both by ID and filename
     assert!(id_map.parse("02:uv", Box::new(changed_paths_fn))?.len() == 1);
     assert!(id_map.parse("02:xw", Box::new(changed_paths_fn))?.len() == 1);
-    assert!(id_map.parse("02:file.txt", Box::new(changed_paths_fn))?.len() == 1);
-    assert!(id_map.parse("02:other.txt", Box::new(changed_paths_fn))?.len() == 1);
+    assert!(
+        id_map
+            .parse("02:file.txt", Box::new(changed_paths_fn))?
+            .len()
+            == 1
+    );
+    assert!(
+        id_map
+            .parse("02:other.txt", Box::new(changed_paths_fn))?
+            .len()
+            == 1
+    );
 
+    Ok(())
+}
+
+#[test]
+fn short_uncommitted_files_are_properly_reverse_hexed() -> anyhow::Result<()> {
+    let stacks = vec![stack([segment("foo", [id(1)], None, [])])];
+    let hunk_assignments = vec![
+        hunk_assignment("k", None),
+        hunk_assignment("kl", None),
+        hunk_assignment("klm", None),
+    ];
+    let id_map = IdMap::new(stacks, hunk_assignments)?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        Ok(if commit_id == id(1) && parent_id.is_none() {
+            vec![]
+        } else {
+            bail!("unexpected IDs {commit_id} {parent_id:?}");
+        })
+    };
+
+    insta::assert_debug_snapshot!(id_map.parse("k", Box::new(changed_paths_fn))?, @r#"
+    [
+        Uncommitted(
+            UncommittedCliId {
+                id: "ky",
+                hunk_assignments: NonEmpty {
+                    head: HunkAssignment {
+                        id: None,
+                        hunk_header: None,
+                        path: "",
+                        path_bytes: "k",
+                        stack_id: None,
+                        hunk_locks: None,
+                        line_nums_added: None,
+                        line_nums_removed: None,
+                        diff: None,
+                    },
+                    tail: [],
+                },
+                is_entire_file: true,
+            },
+        ),
+    ]
+    "#);
+
+    insta::assert_debug_snapshot!(id_map.parse("kl", Box::new(changed_paths_fn))?, @r#"
+    [
+        Uncommitted(
+            UncommittedCliId {
+                id: "klx",
+                hunk_assignments: NonEmpty {
+                    head: HunkAssignment {
+                        id: None,
+                        hunk_header: None,
+                        path: "",
+                        path_bytes: "kl",
+                        stack_id: None,
+                        hunk_locks: None,
+                        line_nums_added: None,
+                        line_nums_removed: None,
+                        diff: None,
+                    },
+                    tail: [],
+                },
+                is_entire_file: true,
+            },
+        ),
+    ]
+    "#);
+
+    insta::assert_debug_snapshot!(id_map.parse("klm", Box::new(changed_paths_fn))?, @r#"
+    [
+        Uncommitted(
+            UncommittedCliId {
+                id: "klml",
+                hunk_assignments: NonEmpty {
+                    head: HunkAssignment {
+                        id: None,
+                        hunk_header: None,
+                        path: "",
+                        path_bytes: "klm",
+                        stack_id: None,
+                        hunk_locks: None,
+                        line_nums_added: None,
+                        line_nums_removed: None,
+                        diff: None,
+                    },
+                    tail: [],
+                },
+                is_entire_file: true,
+            },
+        ),
+    ]
+    "#);
+    Ok(())
+}
+
+#[test]
+fn commit_matches_are_deduplicated_by_commit_oid() -> anyhow::Result<()> {
+    let commit_id = id(2);
+    let stacks = vec![stack([segment(
+        "branch",
+        [commit_id],
+        Some(id(1)),
+        [commit_id],
+    )])];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("02", Box::new(changed_paths_fn))?;
+    assert_eq!(matches.len(), 1);
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Commit { commit_id: id, .. } if *id == commit_id)),
+        "same commit reachable through local and remote views should not be ambiguous"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn dedupe_does_not_hide_ambiguity_between_distinct_commits() -> anyhow::Result<()> {
+    let id1 = hex_to_id("21aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    let id2 = hex_to_id("21bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    let stacks = vec![stack([segment("branch", [id1, id2], None, [])])];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("21", Box::new(changed_paths_fn))?;
+    assert_eq!(
+        matches.len(),
+        2,
+        "distinct commits sharing a prefix must remain ambiguous"
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Commit { commit_id, .. } if *commit_id == id1))
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Commit { commit_id, .. } if *commit_id == id2))
+    );
+
+    Ok(())
+}
+
+#[test]
+fn dedupe_does_not_hide_ambiguity_between_branches_in_different_stacks() -> anyhow::Result<()> {
+    let stacks = vec![
+        Stack {
+            id: Some(StackId::from_number_for_testing(1)),
+            ..stack([segment("foo", [id(1)], None, [])])
+        },
+        Stack {
+            id: Some(StackId::from_number_for_testing(2)),
+            ..stack([segment("foo", [id(2)], None, [])])
+        },
+    ];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("foo", Box::new(changed_paths_fn))?;
+    assert_eq!(
+        matches.len(),
+        2,
+        "same branch name across different stacks must remain ambiguous"
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Branch { name, stack_id, .. } if name == "foo" && *stack_id == Some(StackId::from_number_for_testing(1))))
+    );
+    assert!(
+        matches
+            .iter()
+            .any(|m| matches!(m, CliId::Branch { name, stack_id, .. } if name == "foo" && *stack_id == Some(StackId::from_number_for_testing(2))))
+    );
+
+    Ok(())
+}
+
+#[test]
+fn dedupe_does_not_hide_ambiguity_between_unmanaged_branches_with_same_name() -> anyhow::Result<()>
+{
+    use std::collections::HashSet;
+
+    let stacks = vec![
+        stack([segment("foo", [id(1)], None, [])]),
+        stack([segment("foo", [id(2)], None, [])]),
+    ];
+    let id_map = IdMap::new(stacks, Vec::new())?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    let matches = id_map.parse("foo", Box::new(changed_paths_fn))?;
+    assert_eq!(
+        matches.len(),
+        2,
+        "same branch name across unmanaged stacks must remain ambiguous"
+    );
+    assert!(matches.iter().all(
+        |m| matches!(m, CliId::Branch { name, stack_id, .. } if name == "foo" && stack_id.is_none())
+    ));
+
+    let unique_ids: HashSet<_> = matches.iter().map(CliId::to_short_string).collect();
+    assert_eq!(
+        unique_ids.len(),
+        2,
+        "the two unmanaged branches must stay distinct"
+    );
     Ok(())
 }
 
@@ -1230,13 +1499,25 @@ mod util {
                     .map(|uncommitted_file| uncommitted_file.short_id.clone())
                     .sorted(),
             )?;
-            id_list_if_not_empty(f, "uncommitted_hunks", uncommitted_hunks.keys().sorted().cloned())?;
-            id_list_if_not_empty(f, "stacks", stack_ids.values().map(|id| id.to_short_string()).sorted())?;
+            id_list_if_not_empty(
+                f,
+                "uncommitted_hunks",
+                uncommitted_hunks.keys().sorted().cloned(),
+            )?;
+            id_list_if_not_empty(
+                f,
+                "stacks",
+                stack_ids.values().map(|id| id.to_short_string()).sorted(),
+            )?;
             Ok(())
         }
     }
 
-    fn id_list_if_not_empty(f: &mut Formatter<'_>, field: &str, ids: impl Iterator<Item = String>) -> std::fmt::Result {
+    fn id_list_if_not_empty(
+        f: &mut Formatter<'_>,
+        field: &str,
+        ids: impl Iterator<Item = String>,
+    ) -> std::fmt::Result {
         let ids: Vec<_> = ids.collect();
         if !ids.is_empty() {
             writeln!(f, "{field}: [ {} ]", ids.join(", "))

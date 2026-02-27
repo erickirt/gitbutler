@@ -1,4 +1,4 @@
-import type { ProjectForFrontend } from '@gitbutler/but-sdk';
+import type { ProjectForFrontend } from "@gitbutler/but-sdk";
 
 export interface LiteElectronApi {
 	ping(input: string): Promise<string>;
@@ -7,7 +7,7 @@ export interface LiteElectronApi {
 }
 
 export const liteIpcChannels = {
-	ping: 'lite:ping',
-	getVersion: 'lite:get-version',
-	listProjects: 'projects:list'
+	ping: "lite:ping",
+	getVersion: "lite:get-version",
+	listProjects: "projects:list",
 } as const;

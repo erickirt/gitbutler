@@ -3,10 +3,12 @@ use std::collections::BTreeMap;
 use bstr::{BString, ByteSlice};
 use but_core::unified_diff::DiffHunk;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, MouseButton, MouseEventKind};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use ratatui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+};
 
 use crate::id::UncommittedCliId;
 
@@ -40,13 +42,17 @@ pub(crate) enum DiffLine {
 pub(crate) enum WorktreeFilter {
     Unassigned,
     Uncommitted(Box<UncommittedCliId>),
-    Stack(gitbutler_stack::StackId),
+    Stack(but_core::ref_metadata::StackId),
 }
 
 impl DiffFileEntry {
-    pub fn from_worktree(id_map: &crate::IdMap, filter: Option<&WorktreeFilter>) -> Vec<DiffFileEntry> {
+    pub fn from_worktree(
+        id_map: &crate::IdMap,
+        filter: Option<&WorktreeFilter>,
+    ) -> Vec<DiffFileEntry> {
         // Group hunks by path, applying filter
-        let mut by_path: BTreeMap<String, Vec<&but_hunk_assignment::HunkAssignment>> = BTreeMap::new();
+        let mut by_path: BTreeMap<String, Vec<&but_hunk_assignment::HunkAssignment>> =
+            BTreeMap::new();
         for uncommitted_hunk in id_map.uncommitted_hunks.values() {
             let a = &uncommitted_hunk.hunk_assignment;
             let include = match filter {
@@ -82,12 +88,14 @@ impl DiffFileEntry {
             .collect()
     }
 
+    #[cfg(feature = "legacy")]
     pub fn from_commit(
         ctx: &mut but_ctx::Context,
         commit_id: gix::ObjectId,
         path_filter: Option<BString>,
     ) -> anyhow::Result<Vec<DiffFileEntry>> {
-        let result = but_api::diff::commit_details(ctx, commit_id, but_api::diff::ComputeLineStats::No)?;
+        let result =
+            but_api::diff::commit_details(ctx, commit_id, but_api::diff::ComputeLineStats::No)?;
 
         result
             .diff_with_first_parent
@@ -98,7 +106,9 @@ impl DiffFileEntry {
                 let ui_change: but_core::ui::TreeChange = change.into();
                 let status = status_char(&ui_change.status);
                 let path = ui_change.path_bytes.to_string();
-                let patch = but_api::legacy::diff::tree_change_diffs(ctx, ui_change).ok().flatten();
+                let patch = but_api::legacy::diff::tree_change_diffs(ctx, ui_change)
+                    .ok()
+                    .flatten();
                 let diff_lines = match patch {
                     Some(p) => parse_unified_patch(&p),
                     None => vec![DiffLine::Info("(no diff available)".to_string())],
@@ -112,7 +122,11 @@ impl DiffFileEntry {
             .collect()
     }
 
-    pub fn from_branch(ctx: &but_ctx::Context, short_name: String) -> anyhow::Result<Vec<DiffFileEntry>> {
+    #[cfg(feature = "legacy")]
+    pub fn from_branch(
+        ctx: &but_ctx::Context,
+        short_name: String,
+    ) -> anyhow::Result<Vec<DiffFileEntry>> {
         let result = but_api::branch::branch_diff(ctx, short_name)?;
 
         result
@@ -121,7 +135,9 @@ impl DiffFileEntry {
             .map(|change| {
                 let status = status_char(&change.status);
                 let path = change.path_bytes.to_string();
-                let patch = but_api::legacy::diff::tree_change_diffs(ctx, change).ok().flatten();
+                let patch = but_api::legacy::diff::tree_change_diffs(ctx, change)
+                    .ok()
+                    .flatten();
                 let diff_lines = match patch {
                     Some(p) => parse_unified_patch(&p),
                     None => vec![DiffLine::Info("(no diff available)".to_string())],
@@ -148,7 +164,9 @@ fn status_char(status: &but_core::ui::TreeStatus) -> char {
 fn parse_unified_patch(patch: &but_core::UnifiedPatch) -> Vec<DiffLine> {
     match patch {
         but_core::UnifiedPatch::Binary => {
-            vec![DiffLine::Info("Binary file - no diff available".to_string())]
+            vec![DiffLine::Info(
+                "Binary file - no diff available".to_string(),
+            )]
         }
         but_core::UnifiedPatch::TooLarge { size_in_bytes } => {
             vec![DiffLine::Info(format!(
@@ -174,7 +192,9 @@ fn parse_unified_patch(patch: &but_core::UnifiedPatch) -> Vec<DiffLine> {
     }
 }
 
-pub(crate) fn parse_hunk_assignment_to_lines(assignment: &but_hunk_assignment::HunkAssignment) -> Vec<DiffLine> {
+pub(crate) fn parse_hunk_assignment_to_lines(
+    assignment: &but_hunk_assignment::HunkAssignment,
+) -> Vec<DiffLine> {
     if let (Some(diff), Some(header)) = (&assignment.diff, &assignment.hunk_header) {
         let hunk = DiffHunk {
             old_start: header.old_start,
@@ -312,13 +332,19 @@ impl DiffViewerApp {
                         Pane::FileList => self.next_file(),
                         Pane::DiffView => self.scroll_down(1),
                     },
-                    KeyCode::Left | KeyCode::Right | KeyCode::Char('h') | KeyCode::Char('l') | KeyCode::Tab => {
+                    KeyCode::Left
+                    | KeyCode::Right
+                    | KeyCode::Char('h')
+                    | KeyCode::Char('l')
+                    | KeyCode::Tab => {
                         self.active_pane = match self.active_pane {
                             Pane::FileList => Pane::DiffView,
                             Pane::DiffView => Pane::FileList,
                         };
                     }
-                    KeyCode::Char(' ') if self.active_pane == Pane::DiffView => self.scroll_down(20),
+                    KeyCode::Char(' ') if self.active_pane == Pane::DiffView => {
+                        self.scroll_down(20)
+                    }
                     KeyCode::PageDown => self.scroll_down(20),
                     KeyCode::PageUp => self.scroll_up(20),
                     _ => {}
@@ -374,7 +400,10 @@ fn ui(frame: &mut ratatui::Frame, app: &mut DiffViewerApp) {
                 'R' => Style::default().fg(Color::Yellow),
                 _ => Style::default(),
             };
-            ListItem::new(Line::from(Span::styled(format!("{} {}", f.status, f.path), style)))
+            ListItem::new(Line::from(Span::styled(
+                format!("{} {}", f.status, f.path),
+                style,
+            )))
         })
         .collect();
 
@@ -408,7 +437,9 @@ fn ui(frame: &mut ratatui::Frame, app: &mut DiffViewerApp) {
             .diff_lines
             .iter()
             .map(|dl| match dl {
-                DiffLine::HunkHeader(text) => Line::from(Span::styled(text.clone(), Style::default().fg(Color::Cyan))),
+                DiffLine::HunkHeader(text) => {
+                    Line::from(Span::styled(text.clone(), Style::default().fg(Color::Cyan)))
+                }
                 DiffLine::Added { line_num, content } => Line::from(Span::styled(
                     format!("{line_num:>5} +{content}"),
                     Style::default().fg(Color::Green),
@@ -427,7 +458,9 @@ fn ui(frame: &mut ratatui::Frame, app: &mut DiffViewerApp) {
                 )]),
                 DiffLine::Info(text) => Line::from(Span::styled(
                     format!("  {text}"),
-                    Style::default().fg(Color::Yellow).add_modifier(Modifier::ITALIC),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::ITALIC),
                 )),
             })
             .collect()
@@ -463,21 +496,40 @@ fn ui(frame: &mut ratatui::Frame, app: &mut DiffViewerApp) {
 
     // Help footer
     let help = Line::from(vec![
-        Span::styled(" j/k", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " j/k",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" navigate  ", Style::default().fg(Color::DarkGray)),
         Span::styled(
             "h/l/←/→/Tab",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(" switch pane  ", Style::default().fg(Color::DarkGray)),
         Span::styled(
             "Space/PgDn",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(" page down  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("PgUp", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "PgUp",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" page up  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("q", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "q",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" quit", Style::default().fg(Color::DarkGray)),
     ]);
     frame.render_widget(Paragraph::new(help), outer[1]);

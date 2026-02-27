@@ -32,12 +32,18 @@ pub fn head_info(ctx: &but_ctx::Context) -> Result<but_workspace::ui::RefInfo> {
             expensive_commit_info: true,
         },
     )
-    .and_then(|info| but_workspace::ui::RefInfo::for_ui(info, &repo).map(|ref_info| ref_info.pruned_to_entrypoint()))
+    .and_then(|info| {
+        but_workspace::ui::RefInfo::for_ui(info, &repo)
+            .map(|ref_info| ref_info.pruned_to_entrypoint())
+    })
 }
 
 #[but_api(napi)]
 #[instrument(err(Debug))]
-pub fn stacks(ctx: &Context, filter: Option<but_workspace::legacy::StacksFilter>) -> Result<Vec<StackEntry>> {
+pub fn stacks(
+    ctx: &Context,
+    filter: Option<but_workspace::legacy::StacksFilter>,
+) -> Result<Vec<StackEntry>> {
     let repo = ctx.clone_repo_for_merging_non_persisting()?;
     let meta = ctx.legacy_meta()?;
     but_workspace::legacy::stacks_v3(&repo, &meta, filter.unwrap_or_default(), None)
@@ -58,11 +64,17 @@ pub fn show_graph_svg(ctx: &Context) -> Result<()> {
             ..but_graph::init::Options::limited()
         },
     )?;
+    let lower_bound_segment_id = graph.clone().into_workspace()?.lower_bound_segment_id;
+    if let Some(lower_bound_segment_id) = lower_bound_segment_id {
+        remove_in_workspace_flag_below_lower_bound(&mut graph, lower_bound_segment_id);
+    }
     // It's OK if it takes a while, prefer complete graphs.
     const LIMIT: usize = 5000;
     let mut to_remove = graph.num_segments().saturating_sub(LIMIT);
     if to_remove > 0 {
-        tracing::warn!("Pruning at most {to_remove} nodes from the bottom to assure 'dot' won't hang",);
+        tracing::warn!(
+            "Pruning at most {to_remove} nodes from the bottom to assure 'dot' won't hang",
+        );
         let mut next = std::collections::VecDeque::new();
         next.extend(graph.base_segments());
         let mut seen = std::collections::BTreeSet::new();
@@ -70,12 +82,19 @@ pub fn show_graph_svg(ctx: &Context) -> Result<()> {
             if to_remove == 0 {
                 break;
             }
-            if let Some(s) = graph.node_weight(sidx)
-                && (s.metadata.is_some()
+            if let Some(s) = graph.node_weight(sidx) {
+                if lower_bound_segment_id.is_some()
+                    && s.non_empty_flags_of_first_commit()
+                        .is_some_and(|flags| flags.contains(but_graph::CommitFlags::InWorkspace))
+                {
+                    continue;
+                }
+                if s.metadata.is_some()
                     || s.sibling_segment_id.is_some()
-                    || s.remote_tracking_branch_segment_id.is_some())
-            {
-                continue;
+                    || s.remote_tracking_branch_segment_id.is_some()
+                {
+                    continue;
+                }
             }
             next.extend(
                 graph
@@ -94,9 +113,37 @@ pub fn show_graph_svg(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
+#[cfg(unix)]
+fn remove_in_workspace_flag_below_lower_bound(
+    graph: &mut but_graph::Graph,
+    lower_bound_segment_id: but_graph::SegmentIndex,
+) {
+    let mut seen = std::collections::BTreeSet::from([lower_bound_segment_id]);
+    let mut queue = std::collections::VecDeque::from([lower_bound_segment_id]);
+    while let Some(sidx) = queue.pop_front() {
+        let below_segments: Vec<_> = graph
+            .neighbors_directed(sidx, but_graph::petgraph::Direction::Outgoing)
+            .filter(|n| seen.insert(*n))
+            .collect();
+        for below_sidx in below_segments {
+            if let Some(segment) = graph.node_weight_mut(below_sidx)
+                && let Some(first_commit) = segment.commits.first_mut()
+            {
+                first_commit
+                    .flags
+                    .remove(but_graph::CommitFlags::InWorkspace);
+            }
+            queue.push_back(below_sidx);
+        }
+    }
+}
+
 #[but_api(napi)]
 #[instrument(err(Debug))]
-pub fn stack_details(ctx: &Context, stack_id: Option<StackId>) -> Result<but_workspace::ui::StackDetails> {
+pub fn stack_details(
+    ctx: &Context,
+    stack_id: Option<StackId>,
+) -> Result<but_workspace::ui::StackDetails> {
     let mut details = {
         let repo = ctx.clone_repo_for_merging_non_persisting()?;
         let meta = ctx.legacy_meta()?;
@@ -201,7 +248,12 @@ pub fn branch_details(
     }?;
     let repo = ctx.repo.get()?;
     let db = ctx.db.get()?;
-    let gerrit_mode = ctx.repo.get()?.git_settings()?.gitbutler_gerrit_mode.unwrap_or(false);
+    let gerrit_mode = ctx
+        .repo
+        .get()?
+        .git_settings()?
+        .gitbutler_gerrit_mode
+        .unwrap_or(false);
     if gerrit_mode {
         handle_gerrit(&mut details, &repo, &db)?;
         update_push_status(&mut details);
@@ -270,7 +322,14 @@ pub fn amend_commit_from_worktree_changes(
     let mut guard = ctx.exclusive_worktree_access();
     let repo = ctx.repo.get()?;
     let data_dir = ctx.project_data_dir();
-    amend_commit_and_count_failures(stack_id, commit_id, worktree_changes, &mut guard, &repo, &data_dir)
+    amend_commit_and_count_failures(
+        stack_id,
+        commit_id,
+        worktree_changes,
+        &mut guard,
+        &repo,
+        &data_dir,
+    )
 }
 
 /// Amend a commit with the given changes and return the number of rejected files
@@ -319,8 +378,11 @@ pub fn discard_worktree_changes(
         SnapshotDetails::new(OperationKind::DiscardChanges),
         guard.write_permission(),
     );
-    let refused =
-        but_workspace::discard_workspace_changes(&*ctx.repo.get()?, worktree_changes, ctx.settings.context_lines)?;
+    let refused = but_workspace::discard_workspace_changes(
+        &*ctx.repo.get()?,
+        worktree_changes,
+        ctx.settings.context_lines,
+    )?;
     if !refused.is_empty() {
         tracing::warn!(?refused, "Failed to discard at least one hunk");
     }
@@ -407,7 +469,12 @@ pub fn split_branch(
 
     let refname = Refname::Local(LocalRefname::new(&new_branch_name, None));
     let branch_manager = ctx.branch_manager();
-    branch_manager.create_virtual_branch_from_branch(&refname, None, None, guard.write_permission())?;
+    branch_manager.create_virtual_branch_from_branch(
+        &refname,
+        None,
+        None,
+        guard.write_permission(),
+    )?;
 
     // TODO(ctx): use new branch creation, which would update the ctx workspace as well.
     let meta = ctx.meta()?;
@@ -530,7 +597,14 @@ pub fn uncommit_changes(
             })
             .collect::<Vec<_>>();
 
-        but_hunk_assignment::assign(db.hunk_assignments_mut()?, &repo, &ws, to_assign, None, context_lines)?;
+        but_hunk_assignment::assign(
+            db.hunk_assignments_mut()?,
+            &repo,
+            &ws,
+            to_assign,
+            None,
+            context_lines,
+        )?;
     }
 
     Ok(result.into())
@@ -587,7 +661,13 @@ pub fn stash_into_branch(
     gitbutler_branch_actions::update_workspace_commit(&vb_state, ctx, false)
         .context("failed to update gitbutler workspace")?;
 
-    branch_manager.unapply(stack.id, perm, false, Vec::new(), ctx.settings.feature_flags.cv3)?;
+    branch_manager.unapply(
+        stack.id,
+        perm,
+        false,
+        Vec::new(),
+        ctx.settings.feature_flags.cv3,
+    )?;
 
     let outcome = outcome?;
     Ok(outcome.into())
@@ -615,5 +695,9 @@ pub fn target_commits(
     last_commit_id: Option<HexHash>,
     page_size: Option<usize>,
 ) -> Result<Vec<but_workspace::ui::Commit>> {
-    but_workspace::legacy::log_target_first_parent(ctx, last_commit_id.map(|id| id.into()), page_size.unwrap_or(30))
+    but_workspace::legacy::log_target_first_parent(
+        ctx,
+        last_commit_id.map(|id| id.into()),
+        page_size.unwrap_or(30),
+    )
 }

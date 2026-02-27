@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use but_secret::Sensitive;
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use serde::{Deserialize, Serialize};
@@ -15,14 +15,19 @@ pub struct GitLabClient {
 impl GitLabClient {
     pub fn new(access_token: &Sensitive<String>) -> Result<Self> {
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("gb-gitlab-integration"));
+        headers.insert(
+            USER_AGENT,
+            HeaderValue::from_static("gb-gitlab-integration"),
+        );
         headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("Bearer {}", access_token.0))?,
         );
 
-        let client = reqwest::Client::builder().default_headers(headers).build()?;
+        let client = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()?;
 
         Ok(Self {
             client,
@@ -46,14 +51,19 @@ impl GitLabClient {
 
     pub fn new_with_host_override(access_token: &Sensitive<String>, host: &str) -> Result<Self> {
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("gb-gitlab-integration"));
+        headers.insert(
+            USER_AGENT,
+            HeaderValue::from_static("gb-gitlab-integration"),
+        );
         headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("Bearer {}", access_token.0))?,
         );
 
-        let client = reqwest::Client::builder().default_headers(headers).build()?;
+        let client = reqwest::Client::builder()
+            .default_headers(headers)
+            .build()?;
 
         let base_url = if host.ends_with("/api/v4") {
             host.to_string()
@@ -131,14 +141,20 @@ impl GitLabClient {
             .await?;
 
         if !response.status().is_success() {
-            bail!("Failed to list merge requests for target branch: {}", response.status());
+            bail!(
+                "Failed to list merge requests for target branch: {}",
+                response.status()
+            );
         }
 
         let mrs: Vec<GitLabMergeRequest> = response.json().await?;
         Ok(mrs.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_merge_request(&self, params: &CreateMergeRequestParams<'_>) -> Result<MergeRequest> {
+    pub async fn create_merge_request(
+        &self,
+        params: &CreateMergeRequestParams<'_>,
+    ) -> Result<MergeRequest> {
         #[derive(Serialize)]
         struct CreateMergeRequestBody<'a> {
             title: &'a str,
@@ -149,14 +165,45 @@ impl GitLabClient {
             target_project_id: Option<i64>,
         }
 
-        let url = format!("{}/projects/{}/merge_requests", self.base_url, params.project_id);
+        // The host project id is the one where we create the merge request in.
+        // If there's a source project defined, it means we're dealing with a fork,
+        // and hence should create the review on it.
+        let host_project_id = if let Some(source_project_id) = &params.source_project_id {
+            source_project_id
+        } else {
+            &params.project_id
+        };
+
+        let url = format!(
+            "{}/projects/{}/merge_requests",
+            self.base_url, host_project_id
+        );
+
+        // If there's a source project defined, and it's different than the
+        // 'main' project id, it means we're handling the creation of a merge request
+        // from a fork.
+        // Fetch the target project numeric ID and pass it to the params.
+        let target_project_id = if let Some(source_project_id) = &params.source_project_id
+            && &params.project_id != source_project_id
+        {
+            let target_project_id = self
+                .fetch_project(params.project_id.clone())
+                .await
+                .map(|project| project.id)
+                .context("Failed to fetch target project information.")?;
+            Some(target_project_id)
+        } else {
+            None
+        };
+
+        let title = update_draft_state_in_title(params.title, params.draft);
 
         let body = CreateMergeRequestBody {
-            title: params.title,
+            title: &title,
             description: params.body,
             source_branch: params.source_branch,
             target_branch: params.target_branch,
-            target_project_id: None,
+            target_project_id,
         };
 
         let response = self.client.post(&url).json(&body).send().await?;
@@ -171,13 +218,60 @@ impl GitLabClient {
         Ok(mr.into())
     }
 
-    pub async fn get_merge_request(&self, project_id: GitLabProjectId, mr_iid: i64) -> Result<MergeRequest> {
-        let url = format!("{}/projects/{}/merge_requests/{}", self.base_url, project_id, mr_iid);
+    pub async fn get_merge_request(
+        &self,
+        project_id: GitLabProjectId,
+        mr_iid: i64,
+    ) -> Result<MergeRequest> {
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}",
+            self.base_url, project_id, mr_iid
+        );
 
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
             bail!("Failed to get merge request: {}", response.status());
+        }
+
+        let mr: GitLabMergeRequest = response.json().await?;
+        Ok(mr.into())
+    }
+
+    pub async fn update_merge_request(
+        &self,
+        params: &UpdateMergeRequestParams<'_>,
+    ) -> Result<MergeRequest> {
+        #[derive(Serialize)]
+        struct UpdateMergeRequestBody<'a> {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            title: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            description: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            target_branch: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            state_event: Option<&'a str>,
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}",
+            self.base_url, params.project_id, params.mr_iid
+        );
+
+        let body = UpdateMergeRequestBody {
+            title: params.title,
+            description: params.description,
+            target_branch: params.target_branch,
+            state_event: params.state_event,
+        };
+
+        let response = self.client.put(&url).json(&body).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to update merge request: {status} - {error_text}");
         }
 
         let mr: GitLabMergeRequest = response.json().await?;
@@ -196,7 +290,9 @@ impl GitLabClient {
             self.base_url, params.project_id, params.mr_iid
         );
 
-        let body = MergeMergeRequestBody { squash: params.squash };
+        let body = MergeMergeRequestBody {
+            squash: params.squash,
+        };
 
         let response = self.client.put(&url).json(&body).send().await?;
 
@@ -206,6 +302,128 @@ impl GitLabClient {
 
         Ok(())
     }
+
+    pub async fn set_merge_request_draft_state(
+        &self,
+        params: &SetMergeRequestDraftStateParams,
+    ) -> Result<()> {
+        let project_id = params.project_id.clone();
+        let mr = self
+            .get_merge_request(project_id.clone(), params.mr_iid)
+            .await?;
+        let next_title = update_draft_state_in_title(&mr.title, params.is_draft);
+
+        if next_title == mr.title {
+            return Ok(());
+        }
+
+        #[derive(Serialize)]
+        struct UpdateMergeRequestBody<'a> {
+            title: &'a str,
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}",
+            self.base_url, project_id, params.mr_iid
+        );
+
+        let response = self
+            .client
+            .put(&url)
+            .json(&UpdateMergeRequestBody { title: &next_title })
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to set merge request draft state: {status} - {error_text}");
+        }
+
+        Ok(())
+    }
+
+    pub async fn set_merge_request_auto_merge(
+        &self,
+        params: &SetMergeRequestAutoMergeParams,
+    ) -> Result<()> {
+        let project_id = params.project_id.clone();
+        if params.enabled {
+            #[derive(Serialize)]
+            struct EnableAutoMergeBody {
+                auto_merge: bool,
+            }
+
+            let url = format!(
+                "{}/projects/{}/merge_requests/{}/merge",
+                self.base_url, project_id, params.mr_iid
+            );
+
+            let response = self
+                .client
+                .put(&url)
+                .json(&EnableAutoMergeBody { auto_merge: true })
+                .send()
+                .await?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let error_text = response.text().await.unwrap_or_default();
+                bail!("Failed to enable merge request auto-merge: {status} - {error_text}");
+            }
+
+            return Ok(());
+        }
+
+        let url = format!(
+            "{}/projects/{}/merge_requests/{}/cancel_merge_when_pipeline_succeeds",
+            self.base_url, project_id, params.mr_iid
+        );
+
+        let response = self.client.post(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to disable merge request auto-merge: {status} - {error_text}");
+        }
+
+        Ok(())
+    }
+
+    pub async fn fetch_project(&self, project_id: GitLabProjectId) -> Result<GitLabProject> {
+        #[derive(Deserialize)]
+        struct GitLabApiProject {
+            id: i64,
+            path_with_namespace: String,
+            default_branch: Option<String>,
+            #[serde(default)]
+            forked_from_project: Option<GitLabApiProjectRef>,
+        }
+
+        #[derive(Deserialize)]
+        struct GitLabApiProjectRef {
+            id: i64,
+        }
+
+        let url = format!("{}/projects/{}", self.base_url, project_id);
+        let response = self.client.get(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            bail!("Failed to fetch project: {status} - {error_text}");
+        }
+
+        let project: GitLabApiProject = response.json().await?;
+
+        Ok(GitLabProject {
+            id: project.id,
+            path_with_namespace: project.path_with_namespace,
+            default_branch: project.default_branch,
+            forked_from_project_id: project.forked_from_project.map(|fork| fork.id),
+        })
+    }
 }
 
 pub struct CreateMergeRequestParams<'a> {
@@ -214,11 +432,69 @@ pub struct CreateMergeRequestParams<'a> {
     pub source_branch: &'a str,
     pub target_branch: &'a str,
     pub project_id: GitLabProjectId,
+    pub source_project_id: Option<GitLabProjectId>,
+    pub draft: bool,
 }
+
+pub struct UpdateMergeRequestParams<'a> {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub title: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub target_branch: Option<&'a str>,
+    pub state_event: Option<&'a str>,
+}
+
 pub struct MergeMergeRequestParams {
     pub project_id: GitLabProjectId,
     pub mr_iid: i64,
     pub squash: Option<bool>,
+}
+
+pub struct SetMergeRequestDraftStateParams {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub is_draft: bool,
+}
+
+pub struct SetMergeRequestAutoMergeParams {
+    pub project_id: GitLabProjectId,
+    pub mr_iid: i64,
+    pub enabled: bool,
+}
+
+fn update_draft_state_in_title(title: &str, is_draft: bool) -> String {
+    if is_draft {
+        if has_draft_prefix(title) {
+            title.to_owned()
+        } else {
+            format!("Draft: {title}")
+        }
+    } else {
+        remove_draft_prefix(title).to_owned()
+    }
+}
+
+fn has_draft_prefix(title: &str) -> bool {
+    let Some((prefix, _)) = title.split_once(':') else {
+        return false;
+    };
+
+    let prefix = prefix.trim();
+    prefix.eq_ignore_ascii_case("draft") || prefix.eq_ignore_ascii_case("wip")
+}
+
+fn remove_draft_prefix(title: &str) -> &str {
+    let Some((prefix, rest)) = title.split_once(':') else {
+        return title;
+    };
+
+    let prefix = prefix.trim();
+    if prefix.eq_ignore_ascii_case("draft") || prefix.eq_ignore_ascii_case("wip") {
+        rest.trim_start()
+    } else {
+        title
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -273,6 +549,14 @@ impl From<String> for GitLabLabel {
     fn from(name: String) -> Self {
         GitLabLabel { name }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct GitLabProject {
+    pub id: i64,
+    pub path_with_namespace: String,
+    pub default_branch: Option<String>,
+    pub forked_from_project_id: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -354,7 +638,9 @@ pub(crate) fn resolve_account(
 ) -> Result<crate::GitlabAccountIdentifier, anyhow::Error> {
     let known_accounts = crate::token::list_known_gitlab_accounts(storage)?;
     let Some(default_account) = known_accounts.first() else {
-        bail!("No authenticated GitLab users found.\nRun 'but config forge auth' to authenticate with GitLab.");
+        bail!(
+            "No authenticated GitLab users found.\nRun 'but config forge auth' to authenticate with GitLab."
+        );
     };
     let account = if let Some(account) = preferred_account {
         if known_accounts.contains(account) {
@@ -369,4 +655,53 @@ pub(crate) fn resolve_account(
     };
 
     Ok(account.to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::update_draft_state_in_title;
+
+    #[test]
+    fn makes_title_draft() {
+        assert_eq!(
+            update_draft_state_in_title("Add API validation", true),
+            "Draft: Add API validation"
+        );
+    }
+
+    #[test]
+    fn draft_state_noops_when_already_draft() {
+        assert_eq!(
+            update_draft_state_in_title("Draft: Add API validation", true),
+            "Draft: Add API validation"
+        );
+        assert_eq!(
+            update_draft_state_in_title("draft: Add API validation", true),
+            "draft: Add API validation"
+        );
+        assert_eq!(
+            update_draft_state_in_title("wip: Add API validation", true),
+            "wip: Add API validation"
+        );
+        assert_eq!(
+            update_draft_state_in_title("Wip: Add API validation", true),
+            "Wip: Add API validation"
+        );
+    }
+
+    #[test]
+    fn removes_draft_prefix_for_ready_state() {
+        assert_eq!(
+            update_draft_state_in_title("Draft: Add API validation", false),
+            "Add API validation"
+        );
+    }
+
+    #[test]
+    fn removes_wip_prefix_for_ready_state() {
+        assert_eq!(
+            update_draft_state_in_title("WIP: Add API validation", false),
+            "Add API validation"
+        );
+    }
 }

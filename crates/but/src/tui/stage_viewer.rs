@@ -3,10 +3,12 @@ use std::collections::BTreeMap;
 use bstr::BString;
 use but_core::HunkHeader;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, MouseButton, MouseEventKind};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use ratatui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+};
 
 use super::diff_viewer::{DiffLine, parse_hunk_assignment_to_lines};
 
@@ -51,7 +53,8 @@ impl StageFileEntry {
     }
 
     pub fn from_worktree(id_map: &crate::IdMap) -> Vec<StageFileEntry> {
-        let mut by_path: BTreeMap<String, Vec<&but_hunk_assignment::HunkAssignment>> = BTreeMap::new();
+        let mut by_path: BTreeMap<String, Vec<&but_hunk_assignment::HunkAssignment>> =
+            BTreeMap::new();
         for uncommitted_hunk in id_map.uncommitted_hunks.values() {
             let a = &uncommitted_hunk.hunk_assignment;
             by_path.entry(a.path.clone()).or_default().push(a);
@@ -243,7 +246,8 @@ impl StageViewerApp {
         if let Some(file_idx) = self.list_state.selected() {
             let file = &mut self.files[file_idx];
             if self.focused_hunk_index < file.hunks.len() {
-                file.hunks[self.focused_hunk_index].selected = !file.hunks[self.focused_hunk_index].selected;
+                file.hunks[self.focused_hunk_index].selected =
+                    !file.hunks[self.focused_hunk_index].selected;
             }
         }
     }
@@ -300,7 +304,10 @@ impl StageViewerApp {
     }
 
     fn selected_files(&self) -> usize {
-        self.files.iter().filter(|f| f.hunks.iter().any(|h| h.selected)).count()
+        self.files
+            .iter()
+            .filter(|f| f.hunks.iter().any(|h| h.selected))
+            .count()
     }
 
     fn handle_input(&mut self, event: Event) {
@@ -326,7 +333,11 @@ impl StageViewerApp {
                         Pane::FileList => self.next_file(),
                         Pane::DiffView => self.next_hunk(),
                     },
-                    KeyCode::Left | KeyCode::Right | KeyCode::Char('h') | KeyCode::Char('l') | KeyCode::Tab => {
+                    KeyCode::Left
+                    | KeyCode::Right
+                    | KeyCode::Char('h')
+                    | KeyCode::Char('l')
+                    | KeyCode::Tab => {
                         self.active_pane = match self.active_pane {
                             Pane::FileList => Pane::DiffView,
                             Pane::DiffView => Pane::FileList,
@@ -369,7 +380,11 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
     // Vertical split: main area + status line + help footer
     let outer = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(1), Constraint::Length(1)])
+        .constraints([
+            Constraint::Min(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
         .split(frame.area());
 
     let chunks = Layout::default()
@@ -423,8 +438,13 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
         for (hunk_idx, hunk) in file.hunks.iter().enumerate() {
             // Hunk selection header
             let check = if hunk.selected { "[x]" } else { "[ ]" };
-            let check_color = if hunk.selected { Color::Green } else { Color::DarkGray };
-            let is_focused = app.active_pane == Pane::DiffView && hunk_idx == app.focused_hunk_index;
+            let check_color = if hunk.selected {
+                Color::Green
+            } else {
+                Color::DarkGray
+            };
+            let is_focused =
+                app.active_pane == Pane::DiffView && hunk_idx == app.focused_hunk_index;
 
             // Find the hunk header text from diff_lines
             let header_text = hunk
@@ -465,7 +485,10 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
                         } else {
                             Style::default().fg(Color::Green)
                         };
-                        lines.push(Line::from(Span::styled(format!("{line_num:>5} +{content}"), style)));
+                        lines.push(Line::from(Span::styled(
+                            format!("{line_num:>5} +{content}"),
+                            style,
+                        )));
                     }
                     DiffLine::Removed { line_num, content } => {
                         let style = if dim {
@@ -473,7 +496,10 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
                         } else {
                             Style::default().fg(Color::Red)
                         };
-                        lines.push(Line::from(Span::styled(format!("{line_num:>5} -{content}"), style)));
+                        lines.push(Line::from(Span::styled(
+                            format!("{line_num:>5} -{content}"),
+                            style,
+                        )));
                     }
                     DiffLine::Context {
                         old_num,
@@ -488,7 +514,9 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
                     DiffLine::Info(text) => {
                         lines.push(Line::from(Span::styled(
                             format!("  {text}"),
-                            Style::default().fg(Color::Yellow).add_modifier(Modifier::ITALIC),
+                            Style::default()
+                                .fg(Color::Yellow)
+                                .add_modifier(Modifier::ITALIC),
                         )));
                     }
                 }
@@ -527,7 +555,9 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
     let file_count = app.selected_files();
     let status = Line::from(vec![Span::styled(
         format!(" {selected}/{total} hunks selected across {file_count} file(s)"),
-        Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
     )]);
     frame.render_widget(
         Paragraph::new(status).style(Style::default().bg(Color::DarkGray)),
@@ -536,25 +566,63 @@ fn ui(frame: &mut ratatui::Frame, app: &mut StageViewerApp) {
 
     // Help footer
     let help = Line::from(vec![
-        Span::styled(" j/k", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " j/k",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" navigate  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("h/l/Tab", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "h/l/Tab",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" pane  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Space", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Space",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" toggle  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("a", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "a",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" all  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("n", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "n",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" none  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("s/Enter", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "s/Enter",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" stage  ", Style::default().fg(Color::DarkGray)),
-        Span::styled("q", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "q",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" quit", Style::default().fg(Color::DarkGray)),
     ]);
     frame.render_widget(Paragraph::new(help), outer[2]);
 }
 
-pub(crate) fn run_stage_viewer(files: Vec<StageFileEntry>, branch_name: &str) -> anyhow::Result<StageResult> {
+pub(crate) fn run_stage_viewer(
+    files: Vec<StageFileEntry>,
+    branch_name: &str,
+) -> anyhow::Result<StageResult> {
     let mut guard = super::TerminalGuard::new(true)?;
     let mut app = StageViewerApp::new(files, branch_name.to_string());
 
@@ -628,11 +696,26 @@ pub(crate) fn run_branch_selector(branches: &[String]) -> anyhow::Result<Option<
             frame.render_stateful_widget(list, layout[0], &mut list_state);
 
             let help = Line::from(vec![
-                Span::styled(" j/k", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    " j/k",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(" navigate  ", Style::default().fg(Color::DarkGray)),
-                Span::styled("Enter", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Enter",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(" select  ", Style::default().fg(Color::DarkGray)),
-                Span::styled("q", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "q",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(" cancel", Style::default().fg(Color::DarkGray)),
             ]);
             frame.render_widget(Paragraph::new(help), layout[1]);

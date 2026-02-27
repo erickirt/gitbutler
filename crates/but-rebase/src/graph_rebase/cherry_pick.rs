@@ -101,7 +101,10 @@ pub fn cherry_pick(
             onto_merge_failed: true,
             ontos: Some(commits.to_vec()),
         }),
-        (MergeOutcome::Success(_) | MergeOutcome::NoCommit, MergeOutcome::Success(_) | MergeOutcome::NoCommit) => {
+        (
+            MergeOutcome::Success(_) | MergeOutcome::NoCommit,
+            MergeOutcome::Success(_) | MergeOutcome::NoCommit,
+        ) => {
             let empty_tree = gix::ObjectId::empty_tree(gix::hash::Kind::Sha1);
             let base_t = base_t.object_id().unwrap_or(empty_tree);
             let onto_t = onto_t.object_id().unwrap_or(empty_tree);
@@ -128,10 +131,13 @@ pub fn cherry_pick(
                     target_t.detach(),
                     sign_if_configured,
                 )?;
-                Ok(CherryPickOutcome::ConflictedCommit(conflicted_commit.detach()))
+                Ok(CherryPickOutcome::ConflictedCommit(
+                    conflicted_commit.detach(),
+                ))
             } else {
                 Ok(CherryPickOutcome::Commit(
-                    commit_from_unconflicted_tree(ontos, target, tree_id, sign_if_configured)?.detach(),
+                    commit_from_unconflicted_tree(ontos, target, tree_id, sign_if_configured)?
+                        .detach(),
                 ))
             }
         }
@@ -159,7 +165,9 @@ impl MergeOutcome {
 
 fn find_base_tree(target: &but_core::Commit) -> Result<MergeOutcome> {
     if target.is_conflicted() {
-        Ok(MergeOutcome::Success(find_real_tree(target, TreeKind::Base)?.detach()))
+        Ok(MergeOutcome::Success(
+            find_real_tree(target, TreeKind::Base)?.detach(),
+        ))
     } else {
         tree_from_merging_commits(target.id.repo, &target.parents, TreeKind::AutoResolution)
     }
@@ -217,7 +225,11 @@ fn tree_from_merging_commits(
     Ok(MergeOutcome::Success(sum.detach()))
 }
 
-fn merge_base(repo: &gix::Repository, first: gix::ObjectId, second: gix::ObjectId) -> Result<Option<gix::ObjectId>> {
+fn merge_base(
+    repo: &gix::Repository,
+    first: gix::ObjectId,
+    second: gix::ObjectId,
+) -> Result<Option<gix::ObjectId>> {
     match repo.merge_base(first, second) {
         Ok(oid) => Ok(Some(oid.detach())),
         // It's very possible we'll see scenarios where there are two parents
@@ -228,14 +240,23 @@ fn merge_base(repo: &gix::Repository, first: gix::ObjectId, second: gix::ObjectI
     }
 }
 
-fn peel_to_tree_or_empty(repo: &'_ gix::Repository, id: Option<gix::ObjectId>) -> Result<gix::Id<'_>> {
+fn peel_to_tree_or_empty(
+    repo: &'_ gix::Repository,
+    id: Option<gix::ObjectId>,
+) -> Result<gix::Id<'_>> {
     Ok(match id {
-        Some(id) => find_real_tree(&but_core::Commit::from_id(id.attach(repo))?, TreeKind::AutoResolution)?,
+        Some(id) => find_real_tree(
+            &but_core::Commit::from_id(id.attach(repo))?,
+            TreeKind::AutoResolution,
+        )?,
         None => gix::ObjectId::empty_tree(gix::hash::Kind::Sha1).attach(repo),
     })
 }
 
-fn find_real_tree<'repo>(commit: &but_core::Commit<'repo>, side: TreeKind) -> anyhow::Result<gix::Id<'repo>> {
+fn find_real_tree<'repo>(
+    commit: &but_core::Commit<'repo>,
+    side: TreeKind,
+) -> anyhow::Result<gix::Id<'repo>> {
     Ok(if commit.is_conflicted() {
         let tree = commit.id.repo.find_tree(commit.tree)?;
         let conflicted_side = tree
@@ -262,7 +283,10 @@ fn commit_from_unconflicted_tree<'repo>(
 
     // Ensure the commit isn't thinking it's conflicted.
     if to_rebase_is_conflicted {
-        if let Some(pos) = new_commit.extra_headers().find_pos(HEADERS_CONFLICTED_FIELD) {
+        if let Some(pos) = new_commit
+            .extra_headers()
+            .find_pos(HEADERS_CONFLICTED_FIELD)
+        {
             new_commit.extra_headers.remove(pos);
         }
     } else if headers.is_none() {
@@ -297,27 +321,41 @@ fn commit_from_conflicted_tree<'repo>(
 ) -> anyhow::Result<gix::Id<'repo>> {
     let repo = resolved_tree_id.repo;
     // in case someone checks this out with vanilla Git, we should warn why it looks like this
-    let readme_content = b"You have checked out a GitButler Conflicted commit. You probably didn't mean to do this.";
+    let readme_content =
+        b"You have checked out a GitButler Conflicted commit. You probably didn't mean to do this.";
     let readme_blob = repo.write_blob(readme_content)?;
 
-    let conflicted_files = extract_conflicted_files(resolved_tree_id, cherry_pick, treat_as_unresolved)?;
+    let conflicted_files =
+        extract_conflicted_files(resolved_tree_id, cherry_pick, treat_as_unresolved)?;
 
     // convert files into a string and save as a blob
     let conflicted_files_string = toml::to_string(&conflicted_files)?;
     let conflicted_files_blob = repo.write_blob(conflicted_files_string.as_bytes())?;
 
-    let mut tree = repo.empty_tree().edit()?;
+    let mut tree = repo.find_tree(resolved_tree_id)?.edit()?;
 
-    tree.upsert(TreeKind::Ours.as_tree_entry_name(), EntryKind::Tree, ours_tree_id)?;
-    tree.upsert(TreeKind::Theirs.as_tree_entry_name(), EntryKind::Tree, theirs_tree_id)?;
-    tree.upsert(TreeKind::Base.as_tree_entry_name(), EntryKind::Tree, base_tree_id)?;
+    tree.upsert(
+        TreeKind::Ours.as_tree_entry_name(),
+        EntryKind::Tree,
+        ours_tree_id,
+    )?;
+    tree.upsert(
+        TreeKind::Theirs.as_tree_entry_name(),
+        EntryKind::Tree,
+        theirs_tree_id,
+    )?;
+    tree.upsert(
+        TreeKind::Base.as_tree_entry_name(),
+        EntryKind::Tree,
+        base_tree_id,
+    )?;
     tree.upsert(
         TreeKind::AutoResolution.as_tree_entry_name(),
         EntryKind::Tree,
         resolved_tree_id,
     )?;
     tree.upsert(".conflict-files", EntryKind::Blob, conflicted_files_blob)?;
-    tree.upsert("README.txt", EntryKind::Blob, readme_blob)?;
+    tree.upsert("CONFLICT-README.txt", EntryKind::Blob, readme_blob)?;
 
     let mut headers = to_rebase
         .headers()
@@ -349,7 +387,8 @@ fn extract_conflicted_files(
         treat_as_unresolved,
         gix::merge::tree::apply_index_entries::RemovalMode::Mark,
     );
-    let (mut ancestor_entries, mut our_entries, mut their_entries) = (Vec::new(), Vec::new(), Vec::new());
+    let (mut ancestor_entries, mut our_entries, mut their_entries) =
+        (Vec::new(), Vec::new(), Vec::new());
     for entry in index.entries() {
         let stage = entry.stage();
         let storage = match stage {

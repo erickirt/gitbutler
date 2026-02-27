@@ -169,7 +169,11 @@ fn convert_to_sdk_format(servers: McpServerMap) -> McpServers {
 
     for (name, server) in servers {
         // Check if this is a stdio server (has command, and type is either "stdio" or unset)
-        let is_stdio = server.command.is_some() && server.r#type.as_ref().is_none_or(|t| t == "stdio" || t.is_empty());
+        let is_stdio = server.command.is_some()
+            && server
+                .r#type
+                .as_ref()
+                .is_none_or(|t| t == "stdio" || t.is_empty());
 
         if is_stdio {
             if let Some(command) = server.command {

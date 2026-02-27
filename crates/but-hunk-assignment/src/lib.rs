@@ -18,7 +18,9 @@ use anyhow::Result;
 use bstr::{BString, ByteSlice};
 use but_core::{DiffSpec, HunkHeader, TreeChange, UnifiedPatch, ref_metadata::StackId};
 use but_db::{HunkAssignmentsHandle, HunkAssignmentsHandleMut};
-use but_hunk_dependency::ui::{HunkDependencies, HunkLock, hunk_dependencies_for_workspace_changes_by_worktree_dir};
+use but_hunk_dependency::ui::{
+    HunkDependencies, HunkLock, hunk_dependencies_for_workspace_changes_by_worktree_dir,
+};
 use gix::ObjectId;
 use itertools::Itertools;
 use reconcile::MultipleOverlapping;
@@ -29,7 +31,10 @@ use uuid::Uuid;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(feature = "export-ts", ts(export, export_to = "./hunkAssignment/index.ts"))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "./hunkAssignment/index.ts")
+)]
 pub struct HunkAssignment {
     /// A stable identifier for the hunk assignment.
     ///   - When a new hunk is first observed (from the uncommitted changes), it is assigned a new id.
@@ -70,7 +75,10 @@ impl HunkAssignment {
 impl TryFrom<but_db::HunkAssignment> for HunkAssignment {
     type Error = anyhow::Error;
     fn try_from(value: but_db::HunkAssignment) -> Result<Self, Self::Error> {
-        let header = value.hunk_header.as_ref().and_then(|h| serde_json::from_str(h).ok());
+        let header = value
+            .hunk_header
+            .as_ref()
+            .and_then(|h| serde_json::from_str(h).ok());
         let stack_id = value
             .stack_id
             .as_ref()
@@ -95,7 +103,10 @@ impl TryFrom<HunkAssignment> for but_db::HunkAssignment {
     fn try_from(value: HunkAssignment) -> Result<Self, Self::Error> {
         let header = value
             .hunk_header
-            .map(|h| serde_json::to_string(&h).map_err(|e| anyhow::anyhow!("Failed to serialize hunk_header: {e}")))
+            .map(|h| {
+                serde_json::to_string(&h)
+                    .map_err(|e| anyhow::anyhow!("Failed to serialize hunk_header: {e}"))
+            })
             .transpose()?;
         Ok(but_db::HunkAssignment {
             id: value.id.map(|id| id.to_string()),
@@ -130,7 +141,10 @@ impl From<HunkAssignment> for but_core::DiffSpec {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase", tag = "type", content = "subject")]
-#[cfg_attr(feature = "export-ts", ts(export, export_to = "./hunkAssignment/index.ts"))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "./hunkAssignment/index.ts")
+)]
 pub enum AbsorptionTarget {
     Branch {
         branch_name: String,
@@ -152,7 +166,10 @@ pub enum AbsorptionTarget {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "export-ts", ts(export, export_to = "./hunkAssignment/index.ts"))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "./hunkAssignment/index.ts")
+)]
 pub enum AbsorptionReason {
     /// File has hunk range overlap with this commit
     HunkDependency,
@@ -176,7 +193,10 @@ impl AbsorptionReason {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(feature = "export-ts", ts(export, export_to = "./hunkAssignment/index.ts"))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "./hunkAssignment/index.ts")
+)]
 pub struct FileAbsorption {
     pub path: String,
     pub assignment: HunkAssignment,
@@ -186,7 +206,10 @@ pub struct FileAbsorption {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(feature = "export-ts", ts(export, export_to = "./hunkAssignment/index.ts"))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "./hunkAssignment/index.ts")
+)]
 pub struct CommitAbsorption {
     #[cfg_attr(feature = "export-ts", ts(type = "string"))]
     pub stack_id: but_core::ref_metadata::StackId,
@@ -346,20 +369,29 @@ pub fn assign(
     deps: Option<&HunkDependencies>,
     context_lines: u32,
 ) -> Result<Vec<AssignmentRejection>> {
-    let identifiable_stacks = workspace.stacks.iter().filter_map(|s| s.id).collect::<Vec<_>>();
+    let identifiable_stacks = workspace
+        .stacks
+        .iter()
+        .filter_map(|s| s.id)
+        .collect::<Vec<_>>();
 
     let owned_deps;
     let deps = if let Some(deps) = deps {
         deps
     } else {
-        owned_deps = hunk_dependencies_for_workspace_changes_by_worktree_dir(repo, workspace, None)?;
+        owned_deps =
+            hunk_dependencies_for_workspace_changes_by_worktree_dir(repo, workspace, None)?;
         &owned_deps
     };
-    let worktree_changes: Vec<but_core::TreeChange> = but_core::diff::worktree_changes(repo)?.changes;
+    let worktree_changes: Vec<but_core::TreeChange> =
+        but_core::diff::worktree_changes(repo)?.changes;
     let mut worktree_assignments = vec![];
     for change in &worktree_changes {
         let diff = change.unified_patch(repo, context_lines);
-        worktree_assignments.extend(HunkAssignment::from_tree_change(change, diff.ok().flatten()));
+        worktree_assignments.extend(HunkAssignment::from_tree_change(
+            change,
+            diff.ok().flatten(),
+        ));
     }
 
     // Reconcile worktree with the persisted assignments
@@ -399,7 +431,9 @@ pub fn assign(
     for req in requests {
         let locks = with_locks
             .iter()
-            .filter(|assignment| req.matches_assignment(assignment) && req.stack_id != assignment.stack_id)
+            .filter(|assignment| {
+                req.matches_assignment(assignment) && req.stack_id != assignment.stack_id
+            })
             .flat_map(|assignment| assignment.hunk_locks.clone().unwrap_or_default())
             .collect_vec();
         if !locks.is_empty() {
@@ -453,8 +487,11 @@ fn reconcile_worktree_changes_with_worktree_and_locks(
     let deps = if let Some(deps) = deps {
         deps
     } else {
-        owned_deps =
-            hunk_dependencies_for_workspace_changes_by_worktree_dir(repo, workspace, Some(worktree_changes.clone()))?;
+        owned_deps = hunk_dependencies_for_workspace_changes_by_worktree_dir(
+            repo,
+            workspace,
+            Some(worktree_changes.clone()),
+        )?;
         &owned_deps
     };
 
@@ -464,7 +501,10 @@ fn reconcile_worktree_changes_with_worktree_and_locks(
     let mut worktree_assignments = vec![];
     for change in &worktree_changes {
         let diff = change.unified_patch(repo, context_lines);
-        worktree_assignments.extend(HunkAssignment::from_tree_change(change, diff.ok().flatten()));
+        worktree_assignments.extend(HunkAssignment::from_tree_change(
+            change,
+            diff.ok().flatten(),
+        ));
     }
     let reconciled = reconcile_with_worktree_and_locks(
         db.to_ref(),
@@ -510,7 +550,11 @@ fn reconcile_with_worktree_and_locks(
     deps: &HunkDependencies,
     context_lines: u32,
 ) -> Result<Vec<HunkAssignment>> {
-    let identifiable_stacks = workspace.stacks.iter().filter_map(|s| s.id).collect::<Vec<_>>();
+    let identifiable_stacks = workspace
+        .stacks
+        .iter()
+        .filter_map(|s| s.id)
+        .collect::<Vec<_>>();
 
     let persisted_assignments = state::assignments(db)?;
     let with_worktree = reconcile::assignments(
@@ -719,7 +763,9 @@ pub fn assignments_to_requests(assignments: Vec<HunkAssignment>) -> Vec<HunkAssi
 }
 
 /// Convert HunkAssignments to DiffSpecs
-pub fn convert_assignments_to_diff_specs(assignments: &[HunkAssignment]) -> anyhow::Result<Vec<DiffSpec>> {
+pub fn convert_assignments_to_diff_specs(
+    assignments: &[HunkAssignment],
+) -> anyhow::Result<Vec<DiffSpec>> {
     let mut specs_by_path: BTreeMap<BString, Vec<HunkAssignment>> = BTreeMap::new();
 
     // Group assignments by file path
@@ -773,8 +819,10 @@ impl CommitMap {
 }
 
 /// Type alias for grouped changes by commit
-pub type GroupedChanges =
-    BTreeMap<(but_core::ref_metadata::StackId, gix::ObjectId), (Vec<HunkAssignment>, AbsorptionReason)>;
+pub type GroupedChanges = BTreeMap<
+    (but_core::ref_metadata::StackId, gix::ObjectId),
+    (Vec<HunkAssignment>, AbsorptionReason),
+>;
 
 #[cfg(test)]
 mod tests {
@@ -785,7 +833,13 @@ mod tests {
     use crate::reconcile::MultipleOverlapping;
 
     impl HunkAssignment {
-        pub fn new(path: &str, start: u32, end: u32, stack_id: Option<usize>, id: Option<usize>) -> HunkAssignment {
+        pub fn new(
+            path: &str,
+            start: u32,
+            end: u32,
+            stack_id: Option<usize>,
+            id: Option<usize>,
+        ) -> HunkAssignment {
             HunkAssignment {
                 id: id.map(id_seq),
                 hunk_header: Some(HunkHeader {
@@ -806,7 +860,12 @@ mod tests {
     }
 
     impl HunkAssignmentRequest {
-        pub fn new(path: &str, start: u32, end: u32, stack_id: Option<usize>) -> HunkAssignmentRequest {
+        pub fn new(
+            path: &str,
+            start: u32,
+            end: u32,
+            stack_id: Option<usize>,
+        ) -> HunkAssignmentRequest {
             HunkAssignmentRequest {
                 hunk_header: Some(HunkHeader {
                     old_start: start,
@@ -896,7 +955,10 @@ mod tests {
             MultipleOverlapping::SetMostLines,
             true,
         );
-        assert_eq(result, vec![HunkAssignment::new("foo.rs", 10, 5, None, Some(1))]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 10, 5, None, Some(1))],
+        );
     }
 
     #[test]
@@ -911,7 +973,10 @@ mod tests {
             MultipleOverlapping::SetMostLines,
             true,
         );
-        assert_eq(result, vec![HunkAssignment::new("foo.rs", 12, 7, Some(1), Some(1))]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 12, 7, Some(1), Some(1))],
+        );
     }
 
     #[test]
@@ -929,7 +994,10 @@ mod tests {
             MultipleOverlapping::SetMostLines,
             true,
         );
-        assert_eq(result, vec![HunkAssignment::new("foo.rs", 5, 18, Some(2), Some(2))]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 5, 18, Some(2), Some(2))],
+        );
     }
 
     #[test]
@@ -947,7 +1015,10 @@ mod tests {
             MultipleOverlapping::SetNone,
             true,
         );
-        assert_eq(result, vec![HunkAssignment::new("foo.rs", 5, 18, None, Some(2))]);
+        assert_eq(
+            result,
+            vec![HunkAssignment::new("foo.rs", 5, 18, None, Some(2))],
+        );
     }
 
     #[test]
@@ -963,7 +1034,10 @@ mod tests {
             false,
         );
         // TODO: This is actually broken
-        assert_eq!(result, vec![HunkAssignment::new("foo.rs", 12, 17, Some(1), None)]);
+        assert_eq!(
+            result,
+            vec![HunkAssignment::new("foo.rs", 12, 17, Some(1), None)]
+        );
     }
 
     #[test]
@@ -1011,7 +1085,10 @@ mod tests {
             binary1.clone().intersects(binary2.clone()),
             "Binary files with same path should intersect"
         );
-        assert!(binary2.intersects(binary1), "Intersection should be symmetric");
+        assert!(
+            binary2.intersects(binary1),
+            "Intersection should be symmetric"
+        );
     }
 
     #[test]

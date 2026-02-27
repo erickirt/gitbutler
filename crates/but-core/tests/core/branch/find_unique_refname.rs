@@ -1,7 +1,8 @@
 use bstr::ByteSlice;
 use but_core::branch::find_unique_refname;
 use but_testsupport::{
-    read_only_in_memory_scenario, read_only_in_memory_scenario_named_with_post, visualize_commit_graph_all,
+    read_only_in_memory_scenario, read_only_in_memory_scenario_named_with_post,
+    visualize_commit_graph_all,
 };
 use gix::refs::{self, Category, transaction::PreviousValue};
 
@@ -12,9 +13,11 @@ fn with_existing_numerical_suffix() -> anyhow::Result<()> {
             let repo = but_testsupport::open_repo(fixture.path())?;
 
             let id = repo.object_hash().null();
-            let branch_1 = refs::Category::LocalBranch.to_full_name("branch-1".as_bytes().as_bstr())?;
+            let branch_1 =
+                refs::Category::LocalBranch.to_full_name("branch-1".as_bytes().as_bstr())?;
             repo.reference(branch_1.as_ref(), id, PreviousValue::Any, "test")?;
-            let branch_2 = refs::Category::LocalBranch.to_full_name("branch-2".as_bytes().as_bstr())?;
+            let branch_2 =
+                refs::Category::LocalBranch.to_full_name("branch-2".as_bytes().as_bstr())?;
             repo.reference(branch_2.as_ref(), id, PreviousValue::Any, "test")?;
 
             Ok((branch_1, branch_2))
@@ -26,7 +29,11 @@ fn with_existing_numerical_suffix() -> anyhow::Result<()> {
 
     let unique = find_unique_refname(&repo, branch_2.as_ref())?;
     assert_eq!(unique.category(), Some(Category::LocalBranch));
-    assert_eq!(unique.shorten(), "branch-3", "it increments 2 till 3 as well");
+    assert_eq!(
+        unique.shorten(),
+        "branch-3",
+        "it increments 2 till 3 as well"
+    );
 
     Ok(())
 }
@@ -37,19 +44,20 @@ fn it_considers_remote_tracking_branches_even_if_unregistered() -> anyhow::Resul
     // even without Git configuration.
     // That way, a newly created branch can wrongly be associated with an old and stale remote tracking branch,
     // causing all kinds of funkiness.
-    let (repo, _) = read_only_in_memory_scenario_named_with_post("unborn-empty", "", 1, |fixture| {
-        let repo = but_testsupport::open_repo(fixture.path())?;
+    let (repo, _) =
+        read_only_in_memory_scenario_named_with_post("unborn-empty", "", 1, |fixture| {
+            let repo = but_testsupport::open_repo(fixture.path())?;
 
-        // Create a remote tracking branch for 'a' in a non-existing remote.
-        // It's a stale branch basically.
-        let id = repo.object_hash().null();
-        let rtb: &gix::refs::FullNameRef = "refs/remotes/non-existing-remote/a".try_into()?;
-        repo.reference(rtb, id, PreviousValue::Any, "test")?;
-        let rtb: &gix::refs::FullNameRef = "refs/remotes/non-existing-remote/a-1".try_into()?;
-        repo.reference(rtb, id, PreviousValue::Any, "test")?;
+            // Create a remote tracking branch for 'a' in a non-existing remote.
+            // It's a stale branch basically.
+            let id = repo.object_hash().null();
+            let rtb: &gix::refs::FullNameRef = "refs/remotes/non-existing-remote/a".try_into()?;
+            repo.reference(rtb, id, PreviousValue::Any, "test")?;
+            let rtb: &gix::refs::FullNameRef = "refs/remotes/non-existing-remote/a-1".try_into()?;
+            repo.reference(rtb, id, PreviousValue::Any, "test")?;
 
-        Ok(())
-    })?;
+            Ok(())
+        })?;
 
     let unique = find_unique_refname(&repo, "refs/heads/a".try_into()?)?;
     assert_eq!(
@@ -89,16 +97,17 @@ fn registered_remotes_help_deal_with_slashed_remote_names() -> anyhow::Result<()
 
 #[test]
 fn without_numerical_suffix_it_appends_one() -> anyhow::Result<()> {
-    let (repo, feature) = read_only_in_memory_scenario_named_with_post("unborn-empty", "", 1, |fixture| {
-        let repo = but_testsupport::open_repo(fixture.path())?;
+    let (repo, feature) =
+        read_only_in_memory_scenario_named_with_post("unborn-empty", "", 1, |fixture| {
+            let repo = but_testsupport::open_repo(fixture.path())?;
 
-        // Create a branch named "feature"
-        let id = repo.object_hash().null();
-        let feature = refs::Category::Note.to_full_name("feature".as_bytes().as_bstr())?;
-        repo.reference(feature.as_ref(), id, PreviousValue::Any, "test")?;
+            // Create a branch named "feature"
+            let id = repo.object_hash().null();
+            let feature = refs::Category::Note.to_full_name("feature".as_bytes().as_bstr())?;
+            repo.reference(feature.as_ref(), id, PreviousValue::Any, "test")?;
 
-        Ok(feature)
-    })?;
+            Ok(feature)
+        })?;
 
     let unique = find_unique_refname(&repo, feature.as_ref())?;
     assert_eq!(unique.category(), Some(Category::Note));

@@ -1,10 +1,14 @@
-mod apply;
-pub use apply::apply;
+use crate::{args::branch::Subcommands, utils::OutputChannel};
 use but_ctx::Context;
 
-use crate::{args::branch::Subcommands, utils::OutputChannel};
+mod apply;
+pub use apply::apply;
 
-pub fn handle(cmd: Option<Subcommands>, ctx: Context, out: &mut OutputChannel) -> anyhow::Result<()> {
+pub fn handle(
+    cmd: Option<Subcommands>,
+    ctx: Context,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
     match cmd {
         None => {
             todo!("implement list and call recursively")

@@ -33,13 +33,18 @@ use crate::utils::OutputChannel;
 /// - The OpenAI LLM provider cannot be initialized (e.g., missing API credentials)
 /// - The AI request fails
 /// - The AI response cannot be parsed as a valid commit message
-pub fn generate_commit_message(out: &mut OutputChannel, diff: &str, user_summary: Option<String>) -> Result<String> {
+pub fn generate_commit_message(
+    out: &mut OutputChannel,
+    diff: &str,
+    user_summary: Option<String>,
+) -> Result<String> {
     let mut progress = out.progress_channel();
 
     writeln!(progress, "{}", "Generating commit message...".bright_cyan())?;
     let llm = LLMProvider::default_openai()
         .ok_or_else(|| anyhow::anyhow!("Failed to initialize default OpenAI LLM provider"))?;
-    let system_message = "You are a version control assistant that helps with Git branch committing.".to_string();
+    let system_message =
+        "You are a version control assistant that helps with Git branch committing.".to_string();
     let summary = user_summary.unwrap_or_default();
     let user_message = format!(
         r#"Extract the git commit data from the user summary if provided and the diff output.
@@ -100,7 +105,8 @@ pub fn generate_commit_message_from_multiple_messages(
     writeln!(progress, "{}", "Generating commit message...".bright_cyan())?;
     let llm = LLMProvider::default_openai()
         .ok_or_else(|| anyhow::anyhow!("Failed to initialize default OpenAI LLM provider"))?;
-    let system_message = "You are a version control assistant that helps with Git branch committing.".to_string();
+    let system_message =
+        "You are a version control assistant that helps with Git branch committing.".to_string();
     let summary = user_summary.unwrap_or_default();
 
     // Format source messages with descriptive introductions

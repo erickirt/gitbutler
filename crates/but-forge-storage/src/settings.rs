@@ -45,9 +45,15 @@ pub enum GitHubAccount {
 impl GitHubAccount {
     pub fn access_token_key(&self) -> &str {
         match self {
-            GitHubAccount::OAuth { access_token_key, .. } => access_token_key,
-            GitHubAccount::Pat { access_token_key, .. } => access_token_key,
-            GitHubAccount::Enterprise { access_token_key, .. } => access_token_key,
+            GitHubAccount::OAuth {
+                access_token_key, ..
+            } => access_token_key,
+            GitHubAccount::Pat {
+                access_token_key, ..
+            } => access_token_key,
+            GitHubAccount::Enterprise {
+                access_token_key, ..
+            } => access_token_key,
         }
     }
 
@@ -134,8 +140,12 @@ pub enum GitLabAccount {
 impl GitLabAccount {
     pub fn access_token_key(&self) -> &str {
         match self {
-            GitLabAccount::Pat { access_token_key, .. } => access_token_key,
-            GitLabAccount::SelfHosted { access_token_key, .. } => access_token_key,
+            GitLabAccount::Pat {
+                access_token_key, ..
+            } => access_token_key,
+            GitLabAccount::SelfHosted {
+                access_token_key, ..
+            } => access_token_key,
         }
     }
 

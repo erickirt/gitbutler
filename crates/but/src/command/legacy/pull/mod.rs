@@ -62,7 +62,11 @@ struct PullSummary {
     branches_unchanged: usize,
 }
 
-pub async fn handle(ctx: &Context, out: &mut OutputChannel, check_only: bool) -> anyhow::Result<()> {
+pub async fn handle(
+    ctx: &Context,
+    out: &mut OutputChannel,
+    check_only: bool,
+) -> anyhow::Result<()> {
     if check_only {
         handle_check(ctx, out).await
     } else {
@@ -75,11 +79,14 @@ async fn handle_check(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<
 
     writeln!(progress, "Fetching from upstream remotes...")?;
 
-    let base_branch = but_api::legacy::virtual_branches::fetch_from_remotes(ctx, Some("auto".to_string()))?;
+    let base_branch =
+        but_api::legacy::virtual_branches::fetch_from_remotes(ctx, Some("auto".to_string()))?;
 
     writeln!(progress, "Checking integration statuses...")?;
 
-    let status = but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None).await?;
+    let status =
+        but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None)
+            .await?;
 
     if let Some(out) = out.for_json() {
         let (up_to_date, has_worktree_conflicts, branch_statuses) = match &status {
@@ -136,8 +143,16 @@ async fn handle_check(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<
         out.write_value(output)?;
     } else if let Some(out) = out.for_human() {
         writeln!(progress, "{}", "Checking base branch status...".bold())?;
-        writeln!(out, "\n{}\t{}", "Base branch:".dimmed(), base_branch.branch_name.cyan())?;
-        let upstream_label = format!("{} new commits on {}", base_branch.behind, base_branch.branch_name);
+        writeln!(
+            out,
+            "\n{}\t{}",
+            "Base branch:".dimmed(),
+            base_branch.branch_name.cyan()
+        )?;
+        let upstream_label = format!(
+            "{} new commits on {}",
+            base_branch.behind, base_branch.branch_name
+        );
         writeln!(
             out,
             "{}\t{}",
@@ -210,7 +225,11 @@ async fn handle_check(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<
                         }
                     }
                 }
-                writeln!(out, "\n{}", "Run `but pull` to update your branches".dimmed())?;
+                writeln!(
+                    out,
+                    "\n{}",
+                    "Run `but pull` to update your branches".dimmed()
+                )?;
             }
         }
     }
@@ -238,10 +257,15 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
     let mut progress = out.progress_channel();
 
     // Step 1: Check upstream data
-    writeln!(progress, "{}", "Fetching newest data from remotes...".bright_cyan())?;
+    writeln!(
+        progress,
+        "{}",
+        "Fetching newest data from remotes...".bright_cyan()
+    )?;
 
     // Fetch from remotes to get latest upstream info
-    let base_branch = but_api::legacy::virtual_branches::fetch_from_remotes(ctx, Some("pull".to_string()))?;
+    let base_branch =
+        but_api::legacy::virtual_branches::fetch_from_remotes(ctx, Some("pull".to_string()))?;
 
     let upstream_url = format!(
         "{}/{}",
@@ -298,7 +322,9 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
     }
 
     // Step 2: Check integration status
-    let status = but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None).await?;
+    let status =
+        but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None)
+            .await?;
 
     let resolutions = match status {
         UpToDate => {
@@ -323,7 +349,11 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
                         "\n{}",
                         "There are uncommitted changes in the worktree that may conflict with the updates.".red()
                     )?;
-                    writeln!(out, "   {}", "Please commit or stash them and try again.".yellow())?;
+                    writeln!(
+                        out,
+                        "   {}",
+                        "Please commit or stash them and try again.".yellow()
+                    )?;
                 }
                 if let Some(out) = out.for_json() {
                     out.write_value(&pull_result)?;
@@ -376,7 +406,10 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
                         pull_result.branches_to_update.push(branch_info);
                     }
 
-                    let approach = if status.branch_statuses.iter().all(|s| s.status == Integrated)
+                    let approach = if status
+                        .branch_statuses
+                        .iter()
+                        .all(|s| s.status == Integrated)
                         && status.tree_status != TreeStatus::Conflicted
                     {
                         ResolutionApproach::Delete
@@ -413,8 +446,10 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
     // Step 3: Actually perform the integration
     if let Some((resolutions, statuses)) = resolutions {
         // Store branch information before integration, along with resolution approaches
-        let mut branch_info_map: HashMap<gitbutler_stack::StackId, (String, String)> = HashMap::new();
-        let mut resolution_map: HashMap<gitbutler_stack::StackId, ResolutionApproach> = HashMap::new();
+        let mut branch_info_map: HashMap<gitbutler_stack::StackId, (String, String)> =
+            HashMap::new();
+        let mut resolution_map: HashMap<gitbutler_stack::StackId, ResolutionApproach> =
+            HashMap::new();
 
         for (maybe_stack_id, status) in &statuses {
             if let Some(stack_id) = maybe_stack_id {
@@ -431,13 +466,17 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
         }
 
         let integration_result =
-            but_api::legacy::virtual_branches::integrate_upstream(ctx.to_sync(), resolutions, None).await;
+            but_api::legacy::virtual_branches::integrate_upstream(ctx.to_sync(), resolutions, None)
+                .await;
 
         match integration_result {
             Ok(_outcome) => {
                 // Re-fetch status to check for any remaining conflicts
-                let post_status =
-                    but_api::legacy::virtual_branches::upstream_integration_statuses(ctx.to_sync(), None).await?;
+                let post_status = but_api::legacy::virtual_branches::upstream_integration_statuses(
+                    ctx.to_sync(),
+                    None,
+                )
+                .await?;
 
                 // Report detailed results for each resolution
                 let mut successful_rebases: Vec<String> = Vec::new();
@@ -469,10 +508,9 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
                                     but_api::legacy::workspace::stack_details(ctx, Some(*stack_id))
                                         .ok()
                                         .map(|details| {
-                                            details
-                                                .branch_details
-                                                .iter()
-                                                .any(|bd| bd.commits.iter().any(|c| c.has_conflicts))
+                                            details.branch_details.iter().any(|bd| {
+                                                bd.commits.iter().any(|c| c.has_conflicts)
+                                            })
                                         })
                                         .unwrap_or(false);
 
@@ -581,7 +619,12 @@ async fn handle_pull(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<(
                     }
 
                     for branch in &pull_result.integrated_branches {
-                        writeln!(out, "  {} - {}", branch.bright_cyan(), "integrated".bright_purple())?;
+                        writeln!(
+                            out,
+                            "  {} - {}",
+                            branch.bright_cyan(),
+                            "integrated".bright_purple()
+                        )?;
                     }
 
                     for branch in &conflicted_rebases {

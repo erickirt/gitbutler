@@ -51,7 +51,10 @@ use std::{
 };
 
 use bstr::{BString, ByteSlice};
-use gix::{object::tree::EntryKind, refs::FullNameRef, status::plumbing::index_as_worktree::ConflictIndexEntry};
+use gix::{
+    object::tree::EntryKind, refs::FullNameRef,
+    status::plumbing::index_as_worktree::ConflictIndexEntry,
+};
 use serde::Serialize;
 
 /// Functions to obtain changes between various items.
@@ -116,7 +119,8 @@ pub use repo_ext::RepositoryExt;
 ///
 /// TODO: no special handling by branch-name should be needed, it's all in the ref-metadata.
 pub fn is_workspace_ref_name(ref_name: &FullNameRef) -> bool {
-    ref_name.as_bstr() == "refs/heads/gitbutler/workspace" || ref_name.as_bstr() == "refs/heads/gitbutler/integration"
+    ref_name.as_bstr() == "refs/heads/gitbutler/workspace"
+        || ref_name.as_bstr() == "refs/heads/gitbutler/integration"
 }
 
 /// A utility to extract the name of the remote from a remote tracking ref with `ref_name`,
@@ -168,13 +172,21 @@ pub trait RefMetadata {
     ///
     /// If not, they are dangling, and can then be downcast to their actual type to deal with them in some way,
     /// either by [removing](Self::remove) them, or by re-associating them with an existing reference.
-    fn iter(&self) -> impl Iterator<Item = anyhow::Result<(gix::refs::FullName, Box<dyn Any>)>> + '_;
+    fn iter(
+        &self,
+    ) -> impl Iterator<Item = anyhow::Result<(gix::refs::FullName, Box<dyn Any>)>> + '_;
 
     /// Retrieve workspace metadata for `ref_name` or create it if it wasn't present yet.
-    fn workspace(&self, ref_name: &gix::refs::FullNameRef) -> anyhow::Result<Self::Handle<ref_metadata::Workspace>>;
+    fn workspace(
+        &self,
+        ref_name: &gix::refs::FullNameRef,
+    ) -> anyhow::Result<Self::Handle<ref_metadata::Workspace>>;
 
     /// Retrieve branch metadata for `ref_name` or create it if it wasn't present yet.
-    fn branch(&self, ref_name: &gix::refs::FullNameRef) -> anyhow::Result<Self::Handle<ref_metadata::Branch>>;
+    fn branch(
+        &self,
+        ref_name: &gix::refs::FullNameRef,
+    ) -> anyhow::Result<Self::Handle<ref_metadata::Branch>>;
 
     /// Like [`branch()`](Self::branch()), but instead of possibly returning default values, return an
     /// optional branch instead.
@@ -185,7 +197,11 @@ pub trait RefMetadata {
         ref_name: &gix::refs::FullNameRef,
     ) -> anyhow::Result<Option<Self::Handle<ref_metadata::Branch>>> {
         let branch = self.branch(ref_name)?;
-        Ok(if branch.is_default() { None } else { Some(branch) })
+        Ok(if branch.is_default() {
+            None
+        } else {
+            Some(branch)
+        })
     }
 
     /// Like [`workspace()`](Self::workspace()), but instead of possibly returning default values, return an
@@ -201,7 +217,10 @@ pub trait RefMetadata {
     }
 
     /// Set workspace metadata to match `value`.
-    fn set_workspace(&mut self, value: &Self::Handle<ref_metadata::Workspace>) -> anyhow::Result<()>;
+    fn set_workspace(
+        &mut self,
+        value: &Self::Handle<ref_metadata::Workspace>,
+    ) -> anyhow::Result<()>;
 
     /// Set branch metadata to match `value`.
     fn set_branch(&mut self, value: &Self::Handle<ref_metadata::Branch>) -> anyhow::Result<()>;

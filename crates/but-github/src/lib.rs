@@ -6,10 +6,12 @@ use but_settings::AppSettings;
 use serde::{Deserialize, Serialize};
 
 mod client;
+mod graphql;
 pub mod pr;
 pub use client::{
-    CheckRun, CreatePullRequestParams, GitHubClient, GitHubPrLabel, GitHubUser, MergeMethod, MergePullRequestParams,
-    PullRequest, UpdatePullRequestParams,
+    AutoMergeEnableParams, AutoMergeState, CheckRun, CreatePullRequestParams, GitHubClient,
+    GitHubPrLabel, GitHubUser, MergeMethod, MergePullRequestParams, PullRequest,
+    SetPullRequestAutoMergeParams, SetPullRequestDraftStateParams, UpdatePullRequestParams,
 };
 mod token;
 pub use token::GithubAccountIdentifier;
@@ -153,8 +155,12 @@ async fn fetch_and_persist_pat_user_data(
         .get_authenticated()
         .await
         .context("Failed to get authenticated user")?;
-    token::persist_gh_access_token(&token::GithubAccountIdentifier::pat(&user.login), access_token, storage)
-        .context("Failed to persist access token")?;
+    token::persist_gh_access_token(
+        &token::GithubAccountIdentifier::pat(&user.login),
+        access_token,
+        storage,
+    )
+    .context("Failed to persist access token")?;
     Ok(user)
 }
 
@@ -180,8 +186,8 @@ async fn fetch_and_persist_enterprise_user_data(
     access_token: &Sensitive<String>,
     storage: &but_forge_storage::Controller,
 ) -> Result<client::AuthenticatedUser, anyhow::Error> {
-    let gh =
-        client::GitHubClient::new_with_host_override(access_token, host).context("Failed to create GitHub client")?;
+    let gh = client::GitHubClient::new_with_host_override(access_token, host)
+        .context("Failed to create GitHub client")?;
     let user = gh
         .get_authenticated()
         .await
@@ -278,7 +284,7 @@ pub async fn check_credentials(
     }
 }
 
-pub async fn list_known_github_accounts(
+pub fn list_known_github_accounts(
     storage: &but_forge_storage::Controller,
 ) -> Result<Vec<token::GithubAccountIdentifier>> {
     token::list_known_github_accounts(storage).context("Failed to list known GitHub usernames")
@@ -293,8 +299,9 @@ pub fn clear_all_github_tokens(storage: &but_forge_storage::Controller) -> Resul
 /// This module contains serializable versions of GitHub authentication types
 /// that expose sensitive data (like access tokens) as plain strings for API responses.
 pub mod json {
-    use crate::{AuthStatusResponse, AuthenticatedUser};
     use serde::Serialize;
+
+    use crate::{AuthStatusResponse, AuthenticatedUser};
 
     /// Serializable version of [`AuthStatusResponse`] with exposed access token.
     ///
@@ -416,7 +423,10 @@ mod tests {
         let result = client.get("http://192.0.2.1:80").send();
 
         if let Err(reqwest_err) = result {
-            assert!(is_network_error(&reqwest_err), "Should detect reqwest network errors");
+            assert!(
+                is_network_error(&reqwest_err),
+                "Should detect reqwest network errors"
+            );
         } else {
             panic!("Expected a network error but request succeeded");
         }

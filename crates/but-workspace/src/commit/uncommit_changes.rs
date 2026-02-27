@@ -37,7 +37,9 @@ pub(crate) mod function {
 
         let (tree_without_changes, dropped_diffs) = create_tree_without_diff(
             editor.repo(),
-            ChangesSource::Commit { id: commit.id.into() },
+            ChangesSource::Commit {
+                id: commit.id.into(),
+            },
             changes,
             context_lines,
         )?;

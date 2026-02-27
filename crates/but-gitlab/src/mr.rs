@@ -57,6 +57,18 @@ pub async fn get(
     Ok(mr)
 }
 
+pub async fn update(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    params: crate::client::UpdateMergeRequestParams<'_>,
+    storage: &but_forge_storage::Controller,
+) -> Result<crate::client::MergeRequest> {
+    let mr = GitLabClient::from_storage(storage, preferred_account)?
+        .update_merge_request(&params)
+        .await
+        .context("Failed to update merge request")?;
+    Ok(mr)
+}
+
 pub async fn merge(
     preferred_account: Option<&crate::GitlabAccountIdentifier>,
     params: crate::client::MergeMergeRequestParams,
@@ -66,4 +78,26 @@ pub async fn merge(
         .merge_merge_request(&params)
         .await
         .context("Faile to merge MR")
+}
+
+pub async fn set_draft_state(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    params: crate::client::SetMergeRequestDraftStateParams,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    GitLabClient::from_storage(storage, preferred_account)?
+        .set_merge_request_draft_state(&params)
+        .await
+        .context("Failed to set MR draft state")
+}
+
+pub async fn set_auto_merge(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    params: crate::client::SetMergeRequestAutoMergeParams,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    GitLabClient::from_storage(storage, preferred_account)?
+        .set_merge_request_auto_merge(&params)
+        .await
+        .context("Failed to set MR auto-merge state")
 }

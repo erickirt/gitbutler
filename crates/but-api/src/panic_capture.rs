@@ -6,10 +6,12 @@
 //! `panic_payload_to_anyhow()` combines that snapshot with the unwind payload to
 //! produce a detailed error.
 
-use std::any::Any;
-use std::cell::RefCell;
-use std::panic::{self, PanicHookInfo};
-use std::sync::Once;
+use std::{
+    any::Any,
+    cell::RefCell,
+    panic::{self, PanicHookInfo},
+    sync::Once,
+};
 
 /// Snapshot of panic metadata captured by the installed hook.
 #[derive(Debug)]
@@ -68,7 +70,9 @@ pub(crate) fn panic_payload_to_anyhow(
             snapshot.backtrace
         )
     } else {
-        let panic_message = payload_message.as_deref().unwrap_or("panic payload was not a string");
+        let panic_message = payload_message
+            .as_deref()
+            .unwrap_or("panic payload was not a string");
         anyhow::anyhow!(
             "panic while executing `{}`: {}\n\npanic backtrace unavailable from hook; conversion backtrace:\n{}",
             function_name,

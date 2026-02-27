@@ -38,6 +38,9 @@ There are several community-maintained distributions of GitButler. Issues with t
   - [gitbutler-bin](https://aur.archlinux.org/packages/gitbutler-bin)
 - Flatpak
   - [GitButler](https://flathub.org/en/apps/com.gitbutler.gitbutler)
+- Nix
+  - [stable](https://search.nixos.org/packages?query=gitbutler&show=gitbutler)
+  - [unstable](https://search.nixos.org/packages?channel=unstable&query=gitbutler&show=gitbutler)
 
 ## Known issues and workarounds
 

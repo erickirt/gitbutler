@@ -81,3 +81,25 @@ pub async fn merge(
         .await
         .context("Failed to merge PR")
 }
+
+pub async fn set_draft_state(
+    preferred_account: Option<&crate::GithubAccountIdentifier>,
+    params: crate::client::SetPullRequestDraftStateParams<'_>,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    GitHubClient::from_storage(storage, preferred_account)?
+        .set_pull_request_draft_state(&params)
+        .await
+        .context("Failed to update PR draft state")
+}
+
+pub async fn set_auto_merge(
+    preferred_account: Option<&crate::GithubAccountIdentifier>,
+    params: crate::client::SetPullRequestAutoMergeParams<'_>,
+    storage: &but_forge_storage::Controller,
+) -> Result<()> {
+    GitHubClient::from_storage(storage, preferred_account)?
+        .set_pull_request_auto_merge(&params)
+        .await
+        .context("Failed to update PR auto-merge state")
+}

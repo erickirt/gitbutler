@@ -27,8 +27,13 @@ pub fn process_workspace_rules(
         .filter(|r| r.enabled)
         .filter(|r| matches!(r.trigger, super::Trigger::FileSytemChange))
         .filter(|r| {
-            matches!(&r.action, super::Action::Explicit(super::Operation::Assign { .. }))
-                || matches!(&r.action, super::Action::Explicit(super::Operation::Amend { .. }))
+            matches!(
+                &r.action,
+                super::Action::Explicit(super::Operation::Assign { .. })
+            ) || matches!(
+                &r.action,
+                super::Action::Explicit(super::Operation::Amend { .. })
+            )
         })
         .collect_vec();
 
@@ -119,8 +124,9 @@ fn handle_amend(
         }
     }
 
-    let commit_id = commit_id
-        .ok_or_else(|| anyhow::anyhow!("No commit with Change-Id {change_id} found in the current workspace"))?;
+    let commit_id = commit_id.ok_or_else(|| {
+        anyhow::anyhow!("No commit with Change-Id {change_id} found in the current workspace")
+    })?;
 
     commit_engine::create_commit_and_update_refs_with_project(
         repo,
@@ -160,14 +166,18 @@ fn get_or_create_stack_id(
         }
         StackTarget::Leftmost => {
             if stack_ids_in_ws.is_empty() {
-                create_stack(repo, ws, meta, perm).ok().map(|(id, ws)| (id, Some(ws)))
+                create_stack(repo, ws, meta, perm)
+                    .ok()
+                    .map(|(id, ws)| (id, Some(ws)))
             } else {
                 stack_ids_in_ws.first().copied().map(|id| (id, None))
             }
         }
         StackTarget::Rightmost => {
             if stack_ids_in_ws.is_empty() {
-                create_stack(repo, ws, meta, perm).ok().map(|(id, ws)| (id, Some(ws)))
+                create_stack(repo, ws, meta, perm)
+                    .ok()
+                    .map(|(id, ws)| (id, Some(ws)))
             } else {
                 stack_ids_in_ws.last().copied().map(|id| (id, None))
             }
@@ -240,7 +250,8 @@ fn matching(wt_assignments: &[HunkAssignment], filters: Vec<Filter>) -> Vec<Hunk
                 for change in wt_assignments.iter() {
                     if let Some(diff) = change.diff.clone() {
                         let diff = diff.to_string();
-                        let matching_lines: Vec<&str> = diff.lines().filter(|line| line.starts_with('+')).collect();
+                        let matching_lines: Vec<&str> =
+                            diff.lines().filter(|line| line.starts_with('+')).collect();
                         if matching_lines.iter().any(|line| regex.is_match(line)) {
                             assignments.push(change.clone());
                         }

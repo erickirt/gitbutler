@@ -265,7 +265,9 @@ fn unapply_using_cli_branch_id() -> anyhow::Result<()> {
     let status: serde_json::Value = serde_json::from_slice(&status_output.stdout)?;
 
     // Find the branch's CLI ID - JSON uses camelCase and "branches" not "heads"
-    let stacks = status["stacks"].as_array().expect("stacks should be an array");
+    let stacks = status["stacks"]
+        .as_array()
+        .expect("stacks should be an array");
     let mut cli_id = None;
     for stack in stacks {
         if let Some(branches) = stack["branches"].as_array() {
@@ -293,7 +295,9 @@ Unapplied stack with branches 'feature-branch' from workspace
     // Verify the branch is no longer in workspace
     let status_output = env.but("status --json").allow_json().output()?;
     let status: serde_json::Value = serde_json::from_slice(&status_output.stdout)?;
-    let stacks = status["stacks"].as_array().expect("stacks should be an array");
+    let stacks = status["stacks"]
+        .as_array()
+        .expect("stacks should be an array");
 
     // The feature-branch should no longer be in any stack
     for stack in stacks {
@@ -327,7 +331,9 @@ fn unapply_using_cli_stack_id() -> anyhow::Result<()> {
     let status: serde_json::Value = serde_json::from_slice(&status_output.stdout)?;
 
     // Find the stack's CLI ID for the feature-branch - JSON uses camelCase and "branches" not "heads"
-    let stacks = status["stacks"].as_array().expect("stacks should be an array");
+    let stacks = status["stacks"]
+        .as_array()
+        .expect("stacks should be an array");
     let mut stack_cli_id = None;
     for stack in stacks {
         if let Some(branches) = stack["branches"].as_array() {
@@ -367,7 +373,11 @@ fn unapply_json_output_validation() -> anyhow::Result<()> {
     env.but("apply").arg(branch_name).assert().success();
 
     // Unapply with JSON output and validate structure
-    let output = env.but("--json unapply").arg(branch_name).allow_json().output()?;
+    let output = env
+        .but("--json unapply")
+        .arg(branch_name)
+        .allow_json()
+        .output()?;
 
     assert!(output.status.success());
 
@@ -375,7 +385,9 @@ fn unapply_json_output_validation() -> anyhow::Result<()> {
 
     // Validate JSON structure
     assert_eq!(json["unapplied"], serde_json::json!(true));
-    let branches = json["branches"].as_array().expect("branches should be an array");
+    let branches = json["branches"]
+        .as_array()
+        .expect("branches should be an array");
     assert_eq!(branches.len(), 1);
     assert_eq!(branches[0], serde_json::json!("feature-branch"));
 
@@ -389,7 +401,11 @@ mod utils {
         create_local_branch_with_commit_with_message(env, name, "Add feature")
     }
 
-    pub fn create_local_branch_with_commit_with_message(env: &Sandbox, name: &str, commit_message: &str) {
+    pub fn create_local_branch_with_commit_with_message(
+        env: &Sandbox,
+        name: &str,
+        commit_message: &str,
+    ) {
         env.invoke_bash(format!(
             r#"
     git checkout main -b {name};

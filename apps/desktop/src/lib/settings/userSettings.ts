@@ -1,9 +1,9 @@
-import { InjectionToken } from '@gitbutler/core/context';
-import { type ScrollbarVisilitySettings } from '@gitbutler/ui';
-import { get, writable, type Writable } from 'svelte/store';
+import { InjectionToken } from "@gitbutler/core/context";
+import { type ScrollbarVisilitySettings } from "@gitbutler/ui";
+import { get, writable, type Writable } from "svelte/store";
 
-const SETTINGS_KEY = 'settings-json';
-export const SETTINGS = new InjectionToken<Writable<Settings>>('Settings');
+const SETTINGS_KEY = "settings-json";
+export const SETTINGS = new InjectionToken<Writable<Settings>>("Settings");
 
 export type CodeEditorSettings = {
 	schemeIdentifer: string;
@@ -13,17 +13,17 @@ export type CodeEditorSettings = {
 export type TerminalSettings = {
 	identifier: string;
 	displayName: string;
-	platform: 'macos' | 'windows' | 'linux';
+	platform: "macos" | "windows" | "linux";
 };
 
 function defaultTerminalForPlatform(platformName: string): TerminalSettings {
 	switch (platformName) {
-		case 'windows':
-			return { identifier: 'powershell', displayName: 'PowerShell', platform: 'windows' };
-		case 'linux':
-			return { identifier: 'gnome-terminal', displayName: 'GNOME Terminal', platform: 'linux' };
+		case "windows":
+			return { identifier: "powershell", displayName: "PowerShell", platform: "windows" };
+		case "linux":
+			return { identifier: "gnome-terminal", displayName: "GNOME Terminal", platform: "linux" };
 		default:
-			return { identifier: 'terminal', displayName: 'Terminal', platform: 'macos' };
+			return { identifier: "terminal", displayName: "Terminal", platform: "macos" };
 	}
 }
 
@@ -49,7 +49,7 @@ export interface Settings {
 	colorBlindFriendly: boolean;
 	defaultCodeEditor: CodeEditorSettings;
 	defaultTerminal: TerminalSettings;
-	defaultFileListMode: 'tree' | 'list';
+	defaultFileListMode: "tree" | "list";
 	pathFirst: boolean;
 	singleDiffView: boolean;
 }
@@ -65,25 +65,25 @@ const defaults: Settings = {
 	defaultTreeHeight: 100,
 	stashedBranchesHeight: 150,
 	zoom: 1,
-	scrollbarVisibilityState: 'scroll',
+	scrollbarVisibilityState: "scroll",
 	tabSize: 4,
 	wrapText: false,
-	diffFont: 'Geist Mono, Menlo, monospace',
+	diffFont: "Geist Mono, Menlo, monospace",
 	diffLigatures: false,
 	inlineUnifiedDiffs: false,
 	strongContrast: false,
 	colorBlindFriendly: false,
-	defaultCodeEditor: { schemeIdentifer: 'vscode', displayName: 'VSCode' },
-	defaultTerminal: { identifier: 'terminal', displayName: 'Terminal', platform: 'macos' },
-	defaultFileListMode: 'list',
+	defaultCodeEditor: { schemeIdentifer: "vscode", displayName: "VSCode" },
+	defaultTerminal: { identifier: "terminal", displayName: "Terminal", platform: "macos" },
+	defaultFileListMode: "list",
 	pathFirst: true,
-	singleDiffView: false
+	singleDiffView: false,
 };
 
 export function loadUserSettings(platformName: string): Writable<Settings> {
 	let obj: Partial<Settings>;
 	try {
-		obj = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '');
+		obj = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "");
 	} catch {
 		obj = {};
 	}
@@ -100,6 +100,6 @@ export function loadUserSettings(platformName: string): Writable<Settings> {
 		update: (updater) => {
 			store.update(updater);
 			localStorage.setItem(SETTINGS_KEY, JSON.stringify(get(store)));
-		}
+		},
 	};
 }

@@ -1,16 +1,18 @@
 use std::borrow::Cow;
 
 use bstr::ByteSlice;
-use but_core::{DiffSpec, HunkHeader, TreeChange, TreeStatus, UnifiedPatch, unified_diff::DiffHunk};
+use but_core::{
+    DiffSpec, HunkHeader, TreeChange, TreeStatus, UnifiedPatch, unified_diff::DiffHunk,
+};
 use but_workspace::commit_engine::Destination;
 use gix::prelude::ObjectIdExt;
 
 pub const CONTEXT_LINES: u32 = 0;
 
 pub use but_testsupport::{
-    read_only_in_memory_scenario, read_only_in_memory_scenario_named, visualize_index, visualize_index_with_content,
-    writable_scenario, writable_scenario_slow, writable_scenario_with_args, writable_scenario_with_ssh_key,
-    write_sequence,
+    read_only_in_memory_scenario, read_only_in_memory_scenario_named, visualize_index,
+    visualize_index_with_content, writable_scenario, writable_scenario_slow,
+    writable_scenario_with_args, writable_scenario_with_ssh_key, write_sequence,
 };
 
 /// Always use all the hunks.
@@ -31,7 +33,11 @@ pub fn to_change_specs_whole_file(changes: but_core::WorktreeChanges) -> Vec<Dif
     out
 }
 
-pub fn diff_spec(previous_path: Option<&str>, path: &str, hunks: impl IntoIterator<Item = HunkHeader>) -> DiffSpec {
+pub fn diff_spec(
+    previous_path: Option<&str>,
+    path: &str,
+    hunks: impl IntoIterator<Item = HunkHeader>,
+) -> DiffSpec {
     DiffSpec {
         previous_path: previous_path.map(Into::into),
         path: path.into(),
@@ -108,7 +114,9 @@ impl std::fmt::Debug for LeanDiffHunk {
     }
 }
 
-pub fn worktree_changes_with_diffs(repo: &gix::Repository) -> anyhow::Result<Vec<(TreeChange, Vec<LeanDiffHunk>)>> {
+pub fn worktree_changes_with_diffs(
+    repo: &gix::Repository,
+) -> anyhow::Result<Vec<(TreeChange, Vec<LeanDiffHunk>)>> {
     let worktree_changes = but_core::diff::worktree_changes(repo)?;
     Ok(worktree_changes
         .changes
@@ -190,7 +198,12 @@ pub fn visualize_commit(
     repo: &gix::Repository,
     outcome: &but_workspace::commit_engine::CreateCommitOutcome,
 ) -> anyhow::Result<String> {
-    cat_commit(outcome.new_commit.expect("a new commit was created").attach(repo))
+    cat_commit(
+        outcome
+            .new_commit
+            .expect("a new commit was created")
+            .attach(repo),
+    )
 }
 
 pub fn cat_commit(commit: gix::Id<'_>) -> anyhow::Result<String> {

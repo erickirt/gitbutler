@@ -194,7 +194,10 @@ impl TargetRef {
     /// Return `None` if `ref_name` wasn't found as segment in `graph`.
     /// This can happen if a reference is configured, but not actually present as reference.
     /// Note that `commits_ahead` isn't set yet, see [`Self::compute_and_set_commits_ahead()`].
-    fn from_ref_name_without_commits_ahead(ref_name: &gix::refs::FullName, graph: &Graph) -> Option<Self> {
+    fn from_ref_name_without_commits_ahead(
+        ref_name: &gix::refs::FullName,
+        graph: &Graph,
+    ) -> Option<Self> {
         let target_segment_sidx = graph.inner.node_indices().find_map(|n| {
             let s = &graph[n];
             (s.ref_name() == Some(ref_name.as_ref())).then_some(s.id)
@@ -206,7 +209,11 @@ impl TargetRef {
         })
     }
 
-    fn compute_and_set_commits_ahead(&mut self, graph: &Graph, lower_bound_segment: Option<SegmentIndex>) {
+    fn compute_and_set_commits_ahead(
+        &mut self,
+        graph: &Graph,
+        lower_bound_segment: Option<SegmentIndex>,
+    ) {
         let lower_bound = lower_bound_segment.map(|sidx| (sidx, graph[sidx].generation));
         self.commits_ahead = 0;
         Self::visit_upstream_commits(graph, self.segment_index, lower_bound, |s| {
@@ -220,10 +227,14 @@ fn find_segment_owner_indexes_by_refname(
     ref_name: &gix::refs::FullNameRef,
 ) -> Option<(usize, usize)> {
     stacks.iter().enumerate().find_map(|(stack_idx, stack)| {
-        stack.segments.iter().enumerate().find_map(|(seg_idx, seg)| {
-            seg.ref_name()
-                .is_some_and(|rn| rn == ref_name)
-                .then_some((stack_idx, seg_idx))
-        })
+        stack
+            .segments
+            .iter()
+            .enumerate()
+            .find_map(|(seg_idx, seg)| {
+                seg.ref_name()
+                    .is_some_and(|rn| rn == ref_name)
+                    .then_some((stack_idx, seg_idx))
+            })
     })
 }

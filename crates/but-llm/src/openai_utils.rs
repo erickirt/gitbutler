@@ -5,10 +5,10 @@ use async_openai::{
     Client,
     config::OpenAIConfig,
     types::chat::{
-        ChatCompletionMessageToolCalls, ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestMessage,
-        ChatCompletionRequestSystemMessage, ChatCompletionRequestToolMessageContent,
-        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs, ResponseFormat,
-        ResponseFormatJsonSchema,
+        ChatCompletionMessageToolCalls, ChatCompletionRequestAssistantMessageContent,
+        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
+        ChatCompletionRequestToolMessageContent, ChatCompletionRequestUserMessageContent,
+        CreateChatCompletionRequestArgs, ResponseFormat, ResponseFormatJsonSchema,
     },
 };
 use but_tools::tool::Toolset;
@@ -18,7 +18,8 @@ use serde::de::DeserializeOwned;
 use tokio::sync::Mutex;
 
 use crate::{
-    ChatMessage, StreamToolCallResult, ToolCall, ToolCallContent, ToolResponseContent, chat::ConversationResult,
+    ChatMessage, StreamToolCallResult, ToolCall, ToolCallContent, ToolResponseContent,
+    chat::ConversationResult,
 };
 
 pub trait OpenAIClientProvider {
@@ -50,17 +51,19 @@ impl From<ChatMessage> for ChatCompletionRequestMessage {
                     ..Default::default()
                 },
             ),
-            ChatMessage::ToolResponse(content) => {
-                ChatCompletionRequestMessage::Tool(async_openai::types::chat::ChatCompletionRequestToolMessage {
+            ChatMessage::ToolResponse(content) => ChatCompletionRequestMessage::Tool(
+                async_openai::types::chat::ChatCompletionRequestToolMessage {
                     tool_call_id: content.id,
                     content: ChatCompletionRequestToolMessageContent::Text(content.result),
-                })
-            }
+                },
+            ),
         }
     }
 }
 
-pub fn structured_output_blocking<T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static>(
+pub fn structured_output_blocking<
+    T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static,
+>(
     provider: &impl OpenAIClientProvider,
     system_message: &str,
     chat_messages: Vec<ChatMessage>,
@@ -179,13 +182,15 @@ pub fn tool_calling_stream_blocking(
     let model = model.to_string();
 
     std::thread::spawn(move || {
-        tokio::runtime::Runtime::new().unwrap().block_on(tool_calling_stream(
-            &client,
-            messages_owned,
-            tools_owned,
-            model,
-            on_token,
-        ))
+        tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(tool_calling_stream(
+                &client,
+                messages_owned,
+                tools_owned,
+                model,
+                on_token,
+            ))
     })
     .join()
     .unwrap()
@@ -213,7 +218,8 @@ pub fn tool_calling_loop(
         .map(|t| t.deref().try_into())
         .collect::<Result<Vec<async_openai::types::chat::ChatCompletionTools>, _>>()?;
 
-    let mut response = tool_calling_blocking(provider, messages.clone(), open_ai_tools.clone(), model)?;
+    let mut response =
+        tool_calling_blocking(provider, messages.clone(), open_ai_tools.clone(), model)?;
 
     let mut text_response_buffer = vec![];
     if let Some(text_response) = response
@@ -247,8 +253,8 @@ pub fn tool_calling_loop(
             };
 
             let tool_response = tool_set.call_tool(&function_name, &function_args);
-            let tool_response_str =
-                serde_json::to_string(&tool_response).context("Failed to serialize tool response")?;
+            let tool_response_str = serde_json::to_string(&tool_response)
+                .context("Failed to serialize tool response")?;
 
             tool_calls_messages.push(ChatCompletionMessageToolCalls::Function(
                 async_openai::types::chat::ChatCompletionMessageToolCall {
@@ -323,10 +329,11 @@ pub fn tool_calling_loop_stream(
 
     let on_token = Arc::new(on_token);
 
-    let mut response = tool_calling_stream_blocking(provider, messages.clone(), open_ai_tools.clone(), model, {
-        let on_token = Arc::clone(&on_token);
-        move |s: &str| on_token(s)
-    })?;
+    let mut response =
+        tool_calling_stream_blocking(provider, messages.clone(), open_ai_tools.clone(), model, {
+            let on_token = Arc::clone(&on_token);
+            move |s: &str| on_token(s)
+        })?;
 
     let mut text_response_buffer = vec![];
     if let Some(text_response) = response.1 {
@@ -334,8 +341,12 @@ pub fn tool_calling_loop_stream(
     }
 
     while let Some(tool_calls) = response.0 {
-        let mut tool_calls_messages: Vec<async_openai::types::chat::ChatCompletionMessageToolCalls> = vec![];
-        let mut tool_response_messages: Vec<async_openai::types::chat::ChatCompletionRequestMessage> = vec![];
+        let mut tool_calls_messages: Vec<
+            async_openai::types::chat::ChatCompletionMessageToolCalls,
+        > = vec![];
+        let mut tool_response_messages: Vec<
+            async_openai::types::chat::ChatCompletionRequestMessage,
+        > = vec![];
 
         for call in tool_calls {
             let ToolCall {
@@ -346,40 +357,52 @@ pub fn tool_calling_loop_stream(
 
             let tool_response = tool_set.call_tool(&function_name, &function_args);
 
-            let tool_response_str =
-                serde_json::to_string(&tool_response).context("Failed to serialize tool response")?;
+            let tool_response_str = serde_json::to_string(&tool_response)
+                .context("Failed to serialize tool response")?;
 
-            tool_calls_messages.push(async_openai::types::chat::ChatCompletionMessageToolCalls::Function(
-                async_openai::types::chat::ChatCompletionMessageToolCall {
-                    id: id.clone(),
-                    function: async_openai::types::chat::FunctionCall {
-                        name: function_name,
-                        arguments: function_args,
+            tool_calls_messages.push(
+                async_openai::types::chat::ChatCompletionMessageToolCalls::Function(
+                    async_openai::types::chat::ChatCompletionMessageToolCall {
+                        id: id.clone(),
+                        function: async_openai::types::chat::FunctionCall {
+                            name: function_name,
+                            arguments: function_args,
+                        },
                     },
-                },
-            ));
+                ),
+            );
 
-            tool_response_messages.push(async_openai::types::chat::ChatCompletionRequestMessage::Tool(
-                async_openai::types::chat::ChatCompletionRequestToolMessage {
-                    tool_call_id: id.clone(),
-                    content: ChatCompletionRequestToolMessageContent::Text(tool_response_str),
-                },
-            ));
+            tool_response_messages.push(
+                async_openai::types::chat::ChatCompletionRequestMessage::Tool(
+                    async_openai::types::chat::ChatCompletionRequestToolMessage {
+                        tool_call_id: id.clone(),
+                        content: ChatCompletionRequestToolMessageContent::Text(tool_response_str),
+                    },
+                ),
+            );
         }
 
-        messages.push(async_openai::types::chat::ChatCompletionRequestMessage::Assistant(
-            async_openai::types::chat::ChatCompletionRequestAssistantMessage {
-                tool_calls: Some(tool_calls_messages),
-                ..Default::default()
-            },
-        ));
+        messages.push(
+            async_openai::types::chat::ChatCompletionRequestMessage::Assistant(
+                async_openai::types::chat::ChatCompletionRequestAssistantMessage {
+                    tool_calls: Some(tool_calls_messages),
+                    ..Default::default()
+                },
+            ),
+        );
 
         messages.extend(tool_response_messages);
 
-        response = tool_calling_stream_blocking(provider, messages.clone(), open_ai_tools.clone(), model, {
-            let on_token = Arc::clone(&on_token);
-            move |s: &str| on_token(s)
-        })?;
+        response = tool_calling_stream_blocking(
+            provider,
+            messages.clone(),
+            open_ai_tools.clone(),
+            model,
+            {
+                let on_token = Arc::clone(&on_token);
+                move |s: &str| on_token(s)
+            },
+        )?;
 
         if let Some(text_response) = response.1 {
             handle_text_response(text_response, &mut text_response_buffer, &mut messages);
@@ -419,12 +442,17 @@ fn from_openai_chat_messages(messages: Vec<ChatCompletionRequestMessage>) -> Vec
                                 arguments: func_call.function.arguments.clone(),
                             }));
                         } else {
-                            tracing::warn!(?tool_call, "Encountered unexpected non-function tool call");
+                            tracing::warn!(
+                                ?tool_call,
+                                "Encountered unexpected non-function tool call"
+                            );
                         }
                     }
                 }
 
-                if let Some(ChatCompletionRequestAssistantMessageContent::Text(text)) = assistant_msg.content {
+                if let Some(ChatCompletionRequestAssistantMessageContent::Text(text)) =
+                    assistant_msg.content
+                {
                     chat_messages.push(ChatMessage::Assistant(text));
                 }
             }
@@ -452,7 +480,9 @@ fn handle_text_response(
     text_response_buffer.push(text_response.clone());
     messages.push(ChatCompletionRequestMessage::Assistant(
         async_openai::types::chat::ChatCompletionRequestAssistantMessage {
-            content: Some(ChatCompletionRequestAssistantMessageContent::Text(text_response)),
+            content: Some(ChatCompletionRequestAssistantMessageContent::Text(
+                text_response,
+            )),
             ..Default::default()
         },
     ));
@@ -581,7 +611,8 @@ async fn tool_calling_stream(
 
     let mut stream = client.chat().create_stream(request).await?;
 
-    let tool_call_states: Arc<Mutex<HashMap<(u32, u32), ToolCall>>> = Arc::new(Mutex::new(HashMap::new()));
+    let tool_call_states: Arc<Mutex<HashMap<(u32, u32), ToolCall>>> =
+        Arc::new(Mutex::new(HashMap::new()));
 
     let mut response_text: Option<String> = None;
 
@@ -610,7 +641,11 @@ async fn tool_calling_stream(
                             .unwrap_or_default(),
                     });
 
-                    if let Some(arguments) = tool_call_chunk.function.as_ref().and_then(|f| f.arguments.as_ref()) {
+                    if let Some(arguments) = tool_call_chunk
+                        .function
+                        .as_ref()
+                        .and_then(|f| f.arguments.as_ref())
+                    {
                         state.arguments.push_str(arguments);
                     }
                 }
@@ -618,7 +653,10 @@ async fn tool_calling_stream(
 
             // If finished streaming the tool calls, return them.
             if let Some(finish_reason) = &chat_choice.finish_reason
-                && matches!(finish_reason, async_openai::types::chat::FinishReason::ToolCalls)
+                && matches!(
+                    finish_reason,
+                    async_openai::types::chat::FinishReason::ToolCalls
+                )
             {
                 let tool_call_states_clone = tool_call_states.clone();
 

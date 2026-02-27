@@ -20,9 +20,12 @@ fn head() {
     drop(guard);
 
     let mut guard = ctx.exclusive_worktree_access();
-    let stack_entry =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let stack_entry = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     {
@@ -45,10 +48,18 @@ fn head() {
         commit_three.change_id()
     };
 
-    gitbutler_branch_actions::update_commit_message(ctx, stack_entry.id, commit_three_oid, "commit three updated")
-        .unwrap();
+    gitbutler_branch_actions::update_commit_message(
+        ctx,
+        stack_entry.id,
+        commit_three_oid,
+        "commit three updated",
+    )
+    .unwrap();
 
-    let (_, b) = stack_details(ctx).into_iter().find(|d| d.0 == stack_entry.id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|d| d.0 == stack_entry.id)
+        .unwrap();
     let messages = b
         .branch_details
         .iter()
@@ -57,13 +68,18 @@ fn head() {
 
     // get the last commit
     let gix_repo = ctx.repo.get().unwrap();
-    let commit = gix_repo.find_commit(b.branch_details[0].commits[0].id).unwrap();
+    let commit = gix_repo
+        .find_commit(b.branch_details[0].commits[0].id)
+        .unwrap();
 
     // make sure the SHA changed, but the change ID did not
     assert_ne!(commit_three_oid.to_gix(), commit.id());
     assert_eq!(before_change_id, commit.change_id());
 
-    assert_eq!(messages, vec!["commit three updated", "commit two", "commit one"]);
+    assert_eq!(
+        messages,
+        vec!["commit three updated", "commit two", "commit one"]
+    );
 }
 
 #[test]
@@ -80,9 +96,12 @@ fn middle() {
     drop(guard);
 
     let mut guard = ctx.exclusive_worktree_access();
-    let stack_entry =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let stack_entry = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     {
@@ -100,16 +119,28 @@ fn middle() {
         super::create_commit(ctx, stack_entry.id, "commit three").unwrap()
     };
 
-    gitbutler_branch_actions::update_commit_message(ctx, stack_entry.id, commit_two_oid, "commit two updated").unwrap();
+    gitbutler_branch_actions::update_commit_message(
+        ctx,
+        stack_entry.id,
+        commit_two_oid,
+        "commit two updated",
+    )
+    .unwrap();
 
-    let (_, b) = stack_details(ctx).into_iter().find(|d| d.0 == stack_entry.id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|d| d.0 == stack_entry.id)
+        .unwrap();
     let messages = b
         .branch_details
         .iter()
         .flat_map(|branch| branch.commits.iter().map(|c| c.message.clone()))
         .collect::<Vec<_>>();
 
-    assert_eq!(messages, vec!["commit three", "commit two updated", "commit one"]);
+    assert_eq!(
+        messages,
+        vec!["commit three", "commit two updated", "commit one"]
+    );
 }
 
 #[test]
@@ -139,9 +170,12 @@ fn forcepush_allowed() {
     .unwrap();
 
     let mut guard = ctx.exclusive_worktree_access();
-    let stack_entry =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let stack_entry = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     let commit_one_oid = {
@@ -160,9 +194,18 @@ fn forcepush_allowed() {
     )
     .unwrap();
 
-    gitbutler_branch_actions::update_commit_message(ctx, stack_entry.id, commit_one_oid, "commit one updated").unwrap();
+    gitbutler_branch_actions::update_commit_message(
+        ctx,
+        stack_entry.id,
+        commit_one_oid,
+        "commit one updated",
+    )
+    .unwrap();
 
-    let (_, b) = stack_details(ctx).into_iter().find(|d| d.0 == stack_entry.id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|d| d.0 == stack_entry.id)
+        .unwrap();
     let messages = b
         .branch_details
         .iter()
@@ -170,7 +213,10 @@ fn forcepush_allowed() {
         .collect::<Vec<_>>();
 
     assert_eq!(messages, vec!["commit one updated"]);
-    assert!(matches!(b.push_status, PushStatus::UnpushedCommitsRequiringForce));
+    assert!(matches!(
+        b.push_status,
+        PushStatus::UnpushedCommitsRequiringForce
+    ));
 }
 
 #[test]
@@ -187,9 +233,12 @@ fn root() {
     drop(guard);
 
     let mut guard = ctx.exclusive_worktree_access();
-    let branch_id =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let branch_id = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     let commit_one_oid = {
@@ -207,16 +256,28 @@ fn root() {
         super::create_commit(ctx, branch_id.id, "commit three").unwrap()
     };
 
-    gitbutler_branch_actions::update_commit_message(ctx, branch_id.id, commit_one_oid, "commit one updated").unwrap();
+    gitbutler_branch_actions::update_commit_message(
+        ctx,
+        branch_id.id,
+        commit_one_oid,
+        "commit one updated",
+    )
+    .unwrap();
 
-    let (_, b) = stack_details(ctx).into_iter().find(|d| d.0 == branch_id.id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|d| d.0 == branch_id.id)
+        .unwrap();
     let messages = b
         .branch_details
         .iter()
         .flat_map(|branch| branch.commits.iter().map(|c| c.message.clone()))
         .collect::<Vec<_>>();
 
-    assert_eq!(messages, vec!["commit three", "commit two", "commit one updated"]);
+    assert_eq!(
+        messages,
+        vec!["commit three", "commit two", "commit one updated"]
+    );
 }
 
 #[test]
@@ -233,9 +294,12 @@ fn empty() {
     drop(guard);
 
     let mut guard = ctx.exclusive_worktree_access();
-    let branch_id =
-        gitbutler_branch_actions::create_virtual_branch(ctx, &BranchCreateRequest::default(), guard.write_permission())
-            .unwrap();
+    let branch_id = gitbutler_branch_actions::create_virtual_branch(
+        ctx,
+        &BranchCreateRequest::default(),
+        guard.write_permission(),
+    )
+    .unwrap();
     drop(guard);
 
     let commit_one_oid = {

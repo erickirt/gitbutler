@@ -13,7 +13,9 @@ use gitbutler_project::Project;
 use rmcp::{
     ServerHandler, ServiceExt,
     handler::server::{tool::ToolRouter, wrapper::Parameters},
-    model::{CallToolResult, Content, Implementation, ProtocolVersion, ServerCapabilities, ServerInfo},
+    model::{
+        CallToolResult, Content, Implementation, ProtocolVersion, ServerCapabilities, ServerInfo,
+    },
     schemars, tool, tool_handler, tool_router,
 };
 
@@ -25,7 +27,9 @@ pub(crate) async fn start(app_settings: AppSettings) -> Result<()> {
 
     let client_info = Arc::new(Mutex::new(None));
     let transport = (tokio::io::stdin(), tokio::io::stdout());
-    let service = Mcp::new(app_settings, client_info.clone()).serve(transport).await?;
+    let service = Mcp::new(app_settings, client_info.clone())
+        .serve(transport)
+        .await?;
     let info = service.peer_info();
     if let Ok(mut guard) = client_info.lock() {
         *guard = info.map(|i| i.client_info.clone());
@@ -70,7 +74,10 @@ impl Mcp {
         let start_time = std::time::Instant::now();
         let result = self.gitbutler_update_branches_inner(request.0.clone(), &client_info);
         let error = result.as_ref().err().map(|e| e.to_string());
-        let updated_branches_count = result.as_ref().ok().map(|outcome| outcome.updated_branches.len());
+        let updated_branches_count = result
+            .as_ref()
+            .ok()
+            .map(|outcome| outcome.updated_branches.len());
         let commits_count = result.as_ref().ok().and_then(|outcome| {
             outcome
                 .updated_branches
@@ -156,9 +163,13 @@ impl Mcp {
 pub struct GitButlerUpdateBranchesRequest {
     #[schemars(description = "The exact prompt that the user gave to generate these changes")]
     pub full_prompt: String,
-    #[schemars(description = "A short bullet list of important things that were changed in the codebase and why")]
+    #[schemars(
+        description = "A short bullet list of important things that were changed in the codebase and why"
+    )]
     pub changes_summary: String,
-    #[schemars(description = "The full root path of the Git project the agent is actively working in")]
+    #[schemars(
+        description = "The full root path of the Git project the agent is actively working in"
+    )]
     pub current_working_directory: String,
 }
 
@@ -172,6 +183,7 @@ impl ServerHandler for Mcp {
                 name: "GitButler MCP Server".into(),
                 title: None,
                 version: "1.0.0".into(),
+                description: None,
                 icons: None,
                 website_url: Some("https://gitbutler.com".into()),
             },

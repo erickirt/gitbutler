@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use anyhow::Context;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitLabProjectId {
     /// The username or group name that owns the project.
@@ -27,4 +29,18 @@ impl Display for GitLabProjectId {
         let encoded = urlencoding::encode(&project_id);
         write!(f, "{encoded}")
     }
+}
+
+/// Fetch the GitLab project information by its ID.
+///
+/// Can be used to resolve a numeric ID from an encoded one.
+pub async fn fetch_project(
+    preferred_account: Option<&crate::GitlabAccountIdentifier>,
+    project_id: GitLabProjectId,
+    storage: &but_forge_storage::Controller,
+) -> anyhow::Result<crate::client::GitLabProject> {
+    crate::GitLabClient::from_storage(storage, preferred_account)?
+        .fetch_project(project_id)
+        .await
+        .context("Failed to set MR auto-merge state")
 }

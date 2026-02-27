@@ -166,7 +166,10 @@ impl CommitFlags {
                 .replace("Integrated", "✓")
                 .replace(" ", "");
             if extra != 0 {
-                out.push_str(&format!("|{extra:>0width$b}", width = max_goals.unwrap_or(0)));
+                out.push_str(&format!(
+                    "|{extra:>0width$b}",
+                    width = max_goals.unwrap_or(0)
+                ));
             }
             out
         }
@@ -296,7 +299,10 @@ impl std::fmt::Debug for Segment {
             f.debug_struct("Segment")
                 .field("id", id)
                 .field("generation", generation)
-                .field("ref_info", &MaybeDebug(&ref_info.as_ref().map(|ri| ri.debug_string())))
+                .field(
+                    "ref_info",
+                    &MaybeDebug(&ref_info.as_ref().map(|ri| ri.debug_string())),
+                )
                 .field(
                     "remote_tracking_ref_name",
                     &MaybeDebug(&remote_tracking_ref_name.as_ref().map(|n| n.to_string())),
@@ -324,8 +330,10 @@ impl std::fmt::Debug for Segment {
                 )
                 .finish()
         } else {
-            f.debug_struct("StackSegment(empty for 'dot' program to not get past 2^16 max label size)")
-                .finish()
+            f.debug_struct(
+                "StackSegment(empty for 'dot' program to not get past 2^16 max label size)",
+            )
+            .finish()
         }
     }
 }

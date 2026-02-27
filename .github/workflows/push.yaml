@@ -1,4 +1,4 @@
-name: 'Test'
+name: "Test"
 on:
   push:
     branches:
@@ -11,6 +11,10 @@ env:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
   changes:
@@ -129,6 +133,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/init-env-node
+      - id: get_playwright_version
+        uses: eviden-actions/get-playwright-version@4ab3bd9361d018d7931275b5106f2290fa54cfb6 # v1
+      - name: Cache playwright binaries
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.get_playwright_version.outputs.playwright-version }}
+      - run: pnpm ui:playwright:install:unit
+        if: ${{ steps.playwright-cache.outputs.cache-hit != 'true' }}
       - run: pnpm test
 
   but-sdk-build-check:
@@ -165,8 +180,11 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     container:
-      image: ghcr.io/gitbutlerapp/ci-base-image:latest
+      image: ghcr.io/gitbutlerapp/ci-base-image@sha256:3eaeae1b07072796a53dc1e7585cdc1f462d0b11d10ecd3685c6fa8082d647dd
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -194,11 +212,28 @@ jobs:
           cargo check -p but --all-targets
         name: Special `cargo check` runs
         env:
-          RUSTFLAGS: '--deny warnings'
+          RUSTFLAGS: "--deny warnings"
       - name: cargo clippy
         run: |
           rustup component add clippy
           cargo clippy --workspace --all-targets -- -D warnings
+
+  # Find unused cargo dependencies
+  cargo-machete:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install cargo-machete
+        run: cargo install --locked cargo-machete --version 0.9.1
+      - name: Run cargo-machete on workspace
+        run: cargo machete
 
   cargo-deny:
     needs: changes
@@ -239,6 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
+      GITBUTLER_TESTS_NO_CLEANUP: "1"
     defaults:
       run:
         shell: bash
@@ -254,18 +290,24 @@ jobs:
       - name: Dependencies for 'keyring'
         run: sudo ./scripts/install-minimal-debian-dependencies.sh
       - run: cargo test --workspace --exclude gitbutler-tauri --exclude but-server
-        env:
-          GITBUTLER_TESTS_NO_CLEANUP: '1'
       # It's intentional to use 'name equals run-script' so it's easy to re-run locally on failure.
       - run: cargo test -p but
       - run: cargo test -p but-server
+      - name: test vendored
+        run: |
+          set -x
+          (cd crates/gitbutler-filemonitor/vendor/debouncer && cargo test)
+          (cd crates/but/vendor/cli-prompts && cargo test)
 
   rust-test-tauri:
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     container:
-      image: ghcr.io/gitbutlerapp/ci-base-image:latest
+      image: ghcr.io/gitbutlerapp/ci-base-image@sha256:3eaeae1b07072796a53dc1e7585cdc1f462d0b11d10ecd3685c6fa8082d647dd
     env:
       CARGO_TERM_COLOR: always
     defaults:
@@ -303,7 +345,7 @@ jobs:
         with:
           shared-key: cargo-test
           save-if: ${{ github.ref == 'refs/heads/master' }}
-      - name: 'cargo check'
+      - name: "cargo check"
         run: cargo check --workspace --all-targets --features windows
 
   build-installer:
@@ -317,16 +359,16 @@ jobs:
         include:
           - platform: macos-15 # [macOs, ARM64] - default target
             artifact_id: macos-15-aarch64
-            target: ''
+            target: ""
           - platform: macos-15 # [macOs, x64] - cross-compile
             artifact_id: macos-15-x86_64
             target: x86_64-apple-darwin
           - platform: ubuntu-22.04 # [linux, x64]
             artifact_id: linux-x86_64
-            target: ''
+            target: ""
           - platform: ubuntu-22.04-arm # [linux, ARM64]
             artifact_id: linux-aarch64
-            target: ''
+            target: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -356,7 +398,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: 'but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}'
+          name: "but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}"
           path: target/${{matrix.target}}/release/but-installer
           if-no-files-found: error
           retention-days: 7
@@ -433,7 +475,7 @@ jobs:
       - name: Download ${{ matrix.artifact_id }} installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}'
+          name: "but-installer-${{ matrix.artifact_id }}-${{ github.run_number }}"
           path: .
       - run: chmod +x ./but-installer
       - name: Install release
@@ -458,22 +500,22 @@ jobs:
       - name: Download macOS x86_64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-macos-15-x86_64-${{ github.run_number }}'
+          name: "but-installer-macos-15-x86_64-${{ github.run_number }}"
           path: s3-upload/macos/x86_64
       - name: Download macOS aarch64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-macos-15-aarch64-${{ github.run_number }}'
+          name: "but-installer-macos-15-aarch64-${{ github.run_number }}"
           path: s3-upload/macos/aarch64
       - name: Download Linux x86_64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-linux-x86_64-${{ github.run_number }}'
+          name: "but-installer-linux-x86_64-${{ github.run_number }}"
           path: s3-upload/linux/x86_64
       - name: Download Linux aarch64 installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: 'but-installer-linux-aarch64-${{ github.run_number }}'
+          name: "but-installer-linux-aarch64-${{ github.run_number }}"
           path: s3-upload/linux/aarch64
       - name: Make binaries executable
         run: |
@@ -483,17 +525,17 @@ jobs:
         with:
           aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_bucket: 'releases.gitbutler.com'
-          source_dir: 's3-upload/'
-          destination_dir: 'installers/${{ github.sha }}'
+          aws_bucket: "releases.gitbutler.com"
+          source_dir: "s3-upload/"
+          destination_dir: "installers/${{ github.sha }}"
       - name: Upload to S3 (latest)
         uses: shallwefootball/s3-upload-action@4350529f410221787ccf424e50133cbc1b52704e # master
         with:
           aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_bucket: 'releases.gitbutler.com'
-          source_dir: 's3-upload/'
-          destination_dir: 'installers/latest'
+          aws_bucket: "releases.gitbutler.com"
+          source_dir: "s3-upload/"
+          destination_dir: "installers/latest"
 
   check-rust:
     if: always()
@@ -503,6 +545,7 @@ jobs:
       - rust-test
       - rust-test-tauri
       - rust-lint
+      - cargo-machete
       - cargo-doc
       - build-installer
       - but-sdk-build-check
@@ -527,7 +570,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          sparse-checkout: '.github/workflows'
+          sparse-checkout: ".github/workflows"
       - name: Generate workflows list to scan
         run: |
           shopt -s extglob
@@ -548,8 +591,11 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.ui == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     container:
-      image: ghcr.io/gitbutlerapp/ci-base-image:latest
+      image: ghcr.io/gitbutlerapp/ci-base-image@sha256:3eaeae1b07072796a53dc1e7585cdc1f462d0b11d10ecd3685c6fa8082d647dd
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -564,12 +610,12 @@ jobs:
         id: playwright-cache
         with:
           path: |
-            ~/.cache/ct-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.get_playwright_version.outputs.playwright-version }}
-      - run: cd packages/ui && pnpm exec playwright install --with-deps
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-with-webkit-${{ steps.get_playwright_version.outputs.playwright-version }}
+      - run: pnpm ui:playwright:install:ct
         if: ${{ steps.playwright-cache.outputs.cache-hit != 'true' }}
       - name: run playwright tests
-        run: pnpm exec turbo run test:ct
+        run: pnpm test:ct
         if: ${{ github.ref != 'refs/heads/master' }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: ${{ !cancelled() }}

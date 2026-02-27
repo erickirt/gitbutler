@@ -27,7 +27,10 @@ pub fn handle(
     force: bool,
 ) -> anyhow::Result<()> {
     // Fetch stacks once at the start
-    let stacks = but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
 
     let id_map = IdMap::new_from_context(ctx, None)?;
     let parsed_ids = id_map.parse_using_context(identifier, ctx)?;
@@ -57,7 +60,9 @@ pub fn handle(
                 bail!("Cannot unapply a file. Please specify a branch or stack identifier.");
             }
             CliId::Unassigned { .. } => {
-                bail!("Cannot unapply the unassigned area. Please specify a branch or stack identifier.");
+                bail!(
+                    "Cannot unapply the unassigned area. Please specify a branch or stack identifier."
+                );
             }
         }
     } else {
@@ -100,7 +105,11 @@ fn find_stack_by_branch_name(
         if stack_entry.heads.iter().any(|b| b.name == branch_name)
             && let Some(sid) = stack_entry.id
         {
-            let branches: Vec<String> = stack_entry.heads.iter().map(|h| h.name.to_string()).collect();
+            let branches: Vec<String> = stack_entry
+                .heads
+                .iter()
+                .map(|h| h.name.to_string())
+                .collect();
             return Ok((sid, branches));
         }
     }
@@ -151,7 +160,10 @@ fn confirm_and_unapply_stack(
     but_api::legacy::virtual_branches::unapply_stack(ctx, sid)?;
 
     if let Some(out) = out.for_human() {
-        writeln!(out, "Unapplied stack with branches '{branches_display}' from workspace")?;
+        writeln!(
+            out,
+            "Unapplied stack with branches '{branches_display}' from workspace"
+        )?;
     }
 
     if let Some(out) = out.for_shell() {

@@ -1,18 +1,16 @@
 //! Linux-specific install flow
 
-use std::fs;
-use std::os::unix::fs::PermissionsExt;
-use std::path::Path;
+use std::{fs, os::unix::fs::PermissionsExt, path::Path};
 
 use anyhow::{Context, Result, anyhow, bail};
 
-use crate::config::{Channel, InstallerConfig};
-use crate::download::{download_file, download_to_string};
-use crate::install::{but_binary_path, validate_installed_binary, verify_signature};
-use crate::release::validate_download_url;
-use crate::release::{PlatformInfo, Release};
-use crate::ui::info;
-use crate::ui::warn;
+use crate::{
+    config::{Channel, InstallerConfig},
+    download::{download_file, download_to_string},
+    install::{but_binary_path, validate_installed_binary, verify_signature},
+    release::{PlatformInfo, Release, validate_download_url},
+    ui::{info, warn},
+};
 
 pub(crate) fn download_and_install_app(
     config: &InstallerConfig,
@@ -42,15 +40,18 @@ pub(crate) fn download_and_install_app(
     validate_download_url(&download_url)?;
     info(&format!("Download URL: {download_url}"));
 
-    let temp_dir = tempfile::Builder::new().prefix("gitbutler-install.").tempdir()?;
+    let temp_dir = tempfile::Builder::new()
+        .prefix("gitbutler-install.")
+        .tempdir()?;
     let tmp_filepath = temp_dir.path().join(filename);
 
     info(&format!("Downloading GitButler {}...", release.version));
     download_file(&download_url, &tmp_filepath)?;
     info("Download completed successfully");
 
-    let signature_b64 = download_to_string(&signature_url)
-        .with_context(|| anyhow!("Failed to get signature for but, requested version may be too old"))?;
+    let signature_b64 = download_to_string(&signature_url).with_context(|| {
+        anyhow!("Failed to get signature for but, requested version may be too old")
+    })?;
     verify_signature(&tmp_filepath, &signature_b64, temp_dir.path())?;
 
     // Install the app bundle
@@ -115,13 +116,18 @@ fn install_app(but_path: &Path, home_dir: &Path, channel: Option<Channel>) -> Re
                 info("Backup restored successfully, exiting ...");
                 bail!("Installation failed but your previous installation was restored");
             } else {
-                bail!("Installation failed and backup restoration also failed - 'but' command may not work");
+                bail!(
+                    "Installation failed and backup restoration also failed - 'but' command may not work"
+                );
             }
         } else {
             bail!("Installation failed and no backup available to restore");
         }
     } else if let Some(but_backup) = but_backup {
-        info(&format!("Removing backup at {}", but_backup.to_string_lossy()));
+        info(&format!(
+            "Removing backup at {}",
+            but_backup.to_string_lossy()
+        ));
         fs::remove_file(&but_backup)?;
     }
 

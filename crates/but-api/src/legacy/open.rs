@@ -27,7 +27,9 @@ pub(crate) fn open_that(target_url: &Url) -> anyhow::Result<()> {
         bail!("Invalid path scheme: {}", target_url.scheme());
     }
 
-    fn clean_env_vars<'a, 'b>(var_names: &'a [&'b str]) -> impl Iterator<Item = (&'b str, String)> + 'a {
+    fn clean_env_vars<'a, 'b>(
+        var_names: &'a [&'b str],
+    ) -> impl Iterator<Item = (&'b str, String)> + 'a {
         var_names
             .iter()
             .filter_map(|name| env::var(name).map(|value| (*name, value)).ok())
@@ -36,7 +38,9 @@ pub(crate) fn open_that(target_url: &Url) -> anyhow::Result<()> {
                     name,
                     value
                         .split(':')
-                        .filter(|path| !path.contains("appimage-run") && !path.contains("/tmp/.mount"))
+                        .filter(|path| {
+                            !path.contains("appimage-run") && !path.contains("/tmp/.mount")
+                        })
                         .collect::<Vec<_>>()
                         .join(":"),
                 )
@@ -191,7 +195,10 @@ pub fn open_in_terminal(terminal_id: String, path: String) -> Result<()> {
 
             let stderr = output.stderr.to_str_lossy();
             let stderr = stderr.trim();
-            let status_code = output.status.code().map_or("unknown".to_string(), |c| c.to_string());
+            let status_code = output
+                .status
+                .code()
+                .map_or("unknown".to_string(), |c| c.to_string());
             if stderr.is_empty() {
                 bail!("{terminal_name} exited with non-zero status: {status_code}",);
             } else {
@@ -209,9 +216,8 @@ pub fn open_in_terminal(terminal_id: String, path: String) -> Result<()> {
                 .status()
                 .context("Failed to run 'open -Ra' to check application availability")?;
             if !status.success() {
-                return Err(
-                    anyhow::anyhow!("'{app_name}' was not found.").context(but_error::Code::DefaultTerminalNotFound)
-                );
+                return Err(anyhow::anyhow!("'{app_name}' was not found.")
+                    .context(but_error::Code::DefaultTerminalNotFound));
             }
             Ok(())
         }
@@ -267,7 +273,8 @@ pub fn open_in_terminal(terminal_id: String, path: String) -> Result<()> {
         // a vague launch failure (which could be confused with path issues).
         let binary_found = which::which(binary).is_ok();
         if !binary_found {
-            return Err(anyhow::anyhow!("'{binary}' was not found.").context(but_error::Code::DefaultTerminalNotFound));
+            return Err(anyhow::anyhow!("'{binary}' was not found.")
+                .context(but_error::Code::DefaultTerminalNotFound));
         }
 
         match terminal_id.as_str() {
@@ -330,9 +337,8 @@ pub fn open_in_terminal(terminal_id: String, path: String) -> Result<()> {
         // Check if the terminal binary exists in PATH before attempting to launch.
         let binary_found = which::which(&terminal_id).is_ok();
         if !binary_found {
-            return Err(
-                anyhow::anyhow!("'{terminal_id}' was not found.").context(but_error::Code::DefaultTerminalNotFound)
-            );
+            return Err(anyhow::anyhow!("'{terminal_id}' was not found.")
+                .context(but_error::Code::DefaultTerminalNotFound));
         }
 
         match terminal_id.as_str() {
@@ -406,8 +412,12 @@ pub fn show_in_finder(path: String) -> Result<()> {
         } else {
             // For files, try to open the parent directory
             if let Some(parent) = std::path::Path::new(&path).parent() {
-                open_that(&Url::from_file_path(parent).map_err(|_| anyhow!("Failed to parse URL"))?)
-                    .with_context(|| format!("Failed to open parent directory of '{path}' in file manager",))?;
+                open_that(
+                    &Url::from_file_path(parent).map_err(|_| anyhow!("Failed to parse URL"))?,
+                )
+                .with_context(|| {
+                    format!("Failed to open parent directory of '{path}' in file manager",)
+                })?;
             } else {
                 open_that(&Url::from_file_path(&path).map_err(|_| anyhow!("Failed to parse URL"))?)
                     .with_context(|| format!("Failed to open '{path}' in file manager"))?;

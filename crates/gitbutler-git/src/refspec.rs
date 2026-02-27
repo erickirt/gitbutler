@@ -122,7 +122,8 @@ mod tests {
     #[test]
     fn parse_invalid_third_refspec() {
         assert_eq!(
-            RefSpec::parse("refs/heads/*:refs/remotes/origin/*:refs/remotes/upstream/*").unwrap_err(),
+            RefSpec::parse("refs/heads/*:refs/remotes/origin/*:refs/remotes/upstream/*")
+                .unwrap_err(),
             Error::UnexpectedChar(':', 34)
         );
     }

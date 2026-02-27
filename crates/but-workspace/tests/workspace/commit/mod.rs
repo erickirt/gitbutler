@@ -1,3 +1,5 @@
+mod commit_amend;
+mod commit_create;
 mod insert_blank_commit;
 mod move_changes;
 mod reword;
@@ -16,7 +18,8 @@ mod from_new_merge_with_metadata {
 
     #[test]
     fn without_conflict_journey() -> anyhow::Result<()> {
-        let (repo, mut meta) = named_read_only_in_memory_scenario("various-heads-for-clean-merge", "")?;
+        let (repo, mut meta) =
+            named_read_only_in_memory_scenario("various-heads-for-clean-merge", "")?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * d3cce74 (add-A) add A
         | * 115e41b (add-B) add B
@@ -31,7 +34,13 @@ mod from_new_merge_with_metadata {
         let stacks = ["add-A"];
         add_stacks(&mut meta, stacks);
         let graph = but_graph::Graph::from_head(&repo, &*meta, Options::limited())?;
-        let out = WorkspaceCommit::from_new_merge_with_metadata(&to_stacks(stacks), None, &graph, &repo, None)?;
+        let out = WorkspaceCommit::from_new_merge_with_metadata(
+            &to_stacks(stacks),
+            None,
+            &graph,
+            &repo,
+            None,
+        )?;
         let commit = out.workspace_commit_id.attach(&repo).object()?;
         // This commit is never signed.
         insta::assert_snapshot!(commit.data.as_bstr(), @r"
@@ -143,7 +152,8 @@ mod from_new_merge_with_metadata {
 
     #[test]
     fn with_multi_line_conflict_journey() -> anyhow::Result<()> {
-        let (repo, mut meta) = named_read_only_in_memory_scenario("various-heads-for-multi-line-merge-conflict", "")?;
+        let (repo, mut meta) =
+            named_read_only_in_memory_scenario("various-heads-for-multi-line-merge-conflict", "")?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * d3cce74 (clean-A) add A
         | * 115e41b (clean-B) add B
@@ -217,7 +227,13 @@ mod from_new_merge_with_metadata {
         "#);
 
         // Just for show, see what happens if there is no hero.
-        let out = WorkspaceCommit::from_new_merge_with_metadata(&to_stacks(stacks), None, &graph, &repo, None)?;
+        let out = WorkspaceCommit::from_new_merge_with_metadata(
+            &to_stacks(stacks),
+            None,
+            &graph,
+            &repo,
+            None,
+        )?;
         insta::assert_debug_snapshot!(out, @r#"
         Outcome {
             workspace_commit_id: Sha1(e444bfa38570217271f5df56c3fe26ed57a7e023),
@@ -285,7 +301,13 @@ mod from_new_merge_with_metadata {
             ]),
         )?;
 
-        let out = WorkspaceCommit::from_new_merge_with_metadata(&to_stacks(stacks), None, &graph, &repo, None)?;
+        let out = WorkspaceCommit::from_new_merge_with_metadata(
+            &to_stacks(stacks),
+            None,
+            &graph,
+            &repo,
+            None,
+        )?;
         insta::assert_debug_snapshot!(out, @r#"
         Outcome {
             workspace_commit_id: Sha1(e25b36b3a4192701e5e91a00d1c2fe07b9888338),
@@ -312,7 +334,8 @@ mod from_new_merge_with_metadata {
 
     #[test]
     fn with_conflict_journey() -> anyhow::Result<()> {
-        let (repo, mut meta) = named_read_only_in_memory_scenario("various-heads-for-merge-conflict", "")?;
+        let (repo, mut meta) =
+            named_read_only_in_memory_scenario("various-heads-for-merge-conflict", "")?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         * d3cce74 (clean-A) add A
         | * 115e41b (clean-B) add B
@@ -329,7 +352,13 @@ mod from_new_merge_with_metadata {
         add_stacks(&mut meta, stacks);
         let graph = but_graph::Graph::from_head(&repo, &*meta, Options::limited())?;
 
-        let out = WorkspaceCommit::from_new_merge_with_metadata(&to_stacks(stacks), None, &graph, &repo, None)?;
+        let out = WorkspaceCommit::from_new_merge_with_metadata(
+            &to_stacks(stacks),
+            None,
+            &graph,
+            &repo,
+            None,
+        )?;
         insta::assert_debug_snapshot!(out, @r#"
         Outcome {
             workspace_commit_id: Sha1(4aede0de89327f3afde3db1ed9f83f368f67d501),
@@ -494,7 +523,9 @@ mod from_new_merge_with_metadata {
     }
 
     mod utils {
-        use but_core::ref_metadata::{StackId, WorkspaceCommitRelation::Merged, WorkspaceStack, WorkspaceStackBranch};
+        use but_core::ref_metadata::{
+            StackId, WorkspaceCommitRelation::Merged, WorkspaceStack, WorkspaceStackBranch,
+        };
         use but_meta::VirtualBranchesTomlMetadata;
         use gix::refs::Category;
 
@@ -505,11 +536,19 @@ mod from_new_merge_with_metadata {
             short_stack_names: impl IntoIterator<Item = &'static str>,
         ) {
             for (idx, stack_name) in short_stack_names.into_iter().enumerate() {
-                add_stack_with_segments(meta, idx as u128 + 1, stack_name, StackState::InWorkspace, &[]);
+                add_stack_with_segments(
+                    meta,
+                    idx as u128 + 1,
+                    stack_name,
+                    StackState::InWorkspace,
+                    &[],
+                );
             }
         }
 
-        pub fn to_stacks(short_stack_names: impl IntoIterator<Item = &'static str>) -> Vec<WorkspaceStack> {
+        pub fn to_stacks(
+            short_stack_names: impl IntoIterator<Item = &'static str>,
+        ) -> Vec<WorkspaceStack> {
             short_stack_names
                 .into_iter()
                 .map(|short_name| WorkspaceStack {

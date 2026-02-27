@@ -1,6 +1,8 @@
 use bstr::{BStr, ByteSlice};
 
-use crate::{ChangeState, IgnoredWorktreeChange, ModeFlags, TreeChange, TreeStatus, TreeStatusKind};
+use crate::{
+    ChangeState, IgnoredWorktreeChange, ModeFlags, TreeChange, TreeStatus, TreeStatusKind,
+};
 
 pub(crate) mod tree_changes;
 pub use tree_changes::{TreeChanges, tree_changes, tree_changes_with_line_stats};
@@ -45,9 +47,8 @@ impl TreeStatus {
                 previous_path,
                 ..
             } => Some((*previous_state, Some(previous_path.as_bstr()))),
-            TreeStatus::Modification { previous_state, .. } | TreeStatus::Deletion { previous_state, .. } => {
-                Some((*previous_state, None))
-            }
+            TreeStatus::Modification { previous_state, .. }
+            | TreeStatus::Deletion { previous_state, .. } => Some((*previous_state, None)),
         }
     }
 }
@@ -56,7 +57,9 @@ impl TreeChange {
     /// Return the path at which this directory entry was previously located, if it was renamed.
     pub fn previous_path(&self) -> Option<&BStr> {
         match &self.status {
-            TreeStatus::Addition { .. } | TreeStatus::Deletion { .. } | TreeStatus::Modification { .. } => None,
+            TreeStatus::Addition { .. }
+            | TreeStatus::Deletion { .. }
+            | TreeStatus::Modification { .. } => None,
             TreeStatus::Rename { previous_path, .. } => Some(previous_path.as_ref()),
         }
     }
@@ -76,7 +79,10 @@ impl ModeFlags {
         Self::calculate_inner(old.kind, new.kind)
     }
 
-    fn calculate_inner(old: gix::object::tree::EntryKind, new: gix::object::tree::EntryKind) -> Option<Self> {
+    fn calculate_inner(
+        old: gix::object::tree::EntryKind,
+        new: gix::object::tree::EntryKind,
+    ) -> Option<Self> {
         use gix::object::tree::EntryKind as E;
         Some(match (old, new) {
             (E::Blob, E::BlobExecutable) => ModeFlags::ExecutableBitAdded,
@@ -95,7 +101,9 @@ impl ModeFlags {
     pub fn is_typechange(&self) -> bool {
         match self {
             ModeFlags::ExecutableBitAdded | ModeFlags::ExecutableBitRemoved => false,
-            ModeFlags::TypeChangeFileToLink | ModeFlags::TypeChangeLinkToFile | ModeFlags::TypeChange => true,
+            ModeFlags::TypeChangeFileToLink
+            | ModeFlags::TypeChangeLinkToFile
+            | ModeFlags::TypeChange => true,
         }
     }
 }
@@ -135,8 +143,14 @@ mod tests {
                     (EntryKind::Link, EntryKind::Blob),
                     Some(ModeFlags::TypeChangeLinkToFile),
                 ),
-                ((EntryKind::Commit, EntryKind::Blob), Some(ModeFlags::TypeChange)),
-                ((EntryKind::Blob, EntryKind::Commit), Some(ModeFlags::TypeChange)),
+                (
+                    (EntryKind::Commit, EntryKind::Blob),
+                    Some(ModeFlags::TypeChange),
+                ),
+                (
+                    (EntryKind::Blob, EntryKind::Commit),
+                    Some(ModeFlags::TypeChange),
+                ),
             ] {
                 assert_eq!(ModeFlags::calculate_inner(old, new), expected);
             }

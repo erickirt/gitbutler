@@ -8,15 +8,19 @@ pub use table::types::Table;
 pub mod get_text;
 
 pub(crate) mod diff_viewer;
+pub mod editor;
 pub(crate) mod stage_viewer;
 
-use std::io;
-use std::sync::{Arc, Mutex};
+use std::{
+    io,
+    sync::{Arc, Mutex},
+};
 
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode};
-use ratatui::Terminal;
-use ratatui::backend::CrosstermBackend;
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+};
+use ratatui::{Terminal, backend::CrosstermBackend};
 
 type PanicHook = Box<dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync>;
 
@@ -34,7 +38,8 @@ impl TerminalGuard {
     /// Enter raw mode, alternate screen, and optionally enable mouse capture.
     /// Returns a guard that will restore the terminal on drop.
     pub fn new(enable_mouse: bool) -> anyhow::Result<Self> {
-        let original_hook: Arc<Mutex<Option<PanicHook>>> = Arc::new(Mutex::new(Some(std::panic::take_hook())));
+        let original_hook: Arc<Mutex<Option<PanicHook>>> =
+            Arc::new(Mutex::new(Some(std::panic::take_hook())));
 
         // Install panic hook to restore terminal on panic
         let hook_ref = Arc::clone(&original_hook);
@@ -42,7 +47,8 @@ impl TerminalGuard {
         std::panic::set_hook(Box::new(move |panic_info| {
             let _ = disable_raw_mode();
             if mouse {
-                let _ = crossterm::execute!(io::stdout(), DisableMouseCapture, LeaveAlternateScreen);
+                let _ =
+                    crossterm::execute!(io::stdout(), DisableMouseCapture, LeaveAlternateScreen);
             } else {
                 let _ = crossterm::execute!(io::stdout(), LeaveAlternateScreen);
             }
@@ -78,7 +84,11 @@ impl Drop for TerminalGuard {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
         if self.mouse_captured {
-            let _ = crossterm::execute!(self.terminal.backend_mut(), DisableMouseCapture, LeaveAlternateScreen);
+            let _ = crossterm::execute!(
+                self.terminal.backend_mut(),
+                DisableMouseCapture,
+                LeaveAlternateScreen
+            );
         } else {
             let _ = crossterm::execute!(self.terminal.backend_mut(), LeaveAlternateScreen);
         }

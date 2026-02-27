@@ -89,8 +89,9 @@ mod stop {
         // Create a minimal JSONL transcript with a user record containing cwd
         let transcript_path = env.projects_root().join(".claude_transcript.jsonl");
         let cwd = env.projects_root().to_string_lossy();
-        let transcript_content =
-            format!(r#"{{"type":"user","cwd":"{cwd}","message":{{"role":"user","content":"test"}}}}"#);
+        let transcript_content = format!(
+            r#"{{"type":"user","cwd":"{cwd}","message":{{"role":"user","content":"test"}}}}"#
+        );
         env.file(".claude_transcript.jsonl", &transcript_content);
 
         let input = serde_json::json!({

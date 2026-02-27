@@ -46,8 +46,9 @@ pub fn split_branch(
 
     // Create a new branch from the source branch's head
     let new_branch_ref_name = format!("refs/heads/{new_branch_name}");
-    let new_branch_log_message =
-        format!("Split off changes from branch '{source_branch_name}' into new branch '{new_branch_name}'");
+    let new_branch_log_message = format!(
+        "Split off changes from branch '{source_branch_name}' into new branch '{new_branch_name}'"
+    );
 
     let new_ref = ctx
         .repo
@@ -80,10 +81,10 @@ pub fn split_branch(
     let move_changes_result = MoveChangesResult { replaced_commits };
 
     // Remove all but the specified changes from the new branch
-    let new_branch_commits = ctx
-        .git2_repo
-        .get()?
-        .l(branch_head, LogUntil::Commit(merge_base.to_git2()), false)?;
+    let new_branch_commits =
+        ctx.git2_repo
+            .get()?
+            .l(branch_head, LogUntil::Commit(merge_base.to_git2()), false)?;
 
     // Branch as rebase steps
     let mut steps: Vec<RebaseStep> = Vec::new();
@@ -166,8 +167,9 @@ pub fn split_into_dependent_branch(
 
     // Create a new branch reference
     let new_branch_ref_name = format!("refs/heads/{new_branch_name}");
-    let new_branch_log_message =
-        format!("Split off changes from branch '{source_branch_name}' into new dependent branch '{new_branch_name}'");
+    let new_branch_log_message = format!(
+        "Split off changes from branch '{source_branch_name}' into new dependent branch '{new_branch_name}'"
+    );
 
     let new_ref = ctx
         .repo
@@ -181,10 +183,10 @@ pub fn split_into_dependent_branch(
         .detach();
 
     // Remove all but the specified changes from the new branch
-    let new_branch_commits = ctx
-        .git2_repo
-        .get()?
-        .l(branch_head, LogUntil::Commit(merge_base.to_git2()), false)?;
+    let new_branch_commits =
+        ctx.git2_repo
+            .get()?
+            .l(branch_head, LogUntil::Commit(merge_base.to_git2()), false)?;
 
     // Branch as rebase steps
     let mut dependent_branch_steps: Vec<RebaseStep> = Vec::new();
@@ -296,7 +298,9 @@ fn construct_source_steps(
         .repo
         .get()?
         .try_find_reference(&source_branch_name)?
-        .ok_or_else(|| anyhow::anyhow!("Source branch '{source_branch_name}' not found in repository"))?
+        .ok_or_else(|| {
+            anyhow::anyhow!("Source branch '{source_branch_name}' not found in repository")
+        })?
         .detach();
     let branch_ref_name = branch_ref.name;
 
@@ -331,7 +335,13 @@ fn construct_source_steps(
         }
 
         if let RebaseStep::Pick { commit_id, .. } = &step {
-            match remove_file_changes_from_commit(ctx, *commit_id, file_changes_to_split_off, true, perm)? {
+            match remove_file_changes_from_commit(
+                ctx,
+                *commit_id,
+                file_changes_to_split_off,
+                true,
+                perm,
+            )? {
                 Some(rewritten_commit_id) if *commit_id != rewritten_commit_id => {
                     // Commit was rewritten, add updated step
                     let mut new_step = step.clone();

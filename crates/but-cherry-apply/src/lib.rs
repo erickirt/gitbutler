@@ -47,10 +47,21 @@ pub enum CherryApplyStatus {
     NoStacks,
 }
 
-pub fn cherry_apply_status(ctx: &Context, _perm: &RepoShared, subject: ObjectId) -> Result<CherryApplyStatus> {
-    let repo = ctx.repo.get()?.clone().for_tree_diffing()?.with_object_memory();
+pub fn cherry_apply_status(
+    ctx: &Context,
+    _perm: &RepoShared,
+    subject: ObjectId,
+) -> Result<CherryApplyStatus> {
+    let repo = ctx
+        .repo
+        .get()?
+        .clone()
+        .for_tree_diffing()?
+        .with_object_memory();
 
-    let meta = VirtualBranchesTomlMetadata::from_path(ctx.project_data_dir().join("virtual_branches.toml"))?;
+    let meta = VirtualBranchesTomlMetadata::from_path(
+        ctx.project_data_dir().join("virtual_branches.toml"),
+    )?;
     let stacks = stacks_v3(&repo, &meta, StacksFilter::InWorkspace, None)?;
 
     if stacks.is_empty() {
@@ -59,7 +70,11 @@ pub fn cherry_apply_status(ctx: &Context, _perm: &RepoShared, subject: ObjectId)
 
     let mut locked_stack = None;
     for stack in stacks {
-        let tip = stack.heads.first().context("Stacks always have a head")?.tip;
+        let tip = stack
+            .heads
+            .first()
+            .context("Stacks always have a head")?
+            .tip;
         if cherry_pick_conflicts(&repo, subject, tip)? {
             if locked_stack.is_some() {
                 // Locked stack has already been set to another stack. Now there
@@ -83,7 +98,12 @@ pub fn cherry_apply_status(ctx: &Context, _perm: &RepoShared, subject: ObjectId)
     }
 }
 
-pub fn cherry_apply(ctx: &Context, perm: &mut RepoExclusive, subject: ObjectId, target: StackId) -> Result<()> {
+pub fn cherry_apply(
+    ctx: &Context,
+    perm: &mut RepoExclusive,
+    subject: ObjectId,
+    target: StackId,
+) -> Result<()> {
     let old_workspace = WorkspaceState::create(ctx, perm.read_permission())?;
     let status = cherry_apply_status(ctx, perm.read_permission(), subject)?;
     // Has the frontend told us to do something naughty?
@@ -97,7 +117,9 @@ pub fn cherry_apply(ctx: &Context, perm: &mut RepoExclusive, subject: ObjectId, 
         }
         CherryApplyStatus::LockedToStack(stack) => {
             if stack != target {
-                bail!("Attempting to cherry pick into a different branch that which it is locked to")
+                bail!(
+                    "Attempting to cherry pick into a different branch that which it is locked to"
+                )
             }
         }
     };

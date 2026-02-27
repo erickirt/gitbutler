@@ -93,7 +93,10 @@ fn conflicts_with_uncommited() {
     )
     .map(|o| o.0)
     .unwrap();
-    let (_, b) = stack_details(ctx).into_iter().find(|d| d.0 == new_branch_id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|d| d.0 == new_branch_id)
+        .unwrap();
     assert_eq!(b.branch_details[0].commits.len(), 1);
 }
 
@@ -148,7 +151,10 @@ fn conflicts_with_commited() {
     )
     .map(|o| o.0)
     .unwrap();
-    let (_, b) = stack_details(ctx).into_iter().find(|d| d.0 == new_branch_id).unwrap();
+    let (_, b) = stack_details(ctx)
+        .into_iter()
+        .find(|d| d.0 == new_branch_id)
+        .unwrap();
     assert_eq!(b.branch_details[0].commits.len(), 1);
 }
 
@@ -247,5 +253,8 @@ fn from_state_remote_branch() {
     let stacks = stack_details(ctx);
     assert_eq!(stacks.len(), 1);
     assert_eq!(stacks[0].1.branch_details[0].commits.len(), 1);
-    assert_eq!(stacks[0].1.branch_details[0].commits[0].message, "branch commit");
+    assert_eq!(
+        stacks[0].1.branch_details[0].commits[0].message,
+        "branch commit"
+    );
 }

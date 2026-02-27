@@ -38,7 +38,10 @@ pub struct BashPattern {
 
 impl BashPattern {
     pub fn new(command: String, exact: bool) -> Self {
-        Self { base: command, exact }
+        Self {
+            base: command,
+            exact,
+        }
     }
 
     pub fn serialize(&self) -> String {
@@ -101,10 +104,15 @@ impl PathPattern {
         match self.kind {
             PathPatternKind::Absolute => Ok(format!(
                 "/{}",
-                self.pattern.to_str().context("Path contains invalid UTF-8")?
+                self.pattern
+                    .to_str()
+                    .context("Path contains invalid UTF-8")?
             )),
             PathPatternKind::HomeRelative => {
-                let stripped = self.pattern.strip_prefix(&ctx.home_path).context("Can't strip home")?;
+                let stripped = self
+                    .pattern
+                    .strip_prefix(&ctx.home_path)
+                    .context("Can't strip home")?;
                 Ok(format!(
                     "~/{}",
                     stripped.to_str().context("Path contains invalid UTF-8")?
@@ -126,8 +134,14 @@ impl PathPattern {
                 ))
             }
             PathPatternKind::CwdRelative => {
-                let stripped = self.pattern.strip_prefix(&ctx.home_path).context("Can't strip home")?;
-                Ok(stripped.to_str().context("Path contains invalid UTF-8")?.to_owned())
+                let stripped = self
+                    .pattern
+                    .strip_prefix(&ctx.home_path)
+                    .context("Can't strip home")?;
+                Ok(stripped
+                    .to_str()
+                    .context("Path contains invalid UTF-8")?
+                    .to_owned())
             }
         }
     }

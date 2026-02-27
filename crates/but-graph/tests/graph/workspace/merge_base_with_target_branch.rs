@@ -65,7 +65,12 @@ fn with_extra_target_when_no_target_ref() -> anyhow::Result<()> {
     meta.data_mut().default_target = None;
 
     // Use extra_target to set a lower bound
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     let ws = graph.into_workspace()?;
 
     assert!(ws.target_ref.is_none());
@@ -96,7 +101,10 @@ fn returns_none_when_no_target_is_set() -> anyhow::Result<()> {
 
     let a2_id = repo.rev_parse_single("A")?.detach();
     let res = ws.merge_base_with_target_branch(a2_id);
-    assert!(res.is_none(), "can't compute merge-base without the other side");
+    assert!(
+        res.is_none(),
+        "can't compute merge-base without the other side"
+    );
 
     Ok(())
 }
@@ -111,7 +119,10 @@ fn returns_none_when_commit_not_in_graph() -> anyhow::Result<()> {
         .into_workspace()?;
 
     let res = ws.merge_base_with_target_branch(repo.object_hash().null());
-    assert!(res.is_none(), "should return None when commit is not in graph");
+    assert!(
+        res.is_none(),
+        "should return None when commit is not in graph"
+    );
 
     Ok(())
 }

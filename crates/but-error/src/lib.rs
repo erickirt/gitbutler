@@ -184,7 +184,10 @@ impl std::fmt::Display for Context {
 
 impl From<Code> for Context {
     fn from(code: Code) -> Self {
-        Context { code, message: None }
+        Context {
+            code,
+            message: None,
+        }
     }
 }
 

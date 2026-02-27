@@ -1,3 +1,4 @@
+use super::multioption_prompt::MultiOptionPrompt;
 use crate::{
     engine::CommandBuffer,
     input::Key,
@@ -5,14 +6,12 @@ use crate::{
     style::SelectionStyle,
 };
 
-use super::multioption_prompt::MultiOptionPrompt;
-
 const DEFAULT_OPTIONS_COUNT: u16 = 5;
 
 /// Prompt that allows to select one option from the given list.
 /// Supports filtering and moving the selection with arrow keys.
 ///
-/// ```rust
+/// ```rust,no_run
 /// use cli_prompts::{
 ///      prompts::{Selection, AbortReason},
 ///      DisplayPrompt,
@@ -95,6 +94,27 @@ impl<T> Selection<T> {
             style: SelectionStyle::default(),
         }
     }
+
+    fn last_filtered_index(&self) -> usize {
+        self.options.filtered_options().len().saturating_sub(1)
+    }
+
+    fn move_selection_up(&mut self) {
+        self.current_selection = self.current_selection.saturating_sub(1);
+    }
+
+    fn move_selection_down(&mut self) {
+        self.current_selection = self.current_selection.saturating_add(1);
+        self.current_selection = self.current_selection.min(self.last_filtered_index());
+    }
+
+    fn move_selection_to_start(&mut self) {
+        self.current_selection = 0;
+    }
+
+    fn move_selection_to_end(&mut self) {
+        self.current_selection = self.last_filtered_index();
+    }
 }
 
 impl<T> MultiOptionPrompt<T> for Selection<T> {
@@ -167,12 +187,20 @@ impl<T> Prompt<T> for Selection<T> {
                 self.current_selection = 0;
                 EventOutcome::Continue
             }
-            Key::Up if self.current_selection > 0 => {
-                self.current_selection -= 1;
+            Key::Up | Key::Ctrl('p') | Key::Ctrl('P') => {
+                self.move_selection_up();
                 EventOutcome::Continue
             }
-            Key::Down if self.current_selection < self.options.filtered_options().len() - 1 => {
-                self.current_selection += 1;
+            Key::Down | Key::Ctrl('n') | Key::Ctrl('N') => {
+                self.move_selection_down();
+                EventOutcome::Continue
+            }
+            Key::Home | Key::Ctrl('a') | Key::Ctrl('A') => {
+                self.move_selection_to_start();
+                EventOutcome::Continue
+            }
+            Key::End | Key::Ctrl('e') | Key::Ctrl('E') => {
+                self.move_selection_to_end();
                 EventOutcome::Continue
             }
             Key::Enter if !self.options.filtered_options().is_empty() => {
@@ -184,5 +212,65 @@ impl<T> Prompt<T> for Selection<T> {
             Key::Esc => EventOutcome::Abort(AbortReason::Interrupt),
             _ => EventOutcome::Continue,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ctrl_p_moves_selection_up() {
+        let mut prompt = Selection::new("Pick one", ["a", "b", "c"].into_iter());
+        prompt.current_selection = 2;
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('p')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.current_selection, 1);
+    }
+
+    #[test]
+    fn ctrl_n_moves_selection_down() {
+        let mut prompt = Selection::new("Pick one", ["a", "b", "c"].into_iter());
+        prompt.current_selection = 0;
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('n')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.current_selection, 1);
+    }
+
+    #[test]
+    fn ctrl_a_and_ctrl_e_jump_to_selection_bounds() {
+        let mut prompt = Selection::new("Pick one", ["a", "b", "c"].into_iter());
+        prompt.current_selection = 1;
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('e')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.current_selection, 2);
+
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('a')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.current_selection, 0);
+    }
+
+    #[test]
+    fn ctrl_navigation_is_safe_when_filter_has_no_results() {
+        let mut prompt = Selection::new("Pick one", ["a", "b", "c"].into_iter());
+        prompt.on_key_pressed(Key::Char('z'));
+
+        assert!(prompt.options.filtered_options().is_empty());
+        assert!(matches!(
+            prompt.on_key_pressed(Key::Ctrl('n')),
+            EventOutcome::Continue
+        ));
+        assert_eq!(prompt.current_selection, 0);
     }
 }

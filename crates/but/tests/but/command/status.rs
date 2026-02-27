@@ -322,7 +322,9 @@ fn long_cli_ids() -> anyhow::Result<()> {
         .assert()
         .success()
         .stderr_eq(snapbox::str![])
-        .stdout_eq(snapbox::file!["snapshots/status/long-cli-ids.stdout.term.svg"]);
+        .stdout_eq(snapbox::file![
+            "snapshots/status/long-cli-ids.stdout.term.svg"
+        ]);
 
     Ok(())
 }

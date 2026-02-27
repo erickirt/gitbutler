@@ -1,14 +1,14 @@
 <script lang="ts">
-	import ConfigurableScrollableContainer from '$components/ConfigurableScrollableContainer.svelte';
-	import DraftBranchHeader from '$components/DraftBranchHeader.svelte';
-	import NewCommitView from '$components/NewCommitView.svelte';
-	import ReduxResult from '$components/ReduxResult.svelte';
-	import Resizer from '$components/Resizer.svelte';
-	import { STACK_SERVICE } from '$lib/stacks/stackService.svelte';
-	import { UI_STATE } from '$lib/state/uiState.svelte';
-	import { inject } from '@gitbutler/core/context';
-	import { TestId } from '@gitbutler/ui';
-	import { onMount } from 'svelte';
+	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
+	import DraftBranchHeader from "$components/DraftBranchHeader.svelte";
+	import NewCommitView from "$components/NewCommitView.svelte";
+	import ReduxResult from "$components/ReduxResult.svelte";
+	import Resizer from "$components/Resizer.svelte";
+	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
+	import { UI_STATE } from "$lib/state/uiState.svelte";
+	import { inject } from "@gitbutler/core/context";
+	import { TestId } from "@gitbutler/ui";
+	import { onMount } from "svelte";
 
 	type Props = {
 		projectId: string;
@@ -26,7 +26,7 @@
 
 	onMount(() => {
 		if (draftPanelEl) {
-			draftPanelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			draftPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
 		}
 	});
 </script>
@@ -37,7 +37,7 @@
 			<div
 				class="draft-stack__scroll-wrap"
 				bind:this={draftPanelEl}
-				style:width={uiState.global.stackWidth.current + 'rem'}
+				style:width={uiState.global.stackWidth.current + "rem"}
 			>
 				<div class="new-commit-view">
 					<NewCommitView {projectId} />
@@ -70,14 +70,6 @@
 {/if}
 
 <style lang="postcss">
-	.draft-stack {
-		display: flex;
-		position: relative;
-		flex-shrink: 0;
-		min-height: 100%;
-		border-right: 1px solid var(--clr-border-2);
-		animation: appear-in 0.2s ease-in-out forwards;
-	}
 	.draft-stack__scroll-wrap {
 		position: relative;
 		min-height: 100%;
@@ -100,21 +92,5 @@
 			transform: translateX(0);
 			opacity: 1;
 		}
-	}
-
-	.codegen-draft {
-		display: flex;
-		z-index: var(--z-ground);
-		flex-shrink: 0;
-		flex-direction: column;
-		width: 400px;
-		height: 100%;
-		max-height: calc(100% - 24px);
-		margin-top: 12px;
-		margin-right: 18px;
-		overflow: hidden;
-		border: 1px solid var(--clr-border-2);
-		border-radius: var(--radius-ml);
-		background-color: var(--clr-bg-1);
 	}
 </style>

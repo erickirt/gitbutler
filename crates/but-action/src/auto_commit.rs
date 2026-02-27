@@ -12,7 +12,10 @@ type AutoCommitEmitter = dyn Fn(&str, serde_json::Value) + Send + Sync + 'static
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "camelCase")]
-#[cfg_attr(feature = "export-ts", ts(export, export_to = "./action/autoCommit.ts"))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "./action/autoCommit.ts")
+)]
 enum AutoCommitEvent {
     /// Emitted when the auto-commit process has started.
     ///
@@ -50,8 +53,9 @@ impl AutoCommitEvent {
     }
 
     fn emit_payload(&self) -> serde_json::Value {
-        serde_json::to_value(self)
-            .unwrap_or_else(|e| serde_json::json!({"error": format!("Failed to serialize event payload: {}", e)}))
+        serde_json::to_value(self).unwrap_or_else(
+            |e| serde_json::json!({"error": format!("Failed to serialize event payload: {}", e)}),
+        )
     }
 }
 
@@ -155,20 +159,22 @@ fn apply_commit_changes(
         let diff_infos = absorption_files_to_diff_infos(&absorption.files);
         let commit_id = commit_map.find_mapped_id(absorption.commit_id);
         let stack_id = absorption.stack_id;
-        let commit_message = commit_message_generation(project_id, commit_id, llm, emitter.as_ref(), &diff_infos)?;
-        let outcome = but_workspace::legacy::commit_engine::create_commit_and_update_refs_with_project(
-            repo,
-            project_data_dir,
-            Some(stack_id),
-            commit_engine::Destination::NewCommit {
-                message: commit_message,
-                parent_commit_id: Some(commit_id),
-                stack_segment: None,
-            },
-            diff_specs,
-            context_lines,
-            guard.write_permission(),
-        )?;
+        let commit_message =
+            commit_message_generation(project_id, commit_id, llm, emitter.as_ref(), &diff_infos)?;
+        let outcome =
+            but_workspace::legacy::commit_engine::create_commit_and_update_refs_with_project(
+                repo,
+                project_data_dir,
+                Some(stack_id),
+                commit_engine::Destination::NewCommit {
+                    message: commit_message,
+                    parent_commit_id: Some(commit_id),
+                    stack_segment: None,
+                },
+                diff_specs,
+                context_lines,
+                guard.write_permission(),
+            )?;
 
         if let Some(new_commit_id) = outcome.new_commit
             && let Some(project_id) = project_id
@@ -207,7 +213,9 @@ impl std::fmt::Display for DiffInfo {
     }
 }
 
-fn absorption_files_to_diff_infos(absorption_files: &[but_hunk_assignment::FileAbsorption]) -> Vec<DiffInfo> {
+fn absorption_files_to_diff_infos(
+    absorption_files: &[but_hunk_assignment::FileAbsorption],
+) -> Vec<DiffInfo> {
     absorption_files
         .iter()
         .filter_map(|f| {
@@ -254,7 +262,10 @@ fn commit_message_generation(
 </format>
     ";
 
-        let changes = hunk_diffs.iter().map(|diff| diff.to_string()).collect::<Vec<_>>();
+        let changes = hunk_diffs
+            .iter()
+            .map(|diff| diff.to_string())
+            .collect::<Vec<_>>();
 
         let prompt = format!(
             "Please generate a concise and descriptive git commit message for the following changes:\n\n{}",
@@ -262,17 +273,19 @@ fn commit_message_generation(
         );
 
         let commit_message = match (project_id, emitter) {
-            (Some(project_id), Some(emitter)) => llm.stream_response(system_message, vec![prompt.into()], &model, {
-                let emitter = std::sync::Arc::clone(emitter);
-                move |token| {
-                    let event = AutoCommitEvent::CommitGeneration {
-                        parent_commit_id,
-                        token: token.to_string(),
-                    };
-                    let event_name = event.event_name(project_id);
-                    emitter(&event_name, event.emit_payload());
-                }
-            })?,
+            (Some(project_id), Some(emitter)) => {
+                llm.stream_response(system_message, vec![prompt.into()], &model, {
+                    let emitter = std::sync::Arc::clone(emitter);
+                    move |token| {
+                        let event = AutoCommitEvent::CommitGeneration {
+                            parent_commit_id,
+                            token: token.to_string(),
+                        };
+                        let event_name = event.event_name(project_id);
+                        emitter(&event_name, event.emit_payload());
+                    }
+                })?
+            }
             _ => llm.response(system_message, vec![prompt.into()], &model)?,
         };
 

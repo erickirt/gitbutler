@@ -93,7 +93,10 @@ git config but.alias.default "-C repo status"
 "#,
     );
 
-    env.but("-C repo2").assert().failure().stderr_eq(snapbox::str![[r#"
+    env.but("-C repo2")
+        .assert()
+        .failure()
+        .stderr_eq(snapbox::str![[r#"
 Error: Setup required: No GitButler project found at repo2
 
 "#]]);

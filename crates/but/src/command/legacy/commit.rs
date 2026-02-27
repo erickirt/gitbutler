@@ -35,7 +35,11 @@ pub(crate) fn insert_blank_commit(
     }
 
     if cli_ids.len() > 1 {
-        bail!("Target '{}' is ambiguous. Found {} matches", target, cli_ids.len());
+        bail!(
+            "Target '{}' is ambiguous. Found {} matches",
+            target,
+            cli_ids.len()
+        );
     }
 
     let cli_id = &cli_ids[0];
@@ -51,7 +55,11 @@ pub(crate) fn insert_blank_commit(
     // Determine target commit ID and use provided insert_side
     let success_message = match cli_id {
         CliId::Commit { commit_id: oid, .. } => {
-            commit_insert_blank(ctx, but_api::commit::ui::RelativeTo::Commit(*oid), insert_side)?;
+            commit_insert_blank(
+                ctx,
+                but_api::commit::ui::RelativeTo::Commit(*oid),
+                insert_side,
+            )?;
             format!(
                 "Created blank commit {} commit {}",
                 position_desc,
@@ -196,7 +204,10 @@ fn resolve_file_ids(
                         break;
                     }
                 }
-                if errors.iter().any(|e| e.starts_with(&format!("'{file_id}'"))) {
+                if errors
+                    .iter()
+                    .any(|e| e.starts_with(&format!("'{file_id}'")))
+                {
                     continue;
                 }
 
@@ -257,7 +268,10 @@ pub(crate) fn commit(
 
     // Get all stacks using but-api
     let stack_entries = workspace::stacks(ctx, None)?;
-    let stacks: Vec<(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)> = stack_entries
+    let stacks: Vec<(
+        but_core::ref_metadata::StackId,
+        but_workspace::ui::StackDetails,
+    )> = stack_entries
         .iter()
         .filter_map(|s| {
             s.id.and_then(|id| {
@@ -273,7 +287,8 @@ pub(crate) fn commit(
         bail!("Multiple branches found. Specify a branch to commit to using the branch argument");
     }
 
-    let (target_stack_id, target_stack) = select_stack(&id_map, ctx, &stacks, branch_hint, create_branch, out)?;
+    let (target_stack_id, target_stack) =
+        select_stack(&id_map, ctx, &stacks, branch_hint, create_branch, out)?;
 
     // Get changes and assignments using but-api
     let worktree_changes = diff::changes_in_worktree(ctx)?;
@@ -285,14 +300,17 @@ pub(crate) fn commit(
         resolve_file_ids(&id_map, ctx, file_ids, Some(target_stack_id))?
     } else {
         // Default behavior: unassigned files + files assigned to target stack
-        let assignments_by_file: BTreeMap<BString, FileAssignment> = FileAssignment::get_assignments_by_file(&id_map);
+        let assignments_by_file: BTreeMap<BString, FileAssignment> =
+            FileAssignment::get_assignments_by_file(&id_map);
 
         let mut files = Vec::new();
 
         if !only {
             // Add unassigned files (unless --only flag is used)
-            let unassigned =
-                crate::command::legacy::status::assignment::filter_by_stack_id(assignments_by_file.values(), &None);
+            let unassigned = crate::command::legacy::status::assignment::filter_by_stack_id(
+                assignments_by_file.values(),
+                &None,
+            );
             files.extend(unassigned);
         }
 
@@ -357,7 +375,9 @@ pub(crate) fn commit(
         // In JSON mode, we should have already validated that a message was provided
         // This is a safeguard in case the validation was missed
         if out.for_json().is_some() {
-            bail!("In JSON mode, a commit message must be provided via --message (-m), --message-file, or --ai (-i)");
+            bail!(
+                "In JSON mode, a commit message must be provided via --message (-m), --message-file, or --ai (-i)"
+            );
         }
         get_commit_message_from_editor(&files_to_commit, &changes)?
     };
@@ -406,7 +426,8 @@ pub(crate) fn commit(
                 if let Ok(cli_ids) = id_map.parse_using_context(hint, ctx) {
                     for cli_id in cli_ids {
                         if let CliId::Branch { name, .. } = cli_id
-                            && let Some(branch) = target_stack.branch_details.iter().find(|b| b.name == name)
+                            && let Some(branch) =
+                                target_stack.branch_details.iter().find(|b| b.name == name)
                         {
                             return Some(branch);
                         }
@@ -483,7 +504,10 @@ fn create_independent_branch(
     branch_name: &str,
     ctx: &mut but_ctx::Context,
     out: &mut OutputChannel,
-) -> anyhow::Result<(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)> {
+) -> anyhow::Result<(
+    but_core::ref_metadata::StackId,
+    but_workspace::ui::StackDetails,
+)> {
     // Create a new independent stack with the given branch name
     let (new_stack_id_opt, _new_ref) = but_api::legacy::stack::create_reference(
         ctx,
@@ -497,7 +521,10 @@ fn create_independent_branch(
         if let Some(out) = out.for_human() {
             writeln!(out, "Created new independent branch '{branch_name}'")?;
         }
-        Ok((new_stack_id, workspace::stack_details(ctx, Some(new_stack_id))?))
+        Ok((
+            new_stack_id,
+            workspace::stack_details(ctx, Some(new_stack_id))?,
+        ))
     } else {
         bail!("Failed to create new branch '{branch_name}'");
     }
@@ -506,11 +533,17 @@ fn create_independent_branch(
 fn select_stack(
     id_map: &IdMap,
     ctx: &mut but_ctx::Context,
-    stacks: &[(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)],
+    stacks: &[(
+        but_core::ref_metadata::StackId,
+        but_workspace::ui::StackDetails,
+    )],
     branch_hint: Option<&str>,
     create_branch: bool,
     out: &mut OutputChannel,
-) -> anyhow::Result<(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)> {
+) -> anyhow::Result<(
+    but_core::ref_metadata::StackId,
+    but_workspace::ui::StackDetails,
+)> {
     // Handle empty stacks case - automatically create a branch
     if stacks.is_empty() {
         let branch_name = match branch_hint {
@@ -556,9 +589,15 @@ fn select_stack(
 
 fn find_stack_by_hint(
     id_map: &IdMap,
-    stacks: &[(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)],
+    stacks: &[(
+        but_core::ref_metadata::StackId,
+        but_workspace::ui::StackDetails,
+    )],
     hint: &str,
-) -> Option<(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)> {
+) -> Option<(
+    but_core::ref_metadata::StackId,
+    but_workspace::ui::StackDetails,
+)> {
     // Try exact branch name match
     for (stack_id, stack_details) in stacks {
         if stack_details.branch_details.iter().any(|b| b.name == hint) {
@@ -567,7 +606,9 @@ fn find_stack_by_hint(
     }
 
     // Try CLI ID parsing
-    let cli_ids = id_map.parse(hint, Box::new(move |_, _| Ok(Vec::new()))).ok()?;
+    let cli_ids = id_map
+        .parse(hint, Box::new(move |_, _| Ok(Vec::new())))
+        .ok()?;
     for cli_id in cli_ids {
         if let CliId::Branch { name, .. } = cli_id {
             for (stack_id, stack_details) in stacks {
@@ -582,9 +623,15 @@ fn find_stack_by_hint(
 }
 
 fn prompt_for_stack_selection(
-    stacks: &[(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)],
+    stacks: &[(
+        but_core::ref_metadata::StackId,
+        but_workspace::ui::StackDetails,
+    )],
     mut inout: InputOutputChannel,
-) -> Result<(but_core::ref_metadata::StackId, but_workspace::ui::StackDetails)> {
+) -> Result<(
+    but_core::ref_metadata::StackId,
+    but_workspace::ui::StackDetails,
+)> {
     use std::fmt::Write;
     writeln!(inout, "Multiple stacks found. Choose one to commit to:")?;
 
@@ -598,7 +645,10 @@ fn prompt_for_stack_selection(
         .parse()
         .map_err(|_| anyhow::anyhow!("Invalid selection"))?;
 
-    anyhow::ensure!((1..=stacks.len()).contains(&selection), "Selection out of range");
+    anyhow::ensure!(
+        (1..=stacks.len()).contains(&selection),
+        "Selection out of range"
+    );
 
     Ok(stacks[selection - 1].clone())
 }
@@ -621,7 +671,8 @@ fn get_commit_message_from_editor(
     template.push_str("#\n");
 
     // Read the result from the editor and strip comments
-    let lossy_message = tui::get_text::from_editor_no_comments("commit_msg", &template)?.to_string();
+    let lossy_message =
+        tui::get_text::from_editor_no_comments("commit_msg", &template)?.to_string();
     Ok(lossy_message)
 }
 

@@ -8,13 +8,24 @@ mod stacks {
     };
 
     #[test]
-    fn multiple_branches_with_shared_segment_automatically_know_containing_workspace() -> anyhow::Result<()> {
+    fn multiple_branches_with_shared_segment_automatically_know_containing_workspace()
+    -> anyhow::Result<()> {
         let (repo, mut meta) = read_only_in_memory_scenario("multiple-stacks-with-shared-segment")?;
 
         add_stack(&mut meta, 1, "B-on-A", StackState::InWorkspace);
         add_stack(&mut meta, 2, "C-on-A", StackState::Inactive);
-        add_stack(&mut meta, 3, "does-not-exist-inactive", StackState::Inactive);
-        add_stack(&mut meta, 4, "does-not-exist-active", StackState::InWorkspace);
+        add_stack(
+            &mut meta,
+            3,
+            "does-not-exist-inactive",
+            StackState::Inactive,
+        );
+        add_stack(
+            &mut meta,
+            4,
+            "does-not-exist-active",
+            StackState::InWorkspace,
+        );
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         *   820f2b3 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
         |\  
@@ -272,7 +283,13 @@ mod stack_details {
         * fafd9d0 (origin/main, main, lane) init
         ");
 
-        let stack_id = add_stack_with_segments(&mut meta, 1, "dependent", StackState::InWorkspace, &["advanced-lane"]);
+        let stack_id = add_stack_with_segments(
+            &mut meta,
+            1,
+            "dependent",
+            StackState::InWorkspace,
+            &["advanced-lane"],
+        );
         let actual = stack_details_v3(stack_id.into(), &repo, &meta)?;
         insta::assert_debug_snapshot!(actual, @r#"
         StackDetails {
@@ -331,7 +348,8 @@ mod stack_details {
     }
 
     #[test]
-    fn multiple_branches_with_shared_segment_automatically_know_containing_workspace() -> anyhow::Result<()> {
+    fn multiple_branches_with_shared_segment_automatically_know_containing_workspace()
+    -> anyhow::Result<()> {
         let (repo, mut meta) = read_only_in_memory_scenario("multiple-stacks-with-shared-segment")?;
         insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
         *   820f2b3 (HEAD -> gitbutler/workspace) GitButler Workspace Commit

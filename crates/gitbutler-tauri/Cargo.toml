@@ -6,6 +6,14 @@ authors.workspace = true
 publish = false
 rust-version.workspace = true
 
+[package.metadata.cargo-machete]
+ignored = [
+    # Only used when the optional `error-context` feature enables backtrace capture.
+    "backtrace",
+    # We include this only to set the askpass feature flag when compiling. This little hack will be removed in future update.
+    "gitbutler-git"
+]
+
 [lib]
 doctest = false
 crate-type = ["lib", "staticlib", "cdylib"]
@@ -16,7 +24,7 @@ path = "src/main.rs"
 test = false
 
 [build-dependencies]
-tauri-build = { version = "2.3.1", features = [] }
+tauri-build = { version = "2.5.5", features = [] }
 
 [dependencies]
 but = { workspace = true, optional = true }
@@ -39,27 +47,24 @@ gitbutler-repo-actions.workspace = true
 gitbutler-watcher.workspace = true
 gitbutler-project.workspace = true
 gitbutler-git = { workspace = true, features = ["askpass"] }
-
-tauri = { version = "^2.9.5", features = ["unstable"] }
-tauri-plugin-single-instance = { version = "2.3.6", features = ["deep-link"] }
-tauri-plugin-dialog = "2.4.2"
-tauri-plugin-fs = "2.4.2"
-tauri-plugin-http = "2.5.4"
-tauri-plugin-log = "2.7.1"
+gitbutler-oplog.workspace = true
+tauri = { version = "^2.10.2", features = ["unstable"] }
+tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }
+tauri-plugin-dialog = "2.6.0"
+tauri-plugin-fs = "2.4.5"
+tauri-plugin-http = "2.5.7"
+tauri-plugin-log = "2.8.0"
 tauri-plugin-os = "2.3.2"
 tauri-plugin-process = "2.3.1"
-tauri-plugin-shell = "2.3.3"
-tauri-plugin-store = "2.4.1"
-tauri-plugin-updater = "2.9.0"
+tauri-plugin-shell = "2.3.5"
+tauri-plugin-store = "2.4.2"
+tauri-plugin-updater = "2.10.0"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-clipboard-manager = "2.3.2"
-
-
 anyhow.workspace = true
 
 # For error casting
 rusqlite.workspace = true
-
 backtrace = { version = "0.3.76", optional = true }
 console-subscriber = "0.5.0"
 gix = { workspace = true, features = ["max-performance", "worktree-mutation"] }

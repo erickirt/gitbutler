@@ -23,8 +23,17 @@ impl Workspace {
     /// Redo the graph traversal with the same settings as before, but use the latest
     /// data from `repo` and `meta` to do it.
     /// This is useful to make this instance represent changes to `repo` or `meta`.
-    #[instrument(name = "Workspace::refresh_from_head", level = "debug", skip_all, err(Debug))]
-    pub fn refresh_from_head(&mut self, repo: &gix::Repository, meta: &impl RefMetadata) -> anyhow::Result<()> {
+    #[instrument(
+        name = "Workspace::refresh_from_head",
+        level = "debug",
+        skip_all,
+        err(Debug)
+    )]
+    pub fn refresh_from_head(
+        &mut self,
+        repo: &gix::Repository,
+        meta: &impl RefMetadata,
+    ) -> anyhow::Result<()> {
         let graph = Graph::from_head(repo, meta, self.graph.options.clone())?;
         *self = graph.into_workspace()?;
         Ok(())
@@ -52,7 +61,8 @@ impl Workspace {
 
     /// Like [`Self::ref_name()`], but return a generic `<anonymous>` name for unnamed workspaces.
     pub fn ref_name_display(&self) -> &BStr {
-        self.ref_name().map_or("<anonymous>".into(), |rn| rn.as_bstr())
+        self.ref_name()
+            .map_or("<anonymous>".into(), |rn| rn.as_bstr())
     }
 }
 
@@ -74,7 +84,8 @@ impl Workspace {
                 .iter()
                 .map(|name| Cow::Borrowed(name.as_str().into()))
                 .collect();
-            extract_remote_name_and_short_name(tr.ref_name.as_ref(), &remote_names).map(|(remote_name, _)| remote_name)
+            extract_remote_name_and_short_name(tr.ref_name.as_ref(), &remote_names)
+                .map(|(remote_name, _)| remote_name)
         } else if let Some(md) = self.metadata.as_ref() {
             md.push_remote.clone()
         } else {
@@ -116,13 +127,19 @@ impl Workspace {
         self.graph
             .tip_skip_empty(merge_base_segment_index)
             .map(|c| c.id)
-            .zip(self.graph.tip_skip_empty(target_segment_index).map(|c| c.id))
+            .zip(
+                self.graph
+                    .tip_skip_empty(target_segment_index)
+                    .map(|c| c.id),
+            )
     }
 
     /// Return `true` if the workspace itself is where `HEAD` is pointing to.
     /// If `false`, one of the stack-segments is checked out instead.
     pub fn is_entrypoint(&self) -> bool {
-        self.stacks.iter().all(|s| s.segments.iter().all(|s| !s.is_entrypoint))
+        self.stacks
+            .iter()
+            .all(|s| s.segments.iter().all(|s| !s.is_entrypoint))
     }
 
     /// Return an iterator over all commits in the workspace,
@@ -137,7 +154,10 @@ impl Workspace {
     }
 
     /// Return `true` if the branch with `name` is the workspace target or the targets local tracking branch.
-    pub fn is_branch_the_target_or_its_local_tracking_branch(&self, name: &gix::refs::FullNameRef) -> bool {
+    pub fn is_branch_the_target_or_its_local_tracking_branch(
+        &self,
+        name: &gix::refs::FullNameRef,
+    ) -> bool {
         let Some(t) = self.target_ref.as_ref() else {
             return false;
         };
@@ -180,16 +200,25 @@ impl Workspace {
 
     /// Try to find the `(stack_idx, segment_idx, commit_idx)` to be able to access the commit with `oid` in this workspace
     /// as `ws.stacks[stack_idx].segments[segment_idx].commits[commit_idx]`.
-    pub fn find_owner_indexes_by_commit_id(&self, oid: impl Into<gix::ObjectId>) -> Option<CommitOwnerIndexes> {
+    pub fn find_owner_indexes_by_commit_id(
+        &self,
+        oid: impl Into<gix::ObjectId>,
+    ) -> Option<CommitOwnerIndexes> {
         let oid = oid.into();
-        self.stacks.iter().enumerate().find_map(|(stack_idx, stack)| {
-            stack.segments.iter().enumerate().find_map(|(seg_idx, seg)| {
-                seg.commits
+        self.stacks
+            .iter()
+            .enumerate()
+            .find_map(|(stack_idx, stack)| {
+                stack
+                    .segments
                     .iter()
                     .enumerate()
-                    .find_map(|(cidx, c)| (c.id == oid).then_some((stack_idx, seg_idx, cidx)))
+                    .find_map(|(seg_idx, seg)| {
+                        seg.commits.iter().enumerate().find_map(|(cidx, c)| {
+                            (c.id == oid).then_some((stack_idx, seg_idx, cidx))
+                        })
+                    })
             })
-        })
     }
 
     /// Like [`Self::find_owner_indexes_by_commit_id()`], but returns an error if the commit can't be found.
@@ -204,7 +233,10 @@ impl Workspace {
 
     /// Try to find the `(stack_idx, segment_idx)` to be able to access the named segment going by `name`.
     /// Access the segment as `ws.stacks[stack_idx].segments[segment_idx]`
-    pub fn find_segment_owner_indexes_by_refname(&self, ref_name: &gix::refs::FullNameRef) -> Option<(usize, usize)> {
+    pub fn find_segment_owner_indexes_by_refname(
+        &self,
+        ref_name: &gix::refs::FullNameRef,
+    ) -> Option<(usize, usize)> {
         find_segment_owner_indexes_by_refname(&self.stacks, ref_name)
     }
 
@@ -213,12 +245,13 @@ impl Workspace {
         &self,
         name: &gix::refs::FullNameRef,
     ) -> anyhow::Result<(usize, usize)> {
-        self.find_segment_owner_indexes_by_refname(name).with_context(|| {
-            format!(
-                "Couldn't find any stack that contained the branch named '{}'",
-                name.shorten()
-            )
-        })
+        self.find_segment_owner_indexes_by_refname(name)
+            .with_context(|| {
+                format!(
+                    "Couldn't find any stack that contained the branch named '{}'",
+                    name.shorten()
+                )
+            })
     }
 
     /// Return `true` if `name` is contained in the workspace as segment.
@@ -234,30 +267,40 @@ impl Workspace {
         if self.is_entrypoint() {
             self.refname_is_segment(name)
         } else {
-            let Some((entrypoint_stack, entrypoint_segment_idx)) = self.stacks.iter().find_map(|stack| {
-                stack
-                    .segments
-                    .iter()
-                    .enumerate()
-                    .find_map(|(idx, segment)| segment.is_entrypoint.then_some((stack, idx)))
-            }) else {
+            let Some((entrypoint_stack, entrypoint_segment_idx)) =
+                self.stacks.iter().find_map(|stack| {
+                    stack
+                        .segments
+                        .iter()
+                        .enumerate()
+                        .find_map(|(idx, segment)| segment.is_entrypoint.then_some((stack, idx)))
+                })
+            else {
                 return false;
             };
             entrypoint_stack
                 .segments
                 .get(entrypoint_segment_idx..)
                 .into_iter()
-                .any(|segments| segments.iter().any(|s| s.ref_name().is_some_and(|rn| rn == name)))
+                .any(|segments| {
+                    segments
+                        .iter()
+                        .any(|s| s.ref_name().is_some_and(|rn| rn == name))
+                })
         }
     }
 
     /// Try to find `name` in any named [`StackSegment`] and return it along with the stack containing it.
-    pub fn find_segment_and_stack_by_refname(&self, name: &gix::refs::FullNameRef) -> Option<(&Stack, &StackSegment)> {
+    pub fn find_segment_and_stack_by_refname(
+        &self,
+        name: &gix::refs::FullNameRef,
+    ) -> Option<(&Stack, &StackSegment)> {
         self.stacks.iter().find_map(|stack| {
-            stack
-                .segments
-                .iter()
-                .find_map(|seg| seg.ref_name().is_some_and(|rn| rn == name).then_some((stack, seg)))
+            stack.segments.iter().find_map(|seg| {
+                seg.ref_name()
+                    .is_some_and(|rn| rn == name)
+                    .then_some((stack, seg))
+            })
         })
     }
 
@@ -266,12 +309,13 @@ impl Workspace {
         &self,
         name: &gix::refs::FullNameRef,
     ) -> anyhow::Result<(&Stack, &StackSegment)> {
-        self.find_segment_and_stack_by_refname(name).with_context(|| {
-            format!(
-                "Couldn't find any stack that contained the branch named '{}'",
-                name.shorten()
-            )
-        })
+        self.find_segment_and_stack_by_refname(name)
+            .with_context(|| {
+                format!(
+                    "Couldn't find any stack that contained the branch named '{}'",
+                    name.shorten()
+                )
+            })
     }
 }
 
@@ -290,9 +334,12 @@ impl Workspace {
                 "🏘️⚠️",
             ),
             WorkspaceKind::AdHoc => (
-                graph[self.id].ref_info.as_ref().map_or("DETACHED".into(), |ri| {
-                    Graph::ref_debug_string(ri.ref_name.as_ref(), ri.worktree.as_ref())
-                }),
+                graph[self.id]
+                    .ref_info
+                    .as_ref()
+                    .map_or("DETACHED".into(), |ri| {
+                        Graph::ref_debug_string(ri.ref_name.as_ref(), ri.worktree.as_ref())
+                    }),
                 "⌂",
             ),
         };
@@ -335,9 +382,14 @@ impl TargetRef {
     ) {
         graph.visit_all_segments_including_start_until(target_segment, Direction::Outgoing, |s| {
             let prune = true;
-            if lower_bound_segment_and_generation.is_some_and(|(lower_bound, lower_bound_generation)| {
-                s.id == lower_bound || s.generation > lower_bound_generation
-            }) || s.commits.iter().any(|c| c.flags.contains(CommitFlags::InWorkspace))
+            if lower_bound_segment_and_generation.is_some_and(
+                |(lower_bound, lower_bound_generation)| {
+                    s.id == lower_bound || s.generation > lower_bound_generation
+                },
+            ) || s
+                .commits
+                .iter()
+                .any(|c| c.flags.contains(CommitFlags::InWorkspace))
             {
                 return prune;
             }

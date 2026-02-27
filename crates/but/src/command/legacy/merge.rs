@@ -6,7 +6,11 @@ use colored::Colorize;
 
 use crate::{CliId, IdMap, utils::OutputChannel};
 
-pub async fn handle(ctx: &mut Context, out: &mut OutputChannel, branch_id: &str) -> anyhow::Result<()> {
+pub async fn handle(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    branch_id: &str,
+) -> anyhow::Result<()> {
     let mut progress = out.progress_channel();
 
     let id_map = IdMap::new_from_context(ctx, None)?;
@@ -83,8 +87,13 @@ pub async fn handle(ctx: &mut Context, out: &mut OutputChannel, branch_id: &str)
             gix::merge::commit::Options::default(),
         )?;
 
-        if merge_result.tree_merge.has_unresolved_conflicts(Default::default()) {
-            bail!("Merge resulted in conflicts, please run `but pull` to update {local_branch_name}");
+        if merge_result
+            .tree_merge
+            .has_unresolved_conflicts(Default::default())
+        {
+            bail!(
+                "Merge resulted in conflicts, please run `but pull` to update {local_branch_name}"
+            );
         }
 
         // write the merge commit and update the local branch
@@ -98,7 +107,8 @@ pub async fn handle(ctx: &mut Context, out: &mut OutputChannel, branch_id: &str)
         writeln!(progress, "\nUpdating {}", local_branch_name.blue())?;
 
         // update the local branch
-        let branch_ref_name: gix::refs::FullName = format!("refs/heads/{local_branch_name}").try_into()?;
+        let branch_ref_name: gix::refs::FullName =
+            format!("refs/heads/{local_branch_name}").try_into()?;
         repo.reference(
             branch_ref_name.clone(),
             merge_commit.id(),
@@ -108,9 +118,15 @@ pub async fn handle(ctx: &mut Context, out: &mut OutputChannel, branch_id: &str)
 
         crate::command::legacy::pull::handle(ctx, out, false).await?;
 
-        writeln!(progress, "\n{}", "Merge and update complete!".green().bold())?;
+        writeln!(
+            progress,
+            "\n{}",
+            "Merge and update complete!".green().bold()
+        )?;
     } else {
-        bail!("Target remote is {target_remote}, not gb-local. This command only works with gb-local targets.");
+        bail!(
+            "Target remote is {target_remote}, not gb-local. This command only works with gb-local targets."
+        );
     }
 
     Ok(())

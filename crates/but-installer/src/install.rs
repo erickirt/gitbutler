@@ -28,7 +28,11 @@ pub(crate) fn validate_installed_binary(path: &Path) -> bool {
 }
 
 /// Verify the signature for a CLI installable
-pub(crate) fn verify_signature(installable: &Path, signature_b64: &str, temp_dir: &Path) -> Result<()> {
+pub(crate) fn verify_signature(
+    installable: &Path,
+    signature_b64: &str,
+    temp_dir: &Path,
+) -> Result<()> {
     crate::ui::info("Verifying download signature...");
 
     // Validate signature is not empty - this is a security requirement
@@ -40,7 +44,8 @@ pub(crate) fn verify_signature(installable: &Path, signature_b64: &str, temp_dir
     let pubkey_str = "RWTrOEI+im1XYA9RBwyxnzFN/evFzJhU1lbQ70LVayWH3WRo7xQnRLD2";
 
     // Parse the public key
-    let public_key = minisign_verify::PublicKey::from_base64(pubkey_str).context("Failed to parse public key")?;
+    let public_key = minisign_verify::PublicKey::from_base64(pubkey_str)
+        .context("Failed to parse public key")?;
 
     // Decode signature from base64 and write to file
     // The signature format from the API is base64-encoded minisign signature file content
@@ -54,13 +59,16 @@ pub(crate) fn verify_signature(installable: &Path, signature_b64: &str, temp_dir
     fs::write(&signature_file, &signature_bytes)?;
 
     // Read it back as a string (minisign signatures are text files)
-    let signature_str = fs::read_to_string(&signature_file).context("Failed to read signature file as string")?;
+    let signature_str =
+        fs::read_to_string(&signature_file).context("Failed to read signature file as string")?;
 
     // Parse the signature
-    let signature = minisign_verify::Signature::decode(&signature_str).context("Failed to parse signature")?;
+    let signature =
+        minisign_verify::Signature::decode(&signature_str).context("Failed to parse signature")?;
 
     // Use streaming verification to avoid loading entire file into memory
-    let mut file = File::open(installable).context("Failed to open installable for verification")?;
+    let mut file =
+        File::open(installable).context("Failed to open installable for verification")?;
     let mut verifier = public_key
         .verify_stream(&signature)
         .map_err(|e| anyhow!("Failed to initialize signature verifier: {e}"))?;
@@ -76,9 +84,9 @@ pub(crate) fn verify_signature(installable: &Path, signature_b64: &str, temp_dir
     }
 
     // Finalize verification
-    verifier
-        .finalize()
-        .map_err(|e| anyhow!("Signature verification failed - the download may have been tampered with: {e}"))?;
+    verifier.finalize().map_err(|e| {
+        anyhow!("Signature verification failed - the download may have been tampered with: {e}")
+    })?;
 
     success("Signature verification passed");
     Ok(())

@@ -17,8 +17,8 @@ use gix::{
 use tracing::instrument;
 
 use crate::{
-    ChangeState, IgnoredWorktreeChange, IgnoredWorktreeTreeChangeStatus, ModeFlags, TreeChange, TreeStatus,
-    UnifiedPatch, WorktreeChanges,
+    ChangeState, IgnoredWorktreeChange, IgnoredWorktreeTreeChangeStatus, ModeFlags, TreeChange,
+    TreeStatus, UnifiedPatch, WorktreeChanges,
 };
 
 /// Identify where a [`TreeChange`] is from.
@@ -50,7 +50,10 @@ enum RenameTracking {
     Disabled,
 }
 
-fn worktree_changes_inner(repo: &gix::Repository, renames: RenameTracking) -> anyhow::Result<WorktreeChanges> {
+fn worktree_changes_inner(
+    repo: &gix::Repository,
+    renames: RenameTracking,
+) -> anyhow::Result<WorktreeChanges> {
     let (tree_index_rewrites, worktree_rewrites) = match renames {
         RenameTracking::Always => {
             let rewrites = gix::diff::Rewrites::default(); /* standard Git rewrite handling for everything */
@@ -243,7 +246,8 @@ fn worktree_changes_inner(repo: &gix::Repository, renames: RenameTracking) -> an
                 entry,
                 status:
                     EntryStatus::Change(index_as_worktree::Change::Modification {
-                        executable_bit_changed, ..
+                        executable_bit_changed,
+                        ..
                     }),
                 ..
             }) => {
@@ -329,7 +333,10 @@ fn worktree_changes_inner(repo: &gix::Repository, renames: RenameTracking) -> an
             status::Item::IndexWorktree(index_worktree::Item::Modification {
                 rela_path,
                 entry,
-                status: EntryStatus::Change(index_as_worktree::Change::SubmoduleModification(submodule_change)),
+                status:
+                    EntryStatus::Change(index_as_worktree::Change::SubmoduleModification(
+                        submodule_change,
+                    )),
                 ..
             }) => {
                 let Some(checked_out_head_id) = submodule_change.checked_out_head_id else {
@@ -477,19 +484,24 @@ fn worktree_changes_inner(repo: &gix::Repository, renames: RenameTracking) -> an
                     ..
                 },
             ) => {
-                unreachable!("we never return these as the status iteration is configured accordingly")
+                unreachable!(
+                    "we never return these as the status iteration is configured accordingly"
+                )
             }
         };
         tmp.push(change);
     }
 
-    tmp.sort_by(|(a_origin, a), (b_origin, b)| cmp_prefer_overlapping(a, b).then(a_origin.cmp(b_origin).reverse()));
+    tmp.sort_by(|(a_origin, a), (b_origin, b)| {
+        cmp_prefer_overlapping(a, b).then(a_origin.cmp(b_origin).reverse())
+    });
 
     let mut last_change = None::<&TreeChange>;
     let mut changes = Vec::<TreeChange>::with_capacity(tmp.len());
     let (mut filter, index) = repo.filter_pipeline(None)?;
-    let mut path_check =
-        gix::status::plumbing::SymlinkCheck::new(repo.workdir().map(ToOwned::to_owned).context("non-bare")?);
+    let mut path_check = gix::status::plumbing::SymlinkCheck::new(
+        repo.workdir().map(ToOwned::to_owned).context("non-bare")?,
+    );
     for (_origin, change) in tmp {
         // At this point we know that the current `change` is the tree/index variant
         // of a prior change between index/worktree.
@@ -502,11 +514,18 @@ fn worktree_changes_inner(repo: &gix::Repository, renames: RenameTracking) -> an
             // This one is a rename. In that case, we want the rename, combined
             // with the current state pointing to the worktree,
             // which we expect to be a modification
-            let index_wt_change = changes.pop().expect("the reason we are here is the previous change");
+            let index_wt_change = changes
+                .pop()
+                .expect("the reason we are here is the previous change");
             let change_path = change.path.clone();
             let tree_index_change = change;
-            let status = match merge_changes(tree_index_change, index_wt_change, &mut filter, &index, &mut path_check)?
-            {
+            let status = match merge_changes(
+                tree_index_change,
+                index_wt_change,
+                &mut filter,
+                &index,
+                &mut path_check,
+            )? {
                 [None, None] => IgnoredWorktreeTreeChangeStatus::TreeIndexWorktreeChangeIneffective,
                 [Some(merged), None] | [None, Some(merged)] => {
                     changes.push(merged);
@@ -545,7 +564,10 @@ fn worktree_changes_inner(repo: &gix::Repository, renames: RenameTracking) -> an
 }
 
 fn cmp_prefer_overlapping(a: &TreeChange, b: &TreeChange) -> Ordering {
-    if a.path == b.path || a.previous_path() == Some(b.path.as_bstr()) || Some(a.path.as_bstr()) == b.previous_path() {
+    if a.path == b.path
+        || a.previous_path() == Some(b.path.as_bstr())
+        || Some(a.path.as_bstr()) == b.previous_path()
+    {
         Ordering::Equal
     } else {
         a.path.cmp(&b.path)
@@ -574,7 +596,8 @@ fn merge_changes(
         | (
             TreeStatus::Deletion { .. },
             TreeStatus::Addition {
-                is_untracked: false, ..
+                is_untracked: false,
+                ..
             },
         )
         | (TreeStatus::Addition { .. }, TreeStatus::Addition { .. }) => {
@@ -584,7 +607,15 @@ fn merge_changes(
                 index_wt.status.kind()
             );
         }
-        (TreeStatus::Addition { is_untracked, state }, TreeStatus::Modification { state: state_wt, .. }) => {
+        (
+            TreeStatus::Addition {
+                is_untracked,
+                state,
+            },
+            TreeStatus::Modification {
+                state: state_wt, ..
+            },
+        ) => {
             *is_untracked = true;
             *state = *state_wt;
             return Ok(single(tree_index));
@@ -596,7 +627,8 @@ fn merge_changes(
         (
             TreeStatus::Addition { state, .. },
             TreeStatus::Rename {
-                previous_state: ps_wt, ..
+                previous_state: ps_wt,
+                ..
             },
         ) => {
             // This is conflicting actually, and a little bit unclear what committing this will do.
@@ -622,7 +654,8 @@ fn merge_changes(
         (
             TreeStatus::Modification { previous_state, .. },
             TreeStatus::Modification {
-                previous_state: ps_wt, ..
+                previous_state: ps_wt,
+                ..
             },
         ) => {
             *ps_wt = *previous_state;
@@ -634,13 +667,21 @@ fn merge_changes(
         (
             TreeStatus::Modification { previous_state, .. },
             TreeStatus::Rename {
-                previous_state: ps_wt, ..
+                previous_state: ps_wt,
+                ..
             },
         ) => {
             *ps_wt = *previous_state;
             index_wt
         }
-        (TreeStatus::Rename { state: state_index, .. }, TreeStatus::Modification { state: state_wt, .. }) => {
+        (
+            TreeStatus::Rename {
+                state: state_index, ..
+            },
+            TreeStatus::Modification {
+                state: state_wt, ..
+            },
+        ) => {
             *state_index = *state_wt;
             return Ok(single(tree_index));
         }
@@ -679,7 +720,14 @@ fn merge_changes(
                 },
             }));
         }
-        (TreeStatus::Rename { state: state_index, .. }, TreeStatus::Addition { state: state_wt, .. }) => {
+        (
+            TreeStatus::Rename {
+                state: state_index, ..
+            },
+            TreeStatus::Addition {
+                state: state_wt, ..
+            },
+        ) => {
             return Ok([
                 Some(TreeChange {
                     path: tree_index.path,
@@ -705,7 +753,13 @@ fn merge_changes(
         }
     };
 
-    let current = id_or_hash_from_worktree(merged.status.state(), merged.path.as_bstr(), filter, index, path_check)?;
+    let current = id_or_hash_from_worktree(
+        merged.status.state(),
+        merged.path.as_bstr(),
+        filter,
+        index,
+        path_check,
+    )?;
     let (prev_state, prev_path) = merged
         .status
         .previous_state_and_path()
@@ -768,7 +822,9 @@ fn id_or_hash_from_worktree(
                 stream.read_to_end(&mut buf)?;
                 gix::objs::compute_hash(repo.object_hash(), gix::object::Kind::Blob, &buf)?
             }
-            ToGitOutcome::Buffer(buf) => gix::objs::compute_hash(repo.object_hash(), gix::object::Kind::Blob, buf)?,
+            ToGitOutcome::Buffer(buf) => {
+                gix::objs::compute_hash(repo.object_hash(), gix::object::Kind::Blob, buf)?
+            }
         }
     } else if md.is_symlink() {
         let bytes = gix::path::os_string_into_bstring(std::fs::read_link(path)?.into())?;
@@ -835,7 +891,11 @@ impl TreeChange {
     /// Warning: we return binary-to-text conversions as patches, so these diffs aren't usable for actual patching,
     /// as they also remove the information about such filter, and it's unclear to the caller if they ran at all.
     // TODO: also add mode information, but it's not super trivial to decide on a good format.
-    pub fn unified_diff(&self, repo: &gix::Repository, context_lines: u32) -> anyhow::Result<Option<BString>> {
+    pub fn unified_diff(
+        &self,
+        repo: &gix::Repository,
+        context_lines: u32,
+    ) -> anyhow::Result<Option<BString>> {
         fn prefixed_path_line(prefix: &str, path: &BString, out: &mut BString) {
             out.push_str(prefix);
             out.push_str(path);
@@ -899,9 +959,16 @@ impl TreeChange {
     /// --- a/README.md
     /// +++ b/README.md
     /// ```
-    pub fn unified_patch(&self, repo: &gix::Repository, context_lines: u32) -> anyhow::Result<Option<UnifiedPatch>> {
-        let mut diff_filter =
-            crate::unified_diff::filter_from_state(repo, self.status.state(), UnifiedPatch::CONVERSION_MODE)?;
+    pub fn unified_patch(
+        &self,
+        repo: &gix::Repository,
+        context_lines: u32,
+    ) -> anyhow::Result<Option<UnifiedPatch>> {
+        let mut diff_filter = crate::unified_diff::filter_from_state(
+            repo,
+            self.status.state(),
+            UnifiedPatch::CONVERSION_MODE,
+        )?;
         self.unified_patch_with_filter(repo, context_lines, &mut diff_filter)
     }
 
@@ -922,7 +989,10 @@ impl TreeChange {
                 context_lines,
                 diff_filter,
             ),
-            TreeStatus::Addition { state, is_untracked: _ } => UnifiedPatch::compute_with_filter(
+            TreeStatus::Addition {
+                state,
+                is_untracked: _,
+            } => UnifiedPatch::compute_with_filter(
                 repo,
                 self.path.as_bstr(),
                 None,

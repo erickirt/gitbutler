@@ -1,10 +1,10 @@
 //! macOS-specific installation logic
 
-use std::os::unix::fs as unix_fs;
 use std::{
     fs::{self, File},
     io,
     io::Read,
+    os::unix::fs as unix_fs,
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -16,11 +16,10 @@ use tar::Archive;
 use crate::{
     config::{Channel, InstallerConfig},
     download::download_file,
+    install::{validate_installed_binary, verify_signature},
     release::{PlatformInfo, Release, validate_download_url},
     ui::{info, success, warn},
 };
-
-use crate::install::{validate_installed_binary, verify_signature};
 
 pub fn download_and_install_app(
     config: &InstallerConfig,
@@ -39,7 +38,9 @@ pub fn download_and_install_app(
     validate_download_url(download_url)?;
     info(&format!("Download URL: {download_url}"));
 
-    let temp_dir = tempfile::Builder::new().prefix("gitbutler-install.").tempdir()?;
+    let temp_dir = tempfile::Builder::new()
+        .prefix("gitbutler-install.")
+        .tempdir()?;
 
     let filename = download_url
         .split('/')
@@ -175,7 +176,9 @@ pub(crate) fn install_app(app_dir: &Path, home_dir: &Path, channel: Option<Chann
     if !verify_status.map(|s| s.success()).unwrap_or(false) {
         fs::remove_dir_all(&install_app_new)?;
         fs::remove_file(&but_new)?;
-        bail!("New installation verification failed - 'but' binary cannot run (may be corrupted or blocked by macOS)");
+        bail!(
+            "New installation verification failed - 'but' binary cannot run (may be corrupted or blocked by macOS)"
+        );
     }
 
     // New installation is valid - now do the atomic swap
@@ -211,7 +214,9 @@ pub(crate) fn install_app(app_dir: &Path, home_dir: &Path, channel: Option<Chann
                     install_app_backup.display()
                 );
             }
-            bail!("Failed to install new version: {e}. Previous installation restored successfully.");
+            bail!(
+                "Failed to install new version: {e}. Previous installation restored successfully."
+            );
         }
         // No backup to restore, just fail
         bail!("Failed to move new installation into place: {e}");
@@ -227,7 +232,9 @@ pub(crate) fn install_app(app_dir: &Path, home_dir: &Path, channel: Option<Chann
 
     if let Err(e) = symlink_result {
         // Symlink creation failed - rollback to backup
-        warn(&format!("Failed to create symlink: {e} - attempting to restore backup"));
+        warn(&format!(
+            "Failed to create symlink: {e} - attempting to restore backup"
+        ));
         if install_app_backup.exists() {
             if let Err(remove_err) = fs::remove_dir_all(&install_app) {
                 bail!(
@@ -263,14 +270,19 @@ pub(crate) fn install_app(app_dir: &Path, home_dir: &Path, channel: Option<Chann
                 success("Backup was restored successfully");
                 bail!("Installation failed but your previous installation was restored");
             } else {
-                bail!("Installation failed and backup restoration also failed - 'but' command may not work");
+                bail!(
+                    "Installation failed and backup restoration also failed - 'but' command may not work"
+                );
             }
         } else {
             bail!("Installation failed and no backup available to restore");
         }
     }
 
-    success(&format!("{} installed successfully", app_basename.to_string_lossy()));
+    success(&format!(
+        "{} installed successfully",
+        app_basename.to_string_lossy()
+    ));
     // Remove backup on success
     let _ = fs::remove_dir_all(&install_app_backup);
 
@@ -303,7 +315,9 @@ pub(crate) fn extract_tarball(tarball: &Path, dest_dir: &Path) -> Result<PathBuf
     let file = File::open(tarball)?;
     let decoder = GzDecoder::new(file);
     let mut archive = Archive::new(decoder);
-    archive.unpack(dest_dir).context("Failed to extract archive")?;
+    archive
+        .unpack(dest_dir)
+        .context("Failed to extract archive")?;
 
     // Find the extracted .app bundle
     let mut app_dir = None;
@@ -322,10 +336,12 @@ pub(crate) fn extract_tarball(tarball: &Path, dest_dir: &Path) -> Result<PathBuf
 pub(crate) fn verify_app_structure(app_dir: &Path) -> Result<()> {
     let binaries_dir = app_dir.join("Contents/MacOS");
     if !binaries_dir.is_dir() {
-        bail!("Extracted app bundle does not contain expected directory structure (Contents/MacOS)");
+        bail!(
+            "Extracted app bundle does not contain expected directory structure (Contents/MacOS)"
+        );
     }
 
-    let required_binaries = ["gitbutler-git-askpass", "gitbutler-git-setsid", "gitbutler-tauri"];
+    let required_binaries = ["gitbutler-git-askpass", "gitbutler-tauri"];
 
     for binary in &required_binaries {
         let binary_path = binaries_dir.join(binary);

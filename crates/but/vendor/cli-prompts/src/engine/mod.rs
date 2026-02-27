@@ -10,10 +10,10 @@
 //! Submodules are meant to implement the above traits using terminal manipulation libraries
 mod crossterm;
 
-pub use self::crossterm::CrosstermEngine;
-
-use crate::{input::Key, style::Formatting};
 use std::io::Result;
+
+pub use self::crossterm::CrosstermEngine;
+use crate::{input::Key, style::Formatting};
 
 /// Represents the backend to draw prompts on the screen and handle input
 pub trait Engine {

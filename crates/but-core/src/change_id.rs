@@ -1,6 +1,9 @@
 //! A type representing ChangeIDs in commit headers.
 
-use std::{fmt, ops::Deref};
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
 
 use bstr::{BStr, BString};
 use rand::Rng;
@@ -72,6 +75,12 @@ impl Deref for ChangeId {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl DerefMut for ChangeId {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

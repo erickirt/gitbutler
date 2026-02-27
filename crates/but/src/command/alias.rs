@@ -97,7 +97,12 @@ pub fn list(repo: &gix::Repository, out: &mut OutputChannel) -> Result<()> {
 
         // Show default aliases
         if !default_aliases.is_empty() {
-            writeln!(out, "{} {}:", "Default aliases".bold(), "(overridable)".dimmed())?;
+            writeln!(
+                out,
+                "{} {}:",
+                "Default aliases".bold(),
+                "(overridable)".dimmed()
+            )?;
             writeln!(out)?;
 
             for (name, value) in &default_aliases {
@@ -168,7 +173,10 @@ fn get_all_aliases(repo: &gix::Repository) -> Result<Vec<AliasEntry>> {
 
         // Determine if this section is from local or global config
         let source = section.meta().source;
-        let is_local = matches!(source, gix::config::Source::Local | gix::config::Source::Worktree);
+        let is_local = matches!(
+            source,
+            gix::config::Source::Local | gix::config::Source::Worktree
+        );
         let is_global = matches!(source, gix::config::Source::User | gix::config::Source::Git);
 
         let subsection = header.subsection_name().map(|s| s.to_str_lossy());
@@ -231,7 +239,13 @@ fn get_default_aliases() -> Vec<(String, String)> {
 }
 
 /// Add a new alias
-pub fn add(ctx: &mut Context, out: &mut OutputChannel, name: &str, value: &str, global: bool) -> Result<()> {
+pub fn add(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    name: &str,
+    value: &str,
+    global: bool,
+) -> Result<()> {
     // Validate alias name doesn't conflict with known commands
     if crate::alias::is_known_subcommand(name) {
         anyhow::bail!("Cannot create alias '{name}': it conflicts with a built-in command");

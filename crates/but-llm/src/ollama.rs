@@ -8,8 +8,8 @@ use crate::{
     ChatMessage,
     client::LLMClient,
     openai_utils::{
-        OpenAIClientProvider, response_blocking, stream_response_blocking, structured_output_blocking,
-        tool_calling_loop, tool_calling_loop_stream,
+        OpenAIClientProvider, response_blocking, stream_response_blocking,
+        structured_output_blocking, tool_calling_loop, tool_calling_loop_stream,
     },
 };
 
@@ -27,7 +27,10 @@ impl From<String> for OllamaHostConfig {
     fn from(endpoint: String) -> Self {
         let parts: Vec<&str> = endpoint.split(':').collect();
         let host = parts.first().cloned().unwrap_or("localhost").to_string();
-        let port = parts.get(1).and_then(|p| p.parse::<u16>().ok()).unwrap_or(11434);
+        let port = parts
+            .get(1)
+            .and_then(|p| p.parse::<u16>().ok())
+            .unwrap_or(11434);
         OllamaHostConfig { host, port }
     }
 }
@@ -78,7 +81,9 @@ impl LLMClient for OllamaProvider {
             .map(|v| v.to_string())
             .map(OllamaHostConfig::from);
         let model = config.string(OLLAMA_MODEL_NAME).map(|v| v.to_string());
-        let ollama_config = OllamaConfig { host_config: endpoint };
+        let ollama_config = OllamaConfig {
+            host_config: endpoint,
+        };
         Some(OllamaProvider::new(ollama_config, model))
     }
 
@@ -94,7 +99,14 @@ impl LLMClient for OllamaProvider {
         model: &str,
         on_token: impl Fn(&str) + Send + Sync + 'static,
     ) -> Result<(String, Vec<ChatMessage>)> {
-        let result = tool_calling_loop_stream(self, system_message, chat_messages, tool_set, model, on_token)?;
+        let result = tool_calling_loop_stream(
+            self,
+            system_message,
+            chat_messages,
+            tool_set,
+            model,
+            on_token,
+        )?;
         Ok((result.final_response, result.message_history))
     }
 
@@ -118,7 +130,9 @@ impl LLMClient for OllamaProvider {
         stream_response_blocking(self, system_message, chat_messages, model, on_token)
     }
 
-    fn structured_output<T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static>(
+    fn structured_output<
+        T: serde::Serialize + DeserializeOwned + JsonSchema + std::marker::Send + 'static,
+    >(
         &self,
         system_message: &str,
         chat_messages: Vec<ChatMessage>,
@@ -127,7 +141,12 @@ impl LLMClient for OllamaProvider {
         structured_output_blocking(self, system_message, chat_messages, model)
     }
 
-    fn response(&self, system_message: &str, chat_messages: Vec<ChatMessage>, model: &str) -> Result<Option<String>> {
+    fn response(
+        &self,
+        system_message: &str,
+        chat_messages: Vec<ChatMessage>,
+        model: &str,
+    ) -> Result<Option<String>> {
         response_blocking(self, system_message, chat_messages, model)
     }
 }

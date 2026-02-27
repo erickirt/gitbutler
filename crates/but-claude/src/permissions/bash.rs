@@ -147,7 +147,9 @@ pub(super) fn split_bash_commands(command: &str) -> Vec<String> {
                             } else {
                                 false
                             };
-                            if let Some(delimiter) = parse_heredoc_delimiter(&mut chars, &mut current_command) {
+                            if let Some(delimiter) =
+                                parse_heredoc_delimiter(&mut chars, &mut current_command)
+                            {
                                 state = State::InHeredoc {
                                     delimiter,
                                     strip_tabs,
@@ -299,7 +301,9 @@ mod tests {
 
     #[test]
     fn complex_command_chain() {
-        let result = split_bash_commands(r#"cd /tmp && touch "test file.txt" && echo "created" || echo "failed""#);
+        let result = split_bash_commands(
+            r#"cd /tmp && touch "test file.txt" && echo "created" || echo "failed""#,
+        );
         assert_eq!(
             result,
             vec![
@@ -314,7 +318,10 @@ mod tests {
     #[test]
     fn mixed_quotes() {
         let result = split_bash_commands(r#"echo "double" && echo 'single' && echo plain"#);
-        assert_eq!(result, vec![r#"echo "double""#, "echo 'single'", "echo plain"]);
+        assert_eq!(
+            result,
+            vec![r#"echo "double""#, "echo 'single'", "echo plain"]
+        );
     }
 
     #[test]
@@ -427,7 +434,10 @@ AStartEndIndicator"#,
         // <<- heredoc followed by another command
         let result = split_bash_commands("cat <<-EOF\n\tindented content\n\tEOF && echo done");
 
-        assert_eq!(result, vec!["cat <<-EOF\n\tindented content\n\tEOF", "echo done"]);
+        assert_eq!(
+            result,
+            vec!["cat <<-EOF\n\tindented content\n\tEOF", "echo done"]
+        );
     }
 
     #[test]

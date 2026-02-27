@@ -74,9 +74,10 @@ export type FeatureFlags = {
 	singleBranch: boolean;
 	/**
 	 * Control how the filesystem watch should be established.
-	 * Possible values: "legacy", "modern".
-	 * "modern" uses ignore-aware non-recursive watching (default).
+	 * Possible values: "auto", "legacy", "modern".
+	 * "auto" automatically picks based on platform heuristics (default).
 	 * "legacy" uses recursive watching.
+	 * "modern" uses ignore-aware non-recursive watching.
 	 */
 	watchMode: string;
 };

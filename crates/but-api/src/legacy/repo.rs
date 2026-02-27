@@ -43,7 +43,11 @@ async fn handle_git_prompt_clone(prompt: String, url: String) -> Option<String> 
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn get_commit_file(ctx: &Context, relative_path: PathBuf, commit_id: gix::ObjectId) -> Result<FileInfo> {
+pub fn get_commit_file(
+    ctx: &Context,
+    relative_path: PathBuf,
+    commit_id: gix::ObjectId,
+) -> Result<FileInfo> {
     ctx.read_file_from_commit(commit_id.to_git2(), &relative_path)
 }
 
@@ -63,7 +67,11 @@ pub fn get_workspace_file(ctx: &Context, relative_path: PathBuf) -> Result<FileI
 /// * `blob_id` - Git blob object ID as a hexadecimal string
 #[but_api]
 #[instrument(err(Debug))]
-pub fn get_blob_file(ctx: &but_ctx::Context, relative_path: PathBuf, blob_id: gix::ObjectId) -> Result<FileInfo> {
+pub fn get_blob_file(
+    ctx: &but_ctx::Context,
+    relative_path: PathBuf,
+    blob_id: gix::ObjectId,
+) -> Result<FileInfo> {
     let repo = ctx.repo.get()?;
     let object = repo.find_object(blob_id).context("Failed to find blob")?;
     let blob = object.try_into_blob().context("Object is not a blob")?;
@@ -72,15 +80,21 @@ pub fn get_blob_file(ctx: &but_ctx::Context, relative_path: PathBuf, blob_id: gi
 
 #[but_api]
 #[instrument(err(Debug))]
-pub fn pre_commit_hook_diffspecs(ctx: &but_ctx::Context, changes: Vec<DiffSpec>) -> Result<HookResult> {
+pub fn pre_commit_hook_diffspecs(
+    ctx: &but_ctx::Context,
+    changes: Vec<DiffSpec>,
+) -> Result<HookResult> {
     let repo = ctx.repo.get()?;
-    let head = repo.head_tree_id_or_empty().context("Failed to get head tree")?;
+    let head = repo
+        .head_tree_id_or_empty()
+        .context("Failed to get head tree")?;
 
     let context_lines = ctx.settings.context_lines;
 
     let mut changes = changes.into_iter().map(Ok).collect::<Vec<_>>();
 
-    let (new_tree, ..) = but_core::tree::apply_worktree_changes(head.detach(), &repo, &mut changes, context_lines)?;
+    let (new_tree, ..) =
+        but_core::tree::apply_worktree_changes(head.detach(), &repo, &mut changes, context_lines)?;
 
     hooks::pre_commit_with_tree(ctx, new_tree.to_git2())
 }

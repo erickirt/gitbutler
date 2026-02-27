@@ -52,8 +52,7 @@ pub(crate) fn handle(
 }
 
 fn enter_resolution(ctx: &mut Context, out: &mut OutputChannel, commit_id_str: &str) -> Result<()> {
-    use gix::prelude::ObjectIdExt as _;
-    use gix::revision::walk::Sorting;
+    use gix::{prelude::ObjectIdExt as _, revision::walk::Sorting};
 
     // Create an IdMap to resolve commit IDs (supports both CLI IDs and partial SHAs)
     let id_map = IdMap::new_from_context(ctx, None)?;
@@ -62,7 +61,9 @@ fn enter_resolution(ctx: &mut Context, out: &mut OutputChannel, commit_id_str: &
     let matches = id_map.parse_using_context(commit_id_str, ctx)?;
 
     if matches.is_empty() {
-        bail!("Commit '{commit_id_str}' not found. Try running 'but status' to see available commits.");
+        bail!(
+            "Commit '{commit_id_str}' not found. Try running 'but status' to see available commits."
+        );
     }
 
     if matches.len() > 1 {
@@ -79,7 +80,9 @@ fn enter_resolution(ctx: &mut Context, out: &mut OutputChannel, commit_id_str: &
 
     // Get the commit and check if it's conflicted
     let gix_repo = ctx.repo.get()?;
-    let commit = gix_repo.find_commit(commit_gix_oid).context("Failed to find commit")?;
+    let commit = gix_repo
+        .find_commit(commit_gix_oid)
+        .context("Failed to find commit")?;
 
     if !commit.is_conflicted() {
         bail!(
@@ -150,7 +153,11 @@ pub(crate) fn show_resolve_status(ctx: &mut Context, out: &mut OutputChannel) ->
     show_status_impl(ctx, out, false)
 }
 
-fn show_status_impl(ctx: &mut Context, out: &mut OutputChannel, prompt_to_finalize: bool) -> Result<()> {
+fn show_status_impl(
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+    prompt_to_finalize: bool,
+) -> Result<()> {
     // Check if we're in edit mode
     let mode = gitbutler_operating_modes::operating_mode(ctx);
     if !matches!(mode, OperatingMode::Edit(_)) {
@@ -173,7 +180,11 @@ fn show_status_impl(ctx: &mut Context, out: &mut OutputChannel, prompt_to_finali
     // If all conflicts are resolved and we're in human mode, offer to finalize
     if all_resolved && prompt_to_finalize {
         writeln!(progress)?;
-        writeln!(progress, "{}", "All conflicts have been resolved!".green().bold())?;
+        writeln!(
+            progress,
+            "{}",
+            "All conflicts have been resolved!".green().bold()
+        )?;
 
         let should_finalize = if let Some(mut inout) = out.prepare_for_terminal_input() {
             if inout.confirm("Finalize the resolution now?", ConfirmDefault::Yes)? == Confirm::Yes {
@@ -200,7 +211,8 @@ fn show_status_impl(ctx: &mut Context, out: &mut OutputChannel, prompt_to_finali
 }
 
 fn show_conflicted_files(ctx: &mut Context, out: &mut OutputChannel) -> Result<bool> {
-    let conflicted_files = edit_initial_index_state(ctx).context("Failed to get conflicted files")?;
+    let conflicted_files =
+        edit_initial_index_state(ctx).context("Failed to get conflicted files")?;
 
     let initially_conflicted: Vec<_> = conflicted_files
         .iter()
@@ -244,18 +256,37 @@ fn show_conflicted_files(ctx: &mut Context, out: &mut OutputChannel) -> Result<b
         if !resolved.is_empty() {
             writeln!(progress, "{} resolved:", "Files".green())?;
             for change in &resolved {
-                writeln!(progress, "  {} {}", "✓".green(), change.path.to_str_lossy().green())?;
+                writeln!(
+                    progress,
+                    "  {} {}",
+                    "✓".green(),
+                    change.path.to_str_lossy().green()
+                )?;
             }
         }
     } else {
-        writeln!(progress, "{}:", "Conflicted files remaining".yellow().bold())?;
+        writeln!(
+            progress,
+            "{}:",
+            "Conflicted files remaining".yellow().bold()
+        )?;
         for change in &still_conflicted {
-            writeln!(progress, "  {} {}", "✗".red(), change.path.to_str_lossy().yellow())?;
+            writeln!(
+                progress,
+                "  {} {}",
+                "✗".red(),
+                change.path.to_str_lossy().yellow()
+            )?;
         }
         if !resolved.is_empty() {
             writeln!(progress, "\n{} resolved:", "Files".green())?;
             for change in &resolved {
-                writeln!(progress, "  {} {}", "✓".green(), change.path.to_str_lossy().green())?;
+                writeln!(
+                    progress,
+                    "  {} {}",
+                    "✓".green(),
+                    change.path.to_str_lossy().green()
+                )?;
             }
         }
     }
@@ -299,15 +330,21 @@ fn finish_resolution(ctx: &mut Context, out: &mut OutputChannel) -> Result<()> {
     let conflicts_before = find_conflicted_commits(ctx)?;
 
     // Save and return to workspace, capturing the rebase output
-    save_edit_and_return_to_workspace_with_output(ctx).context("Failed to save resolution and return to workspace")?;
+    save_edit_and_return_to_workspace_with_output(ctx)
+        .context("Failed to save resolution and return to workspace")?;
 
     if let Some(human_out) = out.for_human() {
         writeln!(
             human_out,
             "{}",
-            "✓ Conflict resolution finalized successfully!".green().bold()
+            "✓ Conflict resolution finalized successfully!"
+                .green()
+                .bold()
         )?;
-        writeln!(human_out, "The commit has been updated with your resolved changes.")?;
+        writeln!(
+            human_out,
+            "The commit has been updated with your resolved changes."
+        )?;
     }
 
     // Check for new conflicts introduced during the rebase
@@ -331,11 +368,15 @@ fn cancel_resolution(ctx: &mut Context, out: &mut OutputChannel, force: bool) ->
     }
 
     // Abort and return to workspace
-    abort_edit_and_return_to_workspace(ctx, force).context("Failed to cancel resolution and return to workspace")?;
+    abort_edit_and_return_to_workspace(ctx, force)
+        .context("Failed to cancel resolution and return to workspace")?;
 
     if let Some(out) = out.for_human() {
         writeln!(out, "{}", "Conflict resolution cancelled.".yellow())?;
-        writeln!(out, "All changes made during resolution have been discarded.")?;
+        writeln!(
+            out,
+            "All changes made during resolution have been discarded."
+        )?;
     }
 
     Ok(())
@@ -430,8 +471,7 @@ fn check_for_new_conflicts_after_rebase(
 
 /// Find all conflicted commits across all stacks, grouped by branch
 fn find_conflicted_commits(ctx: &mut Context) -> Result<BTreeMap<String, Vec<ConflictedCommit>>> {
-    use gix::prelude::ObjectIdExt as _;
-    use gix::revision::walk::Sorting;
+    use gix::{prelude::ObjectIdExt as _, revision::walk::Sorting};
 
     let stacks = but_api::legacy::workspace::stacks(ctx, None)?;
     let gix_repo = ctx.repo.get()?;
@@ -452,7 +492,10 @@ fn find_conflicted_commits(ctx: &mut Context) -> Result<BTreeMap<String, Vec<Con
                 .all()?;
 
             // Collect commits first, then reverse for REVERSE sorting behavior
-            let commit_ids: Vec<gix::ObjectId> = traversal.filter_map(Result::ok).map(|info| info.id).collect();
+            let commit_ids: Vec<gix::ObjectId> = traversal
+                .filter_map(Result::ok)
+                .map(|info| info.id)
+                .collect();
 
             for oid in commit_ids.into_iter().rev() {
                 let commit = gix_repo.find_commit(oid)?;
@@ -531,18 +574,19 @@ fn check_and_prompt_for_conflicts(ctx: &mut Context, out: &mut OutputChannel) ->
         let default_commit = all_commits.first();
 
         // Interactive prompting only for human output mode with terminal
-        let commit_id_to_resolve =
-            if let Some((mut inout, default)) = out.prepare_for_terminal_input().zip(default_commit) {
-                inout
-                    .prompt(format!(
-                        "Enter commit ID to resolve [default: {}]",
-                        default.commit_short_id.cyan()
-                    ))?
-                    .unwrap_or_else(|| default.commit_short_id.clone())
-                    .into()
-            } else {
-                None
-            };
+        let commit_id_to_resolve = if let Some((mut inout, default)) =
+            out.prepare_for_terminal_input().zip(default_commit)
+        {
+            inout
+                .prompt(format!(
+                    "Enter commit ID to resolve [default: {}]",
+                    default.commit_short_id.cyan()
+                ))?
+                .unwrap_or_else(|| default.commit_short_id.clone())
+                .into()
+        } else {
+            None
+        };
 
         if let Some(commit_id_to_resolve) = commit_id_to_resolve {
             // Enter resolution mode for the selected commit
@@ -581,14 +625,25 @@ fn show_workflow_help(out: &mut OutputChannel) -> Result<()> {
     if let Some(out) = out.for_human() {
         writeln!(out, "{}", "Conflict Resolution Workflow".bold().underline())?;
         writeln!(out)?;
-        writeln!(out, "This command is used when you have a commit in a conflicted state")?;
+        writeln!(
+            out,
+            "This command is used when you have a commit in a conflicted state"
+        )?;
         writeln!(out)?;
         writeln!(out, "{}", "To resolve conflicts in a commit:".bold())?;
         writeln!(out)?;
-        writeln!(out, "  {} Enter resolution mode for a conflicted commit:", "1.".bold())?;
+        writeln!(
+            out,
+            "  {} Enter resolution mode for a conflicted commit:",
+            "1.".bold()
+        )?;
         writeln!(out, "     {}", "but resolve <commit>".green())?;
         writeln!(out)?;
-        writeln!(out, "  {} Resolve conflicts in the conflicted files", "2.".bold())?;
+        writeln!(
+            out,
+            "  {} Resolve conflicts in the conflicted files",
+            "2.".bold()
+        )?;
         writeln!(
             out,
             "     Edit the files to remove conflict markers ({}, {}, {})",
@@ -597,7 +652,11 @@ fn show_workflow_help(out: &mut OutputChannel) -> Result<()> {
             ">>>>>>>".red()
         )?;
         writeln!(out)?;
-        writeln!(out, "  {} Check which files are still conflicted:", "3.".bold())?;
+        writeln!(
+            out,
+            "  {} Check which files are still conflicted:",
+            "3.".bold()
+        )?;
         writeln!(out, "     {}", "but resolve status".green())?;
         writeln!(out)?;
         writeln!(out, "  {} Finalize or cancel the resolution:", "4.".bold())?;
@@ -607,13 +666,21 @@ fn show_workflow_help(out: &mut OutputChannel) -> Result<()> {
         writeln!(out)?;
         writeln!(out, "{}", "Example:".bold())?;
         writeln!(out, "  {} (find conflicted commits)", "but status".green())?;
-        writeln!(out, "  {} (enter resolution mode)", "but resolve 55".green())?;
+        writeln!(
+            out,
+            "  {} (enter resolution mode)",
+            "but resolve 55".green()
+        )?;
         writeln!(
             out,
             "  {} (edit files to resolve conflicts)",
             "vim src/file.rs".dimmed()
         )?;
-        writeln!(out, "  {} (check remaining conflicts)", "but resolve status".green())?;
+        writeln!(
+            out,
+            "  {} (check remaining conflicts)",
+            "but resolve status".green()
+        )?;
         writeln!(out, "  {} (finalize)", "but resolve finish".green())?;
     } else if let Some(out) = out.for_json() {
         out.write_value(serde_json::json!({

@@ -6,7 +6,9 @@ use crate::utils::Sandbox;
 fn setup_branch_with_commits(env: &Sandbox, branch: &str, num_commits: usize) {
     for i in 1..=num_commits {
         env.file(format!("file{i}.txt"), format!("content for commit {i}\n"));
-        env.but(format!("commit {branch} -m 'commit {i}'")).assert().success();
+        env.but(format!("commit {branch} -m 'commit {i}'"))
+            .assert()
+            .success();
     }
 }
 
@@ -48,7 +50,10 @@ fn squash_nonexistent_commit_fails() -> anyhow::Result<()> {
     setup_branch_with_commits(&env, "A", 1);
 
     // Try to squash with nonexistent commit ID
-    env.but("squash nonexistent c0").assert().failure().stderr_eq(str![[r#"
+    env.but("squash nonexistent c0")
+        .assert()
+        .failure()
+        .stderr_eq(str![[r#"
 Failed to squash commits. No matching commit found for 'nonexistent'
 
 "#]]);
@@ -94,7 +99,9 @@ fn squash_with_custom_message_succeeds() -> anyhow::Result<()> {
     setup_branch_with_commits(&env, "A", 1);
 
     // Squash with custom message
-    env.but("squash A -m 'Custom squash message'").assert().success();
+    env.but("squash A -m 'Custom squash message'")
+        .assert()
+        .success();
 
     Ok(())
 }
@@ -122,7 +129,10 @@ fn squash_with_invalid_range_format_fails() -> anyhow::Result<()> {
     setup_branch_with_commits(&env, "A", 2);
 
     // Try to use invalid range format with triple dots
-    env.but("squash c0..c1..c2").assert().failure().stderr_eq(str![[r#"
+    env.but("squash c0..c1..c2")
+        .assert()
+        .failure()
+        .stderr_eq(str![[r#"
 Failed to squash commits. Range format should be 'start..end', got 'c0..c1..c2'
 
 "#]]);

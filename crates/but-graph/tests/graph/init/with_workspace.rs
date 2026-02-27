@@ -3,11 +3,13 @@ use but_core::{
     ref_metadata::{StackId, WorkspaceCommitRelation, WorkspaceStack, WorkspaceStackBranch},
 };
 use but_graph::{Graph, init::Overlay};
-use but_testsupport::{InMemoryRefMetadata, graph_tree, graph_workspace, visualize_commit_graph_all};
+use but_testsupport::{
+    InMemoryRefMetadata, graph_tree, graph_workspace, visualize_commit_graph_all,
+};
 
 use crate::init::{
-    StackState, add_stack_with_segments, add_workspace, id_at, id_by_rev, read_only_in_memory_scenario,
-    standard_options,
+    StackState, add_stack_with_segments, add_workspace, id_at, id_by_rev,
+    read_only_in_memory_scenario, standard_options,
     utils::{
         add_stack, add_workspace_with_target, add_workspace_without_target, remove_target,
         standard_options_with_extra_target,
@@ -243,7 +245,8 @@ fn single_stack_ambiguous() -> anyhow::Result<()> {
     // There is always a segment for the entrypoint, and code working with the graph
     // deals with that naturally.
     let (without_ref_id, ref_name) = id_at(&repo, "without-ref");
-    let graph = Graph::from_commit_traversal(without_ref_id, ref_name, &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(without_ref_id, ref_name, &*meta, standard_options())?
+        .validated()?;
     // See how tags ARE allowed to name a segment, at least when used as entrypoint.
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
@@ -277,7 +280,8 @@ fn single_stack_ambiguous() -> anyhow::Result<()> {
     ");
 
     // We don't have to give it a ref-name
-    let graph = Graph::from_commit_traversal(without_ref_id, None, &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(without_ref_id, None, &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -311,7 +315,8 @@ fn single_stack_ambiguous() -> anyhow::Result<()> {
 
     // Putting the entrypoint onto a commit in an anonymous segment with ambiguous refs makes no difference.
     let (b_id_1, tag_ref_name) = id_at(&repo, "B-empty");
-    let graph = Graph::from_commit_traversal(b_id_1, None, &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(b_id_1, None, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -344,7 +349,8 @@ fn single_stack_ambiguous() -> anyhow::Result<()> {
     ");
 
     // If we pass an entrypoint ref name, it will be used as segment name (despite being ambiguous without it)
-    let graph = Graph::from_commit_traversal(b_id_1, tag_ref_name, &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(b_id_1, tag_ref_name, &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -604,7 +610,13 @@ fn single_stack() -> anyhow::Result<()> {
     meta.data_mut().branches.clear();
     // Just repeat the existing segment verbatim, but also add a new unborn stack
     add_stack_with_segments(&mut meta, 0, "B", StackState::InWorkspace, &["B-sub", "A"]);
-    add_stack_with_segments(&mut meta, 1, "new-A", StackState::InWorkspace, &["below-new-A"]);
+    add_stack_with_segments(
+        &mut meta,
+        1,
+        "new-A",
+        StackState::InWorkspace,
+        &["below-new-A"],
+    );
 
     let graph = Graph::from_head(&repo, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
@@ -668,7 +680,13 @@ fn single_merge_into_main_base_archived() -> anyhow::Result<()> {
     ");
 
     // But even if everything is marked as archived, only the ones that matter are hidden.
-    for head in &mut meta.data_mut().branches.get_mut(&stack_id).expect("just added").heads {
+    for head in &mut meta
+        .data_mut()
+        .branches
+        .get_mut(&stack_id)
+        .expect("just added")
+        .heads
+    {
         head.archived = true;
     }
 
@@ -961,7 +979,8 @@ fn stack_configuration_is_respected_if_one_of_them_is_an_entrypoint() -> anyhow:
 
     let (id, ref_name) = id_at(&repo, "B");
     let graph =
-        Graph::from_commit_traversal(id, ref_name.clone(), &*meta, extra_target_options.clone())?.validated()?;
+        Graph::from_commit_traversal(id, ref_name.clone(), &*meta, extra_target_options.clone())?
+            .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     └── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -980,7 +999,8 @@ fn stack_configuration_is_respected_if_one_of_them_is_an_entrypoint() -> anyhow:
     ");
 
     let (id, ref_name) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, extra_target_options)?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, extra_target_options)?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     └── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -1030,7 +1050,8 @@ fn just_init_with_branches() -> anyhow::Result<()> {
     ");
 
     let (id, ws_ref_name) = id_at(&repo, "gitbutler/workspace");
-    let graph = Graph::from_commit_traversal(id, ws_ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ws_ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace
@@ -1073,7 +1094,8 @@ fn just_init_with_branches() -> anyhow::Result<()> {
             └── ❄️fafd9d0 (🏘️|✓)
     ");
 
-    let graph = Graph::from_commit_traversal(id, ws_ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ws_ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     // Now the dependent segments are applied, and so is the separate stack.
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
@@ -1151,7 +1173,8 @@ fn just_init_with_archived_branches() -> anyhow::Result<()> {
     let stack_id = add_stack_with_segments(&mut meta, 0, "C", StackState::InWorkspace, &["B", "A"]);
 
     let (id, ws_ref_name) = id_at(&repo, "gitbutler/workspace");
-    let graph = Graph::from_commit_traversal(id, ws_ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ws_ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
 
     // By default, we see both stacks as they are configured, which disambiguates them.
     let ws = graph.into_workspace()?;
@@ -1163,7 +1186,12 @@ fn just_init_with_archived_branches() -> anyhow::Result<()> {
         └── 📙:5:A
     ");
 
-    meta.data_mut().branches.get_mut(&stack_id).expect("just added").heads[1].archived = true;
+    meta.data_mut()
+        .branches
+        .get_mut(&stack_id)
+        .expect("just added")
+        .heads[1]
+        .archived = true;
 
     // The first archived segment causes everything else to be hidden.
     let graph = ws
@@ -1241,7 +1269,8 @@ fn two_stacks_many_refs() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "S1");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     // The S1 starting position is a split, so there is more.
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
@@ -1310,7 +1339,8 @@ fn two_stacks_many_refs() -> anyhow::Result<()> {
         └── 📙:6:B
     ");
 
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     // This should look the same as before, despite the starting position.
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
@@ -1363,7 +1393,8 @@ fn just_init_with_branches_complex() -> anyhow::Result<()> {
     add_stack_with_segments(&mut meta, 3, "F", StackState::InWorkspace, &[]);
 
     let (id, ref_name) = id_at(&repo, "gitbutler/workspace");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace
@@ -1397,7 +1428,8 @@ fn just_init_with_branches_complex() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "C");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     // The entrypoint shouldn't affect the outcome (even though it changes the initial segmentation).
     // However, as the segment it's on is integrated, it's not considered to be part of the workspace.
     insta::assert_snapshot!(graph_tree(&graph), @r"
@@ -1468,7 +1500,8 @@ fn proper_remote_ahead() -> anyhow::Result<()> {
 
     let (id, ref_name) = id_at(&repo, "main");
     // The integration branch can be in the workspace and be checked out.
-    let graph = Graph::from_commit_traversal(id, Some(ref_name), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, Some(ref_name), &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -1895,7 +1928,11 @@ fn disambiguate_by_remote() -> anyhow::Result<()> {
         └── →:8: (A →:7:)
     ");
 
-    assert_eq!(graph.partial_segments().count(), 0, "a fully realized graph");
+    assert_eq!(
+        graph.partial_segments().count(),
+        0,
+        "a fully realized graph"
+    );
     // An anonymous segment to start with is alright, and can always happen for other situations as well.
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main on fafd9d0
@@ -1953,7 +1990,8 @@ fn disambiguate_by_remote() -> anyhow::Result<()> {
 
 #[test]
 fn integrated_tips_stop_early_if_remote_is_not_configured() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/two-segments-one-integrated-without-remote")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/two-segments-one-integrated-without-remote")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * d0df794 (origin/main) remote-2
     * 09c6e08 remote-1
@@ -2058,7 +2096,8 @@ fn integrated_tips_stop_early_if_remote_is_not_configured() -> anyhow::Result<()
 
     // The limit is effective for integrated workspaces branches, and it doesn't unnecessarily
     // prolong the traversal once the all tips are known to be integrated.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -2097,7 +2136,8 @@ fn integrated_tips_stop_early_if_remote_is_not_configured() -> anyhow::Result<()
     // When the entrypoint starts on an integrated commit, the 'all-tips-are-integrated' condition doesn't
     // kick in anymore.
     let (id, ref_name) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -2151,7 +2191,8 @@ fn integrated_tips_stop_early_if_remote_is_not_configured() -> anyhow::Result<()
     ");
 
     let graph =
-        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options().with_limit_hint(1))?.validated()?;
+        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options().with_limit_hint(1))?
+            .validated()?;
     // It's still getting quite far despite the limit due to other heads searching for their goals,
     // but also ends traversal early.
     insta::assert_snapshot!(graph_tree(&graph), @"
@@ -2247,8 +2288,13 @@ fn integrated_tips_stop_early_if_remote_is_not_configured() -> anyhow::Result<()
     ");
 
     // However, when choosing an initially unknown branch, it will get the extra target tip settings.
-    let graph =
-        Graph::from_commit_traversal(id, None, &*meta, standard_options_with_extra_target(&repo, "B"))?.validated()?;
+    let graph = Graph::from_commit_traversal(
+        id,
+        None,
+        &*meta,
+        standard_options_with_extra_target(&repo, "B"),
+    )?
+    .validated()?;
     // For now we don't do anything to limit the each in single-branch mode using extra-targets.
     // Thanks to the limit-transplant we get to discover more of the workspace.
     // TODO(extra-target): make it work so they limit single branches even, but it's a special case
@@ -2377,7 +2423,12 @@ fn integrated_tips_do_not_stop_early() -> anyhow::Result<()> {
     ");
 
     // However, we can specify an additional/old target segment to show integrated portions as well.
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @"
     📕🏘️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main⇣3 on 4b3e5a8
     └── ≡:4:B on 4b3e5a8
@@ -2396,7 +2447,8 @@ fn integrated_tips_do_not_stop_early() -> anyhow::Result<()> {
     // When looking from an integrated branch within the workspace, and without limit
     // the limit isn't respected, and we still know the whole workspace.
     let (id, ref_name) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -2475,7 +2527,8 @@ fn integrated_tips_do_not_stop_early() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "main");
-    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, ref_name.clone(), &*meta, standard_options())?
+        .validated()?;
     // When the branch is below the forkpoint, the workspace also isn't shown anymore.
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @"
     ⌂:0:main <> ✓!
@@ -2514,7 +2567,10 @@ fn workspace_without_target_can_see_remote() -> anyhow::Result<()> {
     let mut meta = InMemoryRefMetadata::default();
     let ws_ref = "refs/heads/gitbutler/workspace".try_into()?;
     let mut ws = meta.workspace(ws_ref)?;
-    for (idx, ref_name) in ["refs/heads/main", "refs/remotes/origin/main"].into_iter().enumerate() {
+    for (idx, ref_name) in ["refs/heads/main", "refs/remotes/origin/main"]
+        .into_iter()
+        .enumerate()
+    {
         ws.stacks.push(WorkspaceStack {
             id: StackId::from_number_for_testing(idx as u128),
             branches: vec![WorkspaceStackBranch {
@@ -2523,8 +2579,10 @@ fn workspace_without_target_can_see_remote() -> anyhow::Result<()> {
             }],
             workspacecommit_relation: WorkspaceCommitRelation::Merged,
         });
-        meta.branches
-            .push((ref_name.try_into()?, but_core::ref_metadata::Branch::default()))
+        meta.branches.push((
+            ref_name.try_into()?,
+            but_core::ref_metadata::Branch::default(),
+        ))
     }
     meta.set_workspace(&ws)?;
 
@@ -2551,8 +2609,11 @@ fn workspace_without_target_can_see_remote() -> anyhow::Result<()> {
 
     // If the remote isn't setup officially, deduction still works as we find
     // symbolic remote names for deduction in workspace ref names as well.
-    repo.config_snapshot_mut().remove_section("branch", Some("main".into()));
-    let graph = ws.graph.redo_traversal_with_overlay(&repo, &meta, Overlay::default())?;
+    repo.config_snapshot_mut()
+        .remove_section("branch", Some("main".into()));
+    let graph = ws
+        .graph
+        .redo_traversal_with_overlay(&repo, &meta, Overlay::default())?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 📕►►►:1[0]:gitbutler/workspace
@@ -2574,7 +2635,8 @@ fn workspace_without_target_can_see_remote() -> anyhow::Result<()> {
 
 #[test]
 fn workspace_obeys_limit_when_target_branch_is_missing() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/two-segments-one-integrated-without-remote")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/two-segments-one-integrated-without-remote")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * d0df794 (origin/main) remote-2
     * 09c6e08 remote-1
@@ -2604,7 +2666,8 @@ fn workspace_obeys_limit_when_target_branch_is_missing() -> anyhow::Result<()> {
         meta.data_mut().default_target.is_none(),
         "without target, limits affect workspaces too"
     );
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(0))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(0))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     └── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -2623,7 +2686,8 @@ fn workspace_obeys_limit_when_target_branch_is_missing() -> anyhow::Result<()> {
     // It's notable that there is no way to bypass the early abort when everything is integrated.
     // and there is no deductible remote relationship between origin/main and main (no remote not configured).
     // Then the traversal ends on integrated branches as `main` isn't a target.
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(0))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(0))?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -2659,9 +2723,11 @@ fn workspace_obeys_limit_when_target_branch_is_missing() -> anyhow::Result<()> {
 }
 
 #[test]
-fn three_branches_one_advanced_ws_commit_advanced_fully_pushed_empty_dependent() -> anyhow::Result<()> {
-    let (repo, mut meta) =
-        read_only_in_memory_scenario("ws/three-branches-one-advanced-ws-commit-advanced-fully-pushed-empty-dependent")?;
+fn three_branches_one_advanced_ws_commit_advanced_fully_pushed_empty_dependent()
+-> anyhow::Result<()> {
+    let (repo, mut meta) = read_only_in_memory_scenario(
+        "ws/three-branches-one-advanced-ws-commit-advanced-fully-pushed-empty-dependent",
+    )?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * f8f33a7 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     * cbc6713 (origin/advanced-lane, on-top-of-dependent, dependent, advanced-lane) change
@@ -2692,7 +2758,13 @@ fn three_branches_one_advanced_ws_commit_advanced_fully_pushed_empty_dependent()
             └── ❄️cbc6713 (🏘️) ►dependent, ►on-top-of-dependent
     ");
 
-    add_stack_with_segments(&mut meta, 1, "dependent", StackState::InWorkspace, &["advanced-lane"]);
+    add_stack_with_segments(
+        &mut meta,
+        1,
+        "dependent",
+        StackState::InWorkspace,
+        &["advanced-lane"],
+    );
 
     // Lanes are properly ordered
     let graph = Graph::from_head(&repo, &*meta, standard_options())?.validated()?;
@@ -2791,7 +2863,12 @@ fn on_top_of_target_with_history() -> anyhow::Result<()> {
     // However, when passing an additional old position of the target, we can show the now-integrated parts.
     // The stacks will always be created on top of the integrated segments as that's where their references are
     // (these segments are never conjured up out of thin air).
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️⚠️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main on 2be54cd
     ├── ≡📙:6:D on 2be54cd {1}
@@ -2863,7 +2940,8 @@ fn partitions_with_long_and_short_connections_to_each_other() -> anyhow::Result<
     // with other searches that may take even longer.
     // Also, without limit, we should be able to see all of 'main' without cut-off
     let graph =
-        Graph::from_commit_traversal(main_id, main_ref_name.clone(), &*meta, standard_options())?.validated()?;
+        Graph::from_commit_traversal(main_id, main_ref_name.clone(), &*meta, standard_options())?
+            .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -2940,8 +3018,13 @@ fn partitions_with_long_and_short_connections_to_each_other() -> anyhow::Result<
     // When setting a limit when traversing 'main', it is respected.
     // We still want it to be found and connected though, and it's notable that the limit kicks in
     // once everything reconciled.
-    let graph = Graph::from_commit_traversal(main_id, main_ref_name, &*meta, standard_options().with_limit_hint(1))?
-        .validated()?;
+    let graph = Graph::from_commit_traversal(
+        main_id,
+        main_ref_name,
+        &*meta,
+        standard_options().with_limit_hint(1),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -3081,7 +3164,8 @@ fn remote_far_in_ancestry() -> anyhow::Result<()> {
     ");
 
     add_workspace(&mut meta);
-    let graph = Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
+    let graph =
+        Graph::from_head(&repo, &*meta, standard_options().with_limit_hint(1))?.validated()?;
     // It's critical that the main branch isn't cut off and the local and remote part find each other,
     // or else the remote part will go on forever create a lot of issues for those who want to display
     // all these incorrectly labeled commits.
@@ -3169,7 +3253,8 @@ fn partitions_with_long_and_short_connections_to_each_other_part_2() -> anyhow::
     add_workspace(&mut meta);
     let (id, ref_name) = id_at(&repo, "main");
     // Here the target shouldn't be cut off from finding its workspace
-    let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -3349,7 +3434,8 @@ fn partitions_with_long_and_short_connections_to_each_other_part_2() -> anyhow::
 
 #[test]
 fn multi_lane_with_shared_segment_one_integrated() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/multi-lane-with-shared-segment-one-integrated")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/multi-lane-with-shared-segment-one-integrated")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     *-.   2b30d94 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     |\ \  
@@ -3376,7 +3462,12 @@ fn multi_lane_with_shared_segment_one_integrated() -> anyhow::Result<()> {
 
     add_workspace(&mut meta);
 
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -3546,7 +3637,8 @@ fn multi_lane_with_shared_segment() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, Some(ref_name), &*meta, standard_options())?.validated()?;
+    let graph = Graph::from_commit_traversal(id, Some(ref_name), &*meta, standard_options())?
+        .validated()?;
     // Checking out anything inside the workspace yields the same result.
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:1:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main⇣1 on 3183e43
@@ -3593,7 +3685,13 @@ fn dependent_branch_insertion() -> anyhow::Result<()> {
     * fafd9d0 (origin/main, main, lane) init
     ");
 
-    add_stack_with_segments(&mut meta, 1, "dependent", StackState::InWorkspace, &["advanced-lane"]);
+    add_stack_with_segments(
+        &mut meta,
+        1,
+        "dependent",
+        StackState::InWorkspace,
+        &["advanced-lane"],
+    );
 
     let graph = Graph::from_head(&repo, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
@@ -3622,7 +3720,13 @@ fn dependent_branch_insertion() -> anyhow::Result<()> {
     ");
 
     // Create the dependent branch below.
-    add_stack_with_segments(&mut meta, 1, "advanced-lane", StackState::InWorkspace, &["dependent"]);
+    add_stack_with_segments(
+        &mut meta,
+        1,
+        "advanced-lane",
+        StackState::InWorkspace,
+        &["dependent"],
+    );
 
     let graph = Graph::from_head(&repo, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
@@ -3654,7 +3758,8 @@ fn dependent_branch_insertion() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "advanced-lane");
-    let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:1:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main on fafd9d0
     └── ≡👉📙:5:advanced-lane <> origin/advanced-lane →:4: on fafd9d0 {1}
@@ -3664,7 +3769,8 @@ fn dependent_branch_insertion() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "dependent");
-    let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:1:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main on fafd9d0
     └── ≡📙:5:advanced-lane <> origin/advanced-lane →:4: on fafd9d0 {1}
@@ -3677,7 +3783,8 @@ fn dependent_branch_insertion() -> anyhow::Result<()> {
 
 #[test]
 fn multiple_stacks_with_shared_parent_and_remote() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/multiple-stacks-with-shared-segment-and-remote")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/multiple-stacks-with-shared-segment-and-remote")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     *   e982e8a (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     |\  
@@ -3733,8 +3840,9 @@ fn multiple_stacks_with_shared_parent_and_remote() -> anyhow::Result<()> {
 
 #[test]
 fn a_stack_segment_can_be_a_segment_elsewhere_and_stack_order() -> anyhow::Result<()> {
-    let (repo, mut meta) =
-        read_only_in_memory_scenario("ws/two-branches-one-advanced-two-parent-ws-commit-diverged-ttb")?;
+    let (repo, mut meta) = read_only_in_memory_scenario(
+        "ws/two-branches-one-advanced-two-parent-ws-commit-diverged-ttb",
+    )?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     *   873d056 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     |\  
@@ -3808,7 +3916,8 @@ fn a_stack_segment_can_be_a_segment_elsewhere_and_stack_order() -> anyhow::Resul
 
 #[test]
 fn two_dependent_branches_with_embedded_remote() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/two-dependent-branches-with-interesting-remote-setup")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/two-dependent-branches-with-interesting-remote-setup")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * a221221 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     * aadad9d (A) shared by name
@@ -3824,7 +3933,12 @@ fn two_dependent_branches_with_embedded_remote() -> anyhow::Result<()> {
     add_stack_with_segments(&mut meta, 1, "A", StackState::InWorkspace, &[]);
 
     // Note how the target remote tracking branch is integrated into the stack
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -3872,8 +3986,9 @@ fn two_dependent_branches_with_embedded_remote() -> anyhow::Result<()> {
 
 #[test]
 fn two_dependent_branches_rebased_with_remotes_merge_local() -> anyhow::Result<()> {
-    let (repo, mut meta) =
-        read_only_in_memory_scenario("ws/two-dependent-branches-rebased-with-remotes-merge-one-local")?;
+    let (repo, mut meta) = read_only_in_memory_scenario(
+        "ws/two-dependent-branches-rebased-with-remotes-merge-one-local",
+    )?;
     // Each of the stacked branches has a remote, and the local branch was merged into main.
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * e0bd0a7 (origin/B) B
@@ -3890,7 +4005,12 @@ fn two_dependent_branches_rebased_with_remotes_merge_local() -> anyhow::Result<(
 
     add_stack_with_segments(&mut meta, 0, "B", StackState::InWorkspace, &["A"]);
 
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -3926,7 +4046,12 @@ fn two_dependent_branches_rebased_with_remotes_merge_local() -> anyhow::Result<(
             └── ·1818c17 (🏘️|✓)
     ");
 
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "A"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "A"),
+    )?
+    .validated()?;
     // Pretending we are rebased onto A still shows the same remote commits.
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main⇣1 on 1818c17
@@ -3939,7 +4064,8 @@ fn two_dependent_branches_rebased_with_remotes_merge_local() -> anyhow::Result<(
 }
 
 #[test]
-fn two_dependent_branches_rebased_with_remotes_squash_merge_remote_ambiguous() -> anyhow::Result<()> {
+fn two_dependent_branches_rebased_with_remotes_squash_merge_remote_ambiguous() -> anyhow::Result<()>
+{
     let (repo, mut meta) = read_only_in_memory_scenario(
         "ws/two-dependent-branches-rebased-with-remotes-squash-merge-one-remote-ambiguous",
     )?;
@@ -3994,8 +4120,9 @@ fn two_dependent_branches_rebased_with_remotes_squash_merge_remote_ambiguous() -
 
 #[test]
 fn two_dependent_branches_rebased_with_remotes_squash_merge_remote() -> anyhow::Result<()> {
-    let (repo, mut meta) =
-        read_only_in_memory_scenario("ws/two-dependent-branches-rebased-with-remotes-squash-merge-one-remote")?;
+    let (repo, mut meta) = read_only_in_memory_scenario(
+        "ws/two-dependent-branches-rebased-with-remotes-squash-merge-one-remote",
+    )?;
     // Each of the stacked branches has a remote, the remote branch was merged into main,
     // and the remaining branch B was rebased onto the merge, simulating a workspace update.
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
@@ -4092,7 +4219,8 @@ fn without_target_ref_or_managed_commit() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -4122,7 +4250,8 @@ fn without_target_ref_or_managed_commit() -> anyhow::Result<()> {
 
 #[test]
 fn without_target_ref_or_managed_commit_ambiguous() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/no-target-without-ws-commit-ambiguous")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/no-target-without-ws-commit-ambiguous")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 4fe5a6f (origin/A) A-remote
     * a62b0de (HEAD -> gitbutler/workspace, B, A) A2
@@ -4161,7 +4290,8 @@ fn without_target_ref_or_managed_commit_ambiguous() -> anyhow::Result<()> {
     // empty segment.
     add_stack_with_segments(&mut meta, 1, "B", StackState::InWorkspace, &[]);
     let (id, a_ref) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -4216,7 +4346,8 @@ fn without_target_ref_or_managed_commit_ambiguous() -> anyhow::Result<()> {
 
     // Order is respected
     add_stack_with_segments(&mut meta, 1, "B", StackState::InWorkspace, &["A"]);
-    let graph = Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
     // The remote tracking branch must remain linked.
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @"
     📕🏘️⚠️:1:gitbutler/workspace[🌳] <> ✓!
@@ -4250,7 +4381,8 @@ fn without_target_ref_or_managed_commit_ambiguous() -> anyhow::Result<()> {
 
 #[test]
 fn without_target_ref_or_managed_commit_ambiguous_with_remotes() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/no-target-without-ws-commit-ambiguous-with-remotes")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/no-target-without-ws-commit-ambiguous-with-remotes")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * a62b0de (HEAD -> gitbutler/workspace, origin/B, origin/A, B, A) A2
     * 120a217 A1
@@ -4285,7 +4417,8 @@ fn without_target_ref_or_managed_commit_ambiguous_with_remotes() -> anyhow::Resu
 
     // Remote handling is still happening when A is disambiguated by entrypoint.
     let (id, a_ref) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -4324,7 +4457,8 @@ fn without_target_ref_or_managed_commit_ambiguous_with_remotes() -> anyhow::Resu
 
     // If disambiguation happens through the workspace, 'A' still shows the right remote, and 'B' as well
     add_stack_with_segments(&mut meta, 1, "B", StackState::InWorkspace, &[]);
-    let graph = Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, a_ref.clone(), &*meta, standard_options())?.validated()?;
     // NOTE: origin/A points to :5, but origin/B now also points to :5 even though it should point to :0,
     //       a relationship still preserved though the sibling ID.
     //       There is no easy way of fixing this as we'd have to know that this one connection, which can
@@ -4401,7 +4535,8 @@ fn without_target_ref_with_managed_commit() -> anyhow::Result<()> {
     ");
 
     let (id, ref_name) = id_at(&repo, "A");
-    let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
+    let graph =
+        Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -4458,7 +4593,8 @@ fn workspace_commit_pushed_to_target() -> anyhow::Result<()> {
 
 #[test]
 fn no_workspace_no_target_commit_under_managed_ref() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/no-ws-no-target-commit-with-managed-ref")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/no-ws-no-target-commit-with-managed-ref")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * dca94a4 (HEAD -> gitbutler/workspace) unmanaged
     * 120a217 (A) A1
@@ -4495,7 +4631,8 @@ fn no_workspace_no_target_commit_under_managed_ref() -> anyhow::Result<()> {
 
 #[test]
 fn no_workspace_commit() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/multiple-dependent-branches-per-stack-without-ws-commit")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/multiple-dependent-branches-per-stack-without-ws-commit")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * cbc6713 (HEAD -> gitbutler/workspace, lane) change
     * fafd9d0 (origin/main, main, lane-segment-02, lane-segment-01, lane-2-segment-02, lane-2-segment-01, lane-2) init
@@ -4600,7 +4737,8 @@ fn no_workspace_commit() -> anyhow::Result<()> {
 
 #[test]
 fn two_dependent_branches_first_merged_by_rebase() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/two-dependent-branches-first-rebased-and-merged")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/two-dependent-branches-first-rebased-and-merged")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 0b6b861 (origin/main, origin/A) A
     | * 4f08b8d (HEAD -> gitbutler/workspace) GitButler Workspace Commit
@@ -4782,7 +4920,12 @@ fn branch_ahead_of_workspace() -> anyhow::Result<()> {
     ");
 
     add_workspace(&mut meta);
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -4844,7 +4987,12 @@ fn branch_ahead_of_workspace() -> anyhow::Result<()> {
     add_stack_with_segments(&mut meta, 2, "C", StackState::InWorkspace, &["C-bottom"]);
     add_stack_with_segments(&mut meta, 3, "D", StackState::InWorkspace, &[]);
 
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, ":/init"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, ":/init"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -4944,8 +5092,9 @@ fn branch_ahead_of_workspace() -> anyhow::Result<()> {
 
 #[test]
 fn two_branches_one_advanced_two_parent_ws_commit_diverged_ttb() -> anyhow::Result<()> {
-    let (repo, mut meta) =
-        read_only_in_memory_scenario("ws/two-branches-one-advanced-two-parent-ws-commit-diverged-ttb")?;
+    let (repo, mut meta) = read_only_in_memory_scenario(
+        "ws/two-branches-one-advanced-two-parent-ws-commit-diverged-ttb",
+    )?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     *   873d056 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     |\  
@@ -4960,8 +5109,13 @@ fn two_branches_one_advanced_two_parent_ws_commit_diverged_ttb() -> anyhow::Resu
     }
 
     let (id, ref_name) = id_at(&repo, "lane");
-    let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options_with_extra_target(&repo, "main"))?
-        .validated()?;
+    let graph = Graph::from_commit_traversal(
+        id,
+        ref_name,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 📕►►►:1[0]:gitbutler/workspace[🌳]
@@ -4984,7 +5138,12 @@ fn two_branches_one_advanced_two_parent_ws_commit_diverged_ttb() -> anyhow::Resu
         └── 👉📙:4:lane
     ");
 
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -5103,7 +5262,12 @@ fn advanced_workspace_ref() -> anyhow::Result<()> {
             └── ·8a352d5 (🏘️)
     ");
 
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?
+    .validated()?;
     // The extra-target as would happen in the typical case would change nothing though.
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
@@ -5151,7 +5315,8 @@ fn advanced_workspace_ref() -> anyhow::Result<()> {
 
 #[test]
 fn advanced_workspace_ref_single_stack() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/advanced-workspace-ref-and-single-stack")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/advanced-workspace-ref-and-single-stack")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * da912a8 (HEAD -> gitbutler/workspace) on-top4
     * 198eaf8 (intermediate-ref) on-top3
@@ -5294,7 +5459,12 @@ fn applied_stack_below_explicit_lower_bound() -> anyhow::Result<()> {
     ");
 
     // Finally, if the extra-target, indicating an old stored base that isn't valid anymore.
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, ":/M3"))?.validated()?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, ":/M3"),
+    )?
+    .validated()?;
     insta::assert_snapshot!(graph_tree(&graph), @r"
 
     ├── 👉📕►►►:0[0]:gitbutler/workspace[🌳]
@@ -5487,7 +5657,13 @@ fn dependent_branch_on_base() -> anyhow::Result<()> {
     ");
 
     let wrongly_inactive = StackState::Inactive;
-    add_stack_with_segments(&mut meta, 1, "A", wrongly_inactive, &["below-A", "below-below-A"]);
+    add_stack_with_segments(
+        &mut meta,
+        1,
+        "A",
+        wrongly_inactive,
+        &["below-A", "below-below-A"],
+    );
     let ws = ws
         .graph
         .redo_traversal_with_overlay(&repo, &*meta, Overlay::default())?
@@ -5556,7 +5732,8 @@ fn remote_and_integrated_tracking_branch_on_merge() -> anyhow::Result<()> {
 
 #[test]
 fn remote_and_integrated_tracking_branch_on_linear_segment() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/remote-and-integrated-tracking-linear")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/remote-and-integrated-tracking-linear")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 21e584f (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     | * 8dc508f (origin/main, main) M-advanced
@@ -5586,7 +5763,8 @@ fn remote_and_integrated_tracking_branch_on_linear_segment() -> anyhow::Result<(
 
 #[test]
 fn remote_and_integrated_tracking_branch_on_merge_extra_target() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/remote-and-integrated-tracking-extra-commit")?;
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/remote-and-integrated-tracking-extra-commit")?;
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 5f2810f (HEAD -> gitbutler/workspace) GitButler Workspace Commit
     * 9f47a25 (A) A-local
@@ -5816,8 +5994,10 @@ fn ambiguous_worktrees() -> anyhow::Result<()> {
 }
 
 #[test]
-fn duplicate_parent_connection_from_ws_commit_to_ambiguous_branch_no_advanced_target() -> anyhow::Result<()> {
-    let (repo, mut meta) = read_only_in_memory_scenario("ws/duplicate-workspace-connection-no-target")?;
+fn duplicate_parent_connection_from_ws_commit_to_ambiguous_branch_no_advanced_target()
+-> anyhow::Result<()> {
+    let (repo, mut meta) =
+        read_only_in_memory_scenario("ws/duplicate-workspace-connection-no-target")?;
     // Note that HEAD isn't actually pointing at origin/main, but twice at main
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * f18d244 (HEAD -> gitbutler/workspace) GitButler Workspace Commit
@@ -5945,7 +6125,11 @@ fn duplicate_parent_connection_from_ws_commit_to_ambiguous_branch() -> anyhow::R
     meta.data_mut().branches.clear();
     add_stack(&mut meta, 1, "A", StackState::InWorkspace);
     add_stack(&mut meta, 2, "B", StackState::InWorkspace);
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?;
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main⇣1 on fafd9d0
     ├── ≡📙:4:B on fafd9d0 {2}
@@ -5956,7 +6140,11 @@ fn duplicate_parent_connection_from_ws_commit_to_ambiguous_branch() -> anyhow::R
 
     meta.data_mut().branches.clear();
     add_stack_with_segments(&mut meta, 1, "A", StackState::InWorkspace, &["B"]);
-    let graph = Graph::from_head(&repo, &*meta, standard_options_with_extra_target(&repo, "main"))?;
+    let graph = Graph::from_head(
+        &repo,
+        &*meta,
+        standard_options_with_extra_target(&repo, "main"),
+    )?;
     insta::assert_snapshot!(graph_workspace(&graph.into_workspace()?), @r"
     📕🏘️:0:gitbutler/workspace[🌳] <> ✓refs/remotes/origin/main⇣1 on fafd9d0
     └── ≡📙:3:A on fafd9d0 {1}
@@ -6010,7 +6198,8 @@ mod edit_commit {
 
         // However, if the HEAD points to that reference…
         let (id, ref_name) = id_at(&repo, "gitbutler/edit");
-        let graph = Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
+        let graph =
+            Graph::from_commit_traversal(id, ref_name, &*meta, standard_options())?.validated()?;
         insta::assert_snapshot!(graph_tree(&graph), @r"
 
         ├── 📕►►►:1[0]:gitbutler/workspace[🌳]

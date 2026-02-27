@@ -14,7 +14,7 @@ use crate::{
 /// - Optional help message
 /// - Customizable colors and formatting
 ///
-/// ```rust
+/// ```rust,no_run
 /// use cli_prompts::{
 ///     prompts::{Input, AbortReason::{self, Error}},
 ///     style::{InputStyle, Formatting},

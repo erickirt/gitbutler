@@ -1,16 +1,15 @@
+#[cfg(feature = "askpass")]
+use std::time::Duration;
 use std::{collections::HashMap, path::Path};
-
-use gix::bstr::ByteSlice;
-
-use super::executor::{AskpassServer, GitExecutor, Pid, Socket};
-use crate::RefSpec;
 
 #[cfg(feature = "askpass")]
 use futures::{FutureExt, select};
+use gix::bstr::ByteSlice;
 #[cfg(feature = "askpass")]
 use rand::{Rng, SeedableRng};
-#[cfg(feature = "askpass")]
-use std::time::Duration;
+
+use super::executor::{AskpassServer, GitExecutor, Pid, Socket};
+use crate::RefSpec;
 
 #[cfg(feature = "askpass")]
 /// The number of characters in the secret used for checking
@@ -32,7 +31,9 @@ pub enum RepositoryError<
     AskpassServer(Easkpass),
     #[error("i/o error communicating with askpass utility: {0}")]
     AskpassIo(Esocket),
-    #[error("git command exited with non-zero exit code {status}: {args:?}\n\nSTDOUT:\n{stdout}\n\nSTDERR:\n{stderr}")]
+    #[error(
+        "git command exited with non-zero exit code {status}: {args:?}\n\nSTDOUT:\n{stdout}\n\nSTDERR:\n{stderr}"
+    )]
     Failed {
         status: usize,
         args: Vec<String>,
@@ -92,7 +93,8 @@ where
     Extra: Send + Clone,
 {
     #[cfg(feature = "askpass")]
-    return execute_with_indirect_askpass(harness_env, executor, args, envs, _on_prompt, _extra).await;
+    return execute_with_indirect_askpass(harness_env, executor, args, envs, _on_prompt, _extra)
+        .await;
     #[cfg(not(feature = "askpass"))]
     return execute_direct(harness_env, executor, args, envs).await;
 }
@@ -137,9 +139,6 @@ where
         .with_file_name("gitbutler-git-askpass")
         .with_extension(std::env::consts::EXE_EXTENSION);
 
-    #[cfg(unix)]
-    let setsid_path = current_exe.with_file_name("gitbutler-git-setsid");
-
     let res = executor.stat(&askpath_path).await.map_err(Error::<E>::Exec);
     if res.is_err() {
         let (path, prefix) = if let Some(workdir) = std::env::current_dir().ok().and_then(|cwd| {
@@ -156,7 +155,10 @@ where
                     )
                 })
                 .unwrap_or_default();
-            (askpath_path.strip_prefix(&workdir).unwrap_or(&askpath_path), prefix)
+            (
+                askpath_path.strip_prefix(&workdir).unwrap_or(&askpath_path),
+                prefix,
+            )
         } else {
             (askpath_path.as_path(), "".into())
         };
@@ -166,9 +168,6 @@ where
         });
     }
     let askpath_stat = res?;
-
-    #[cfg(unix)]
-    let setsid_stat = executor.stat(&setsid_path).await.map_err(Error::<E>::Exec)?;
 
     #[expect(unsafe_code)]
     let sock_server = unsafe { executor.create_askpass_server() }
@@ -185,27 +184,30 @@ where
     let mut envs = envs.unwrap_or_default();
     envs.insert("GITBUTLER_ASKPASS_PIPE".into(), sock_server.to_string());
     envs.insert("GITBUTLER_ASKPASS_SECRET".into(), secret.clone());
-    envs.insert("SSH_ASKPASS".into(), askpath_path.display().to_string());
 
-    // DISPLAY is required by SSH to check SSH_ASKPASS.
-    // Please don't ask us why, it's unclear.
-    if !std::env::var("DISPLAY").map(|v| !v.is_empty()).unwrap_or(false) {
-        envs.insert("DISPLAY".into(), ":".into());
-    }
+    // Note: SSH_ASKPASS_REQUIRE is available since SSH 8.4, which was released in 2020, and as
+    // such has further backwards compatibility than we do with the Tauri GUI in general. At this
+    // point it is therefore relatively safe to depend on this behavior.
+    //
+    // See https://www.openssh.org/txt/release-8.4
+    //
+    // At the time of writing, our oldest supported Linux distro is Ubuntu 22.04, and it has OpenSSH 8.9: https://packages.ubuntu.com/jammy/openssh-client
+    //
+    // macOS has shipped with OpenSSH 8.6 since Monterey (2021): https://www.reddit.com/r/MacOSBeta/comments/nzouk2/monterey_ssh_version/
+    //
+    // Windows 11 does not have a concept of a controlling terminal, but appears to require
+    // SSH_ASKPASS_REQUIRE=force to look at SSH_ASKPASS: https://github.com/PowerShell/Win32-OpenSSH/issues/2115
+    //
+    // Note that when setting SSH_ASKPASS_REQUIRE to force, we do NOT need to set DISPLAY and we do
+    // NOT need to disconnect from the controlling terminal, as is otherwise the case for SSH to
+    // consider having a peek at the SSH_ASKPASS variable.
+    //
+    // See the OpenSSH client manual for more info.
+    envs.insert("SSH_ASKPASS".into(), askpath_path.display().to_string());
+    envs.insert("SSH_ASKPASS_REQUIRE".into(), "force".into());
 
     let git_ssh_command = resolve_git_ssh_command(&harness_env, &envs);
-    let setsid_prefix = {
-        #[cfg(unix)]
-        {
-            format!("'{setsid_path}' ", setsid_path = setsid_path.display())
-        }
-        #[cfg(windows)]
-        {
-            ""
-        }
-    };
-
-    envs.insert("GIT_SSH_COMMAND".into(), format!("{setsid_prefix}{git_ssh_command}"));
+    envs.insert("GIT_SSH_COMMAND".into(), git_ssh_command);
 
     let cwd = match harness_env {
         HarnessEnv::Repo(p) | HarnessEnv::Global(p) => p,
@@ -260,17 +262,6 @@ where
                     false
                 };
 
-                #[cfg(unix)]
-                let valid_executable = valid_executable || if peer_stat.ino == setsid_stat.ino {
-                    if peer_stat.dev != setsid_stat.dev {
-                        return Err(Error::<E>::AskpassDeviceMismatch)?;
-                    }
-
-                    true
-                } else {
-                    false
-                };
-
                 if !valid_executable {
                     return Err(Error::<E>::AskpassExecutableMismatch)?;
                 }
@@ -316,13 +307,19 @@ where
     E: GitExecutor,
 {
     let mut envs = envs.unwrap_or_default();
-    envs.insert("GIT_SSH_COMMAND".into(), resolve_git_ssh_command(&harness_env, &envs));
+    envs.insert(
+        "GIT_SSH_COMMAND".into(),
+        resolve_git_ssh_command(&harness_env, &envs),
+    );
 
     let cwd = match harness_env {
         HarnessEnv::Repo(p) | HarnessEnv::Global(p) => p,
     };
 
-    executor.execute(args, cwd, Some(envs)).await.map_err(Error::<E>::Exec)
+    executor
+        .execute(args, cwd, Some(envs))
+        .await
+        .map_err(Error::<E>::Exec)
 }
 
 fn resolve_git_ssh_command<P>(harness_env: &HarnessEnv<P>, envs: &HashMap<String, String>) -> String
@@ -403,8 +400,15 @@ where
     args.push(remote);
     args.push(&refspec);
 
-    let (status, stdout, stderr) =
-        execute_with_auth_harness(HarnessEnv::Repo(repo_path), &executor, &args, None, on_prompt, extra).await?;
+    let (status, stdout, stderr) = execute_with_auth_harness(
+        HarnessEnv::Repo(repo_path),
+        &executor,
+        &args,
+        None,
+        on_prompt,
+        extra,
+    )
+    .await?;
 
     if status == 0 {
         Ok(())
@@ -478,8 +482,15 @@ where
         args.push(opt.as_str());
     }
 
-    let (status, stdout, stderr) =
-        execute_with_auth_harness(HarnessEnv::Repo(repo_path), &executor, &args, None, on_prompt, extra).await?;
+    let (status, stdout, stderr) = execute_with_auth_harness(
+        HarnessEnv::Repo(repo_path),
+        &executor,
+        &args,
+        None,
+        on_prompt,
+        extra,
+    )
+    .await?;
 
     if status == 0 {
         return Ok(stderr);
@@ -545,8 +556,15 @@ where
     let target_dir_str = target_dir.to_string_lossy();
     let args = vec!["clone", "--", repository_url, &target_dir_str];
 
-    let (status, stdout, stderr) =
-        execute_with_auth_harness(HarnessEnv::Global(work_dir), &executor, &args, None, on_prompt, extra).await?;
+    let (status, stdout, stderr) = execute_with_auth_harness(
+        HarnessEnv::Global(work_dir),
+        &executor,
+        &args,
+        None,
+        on_prompt,
+        extra,
+    )
+    .await?;
 
     if status == 0 {
         Ok(())

@@ -35,7 +35,9 @@ pub fn print_grouped(out: &mut dyn std::fmt::Write) -> std::fmt::Result {
         ("Inspection".yellow(), vec!["status", "diff", "show"]),
         (
             "Branching and Committing".yellow(),
-            vec!["commit", "stage", "new", "branch", "merge", "discard", "resolve"],
+            vec![
+                "commit", "stage", "new", "branch", "merge", "discard", "resolve",
+            ],
         ),
         ("Rules".yellow(), vec!["mark", "unmark"]),
         (
@@ -44,9 +46,14 @@ pub fn print_grouped(out: &mut dyn std::fmt::Write) -> std::fmt::Result {
         ),
         (
             "Editing Commits".yellow(),
-            vec!["rub", "absorb", "reword", "uncommit", "amend", "squash", "move"],
+            vec![
+                "rub", "absorb", "reword", "uncommit", "amend", "squash", "move",
+            ],
         ),
-        ("Operation History".yellow(), vec!["oplog", "undo", "restore"]),
+        (
+            "Operation History".yellow(),
+            vec!["oplog", "undo", "restore"],
+        ),
     ];
 
     writeln!(out, "{}", "The GitButler CLI change control system".red())?;
@@ -85,9 +92,15 @@ pub fn print_grouped(out: &mut dyn std::fmt::Write) -> std::fmt::Result {
             if let Some(subcmd) = subcommands.iter().find(|c| c.get_name() == *cmd_name) {
                 let about = subcmd.get_about().unwrap_or_default().to_string();
                 // Calculate available width: terminal_width - indent (2) - command column (10) - buffer (1)
-                let available_width = terminal_width.saturating_sub(LONGEST_COMMAND_LEN_AND_ELLIPSIS);
+                let available_width =
+                    terminal_width.saturating_sub(LONGEST_COMMAND_LEN_AND_ELLIPSIS);
                 let truncated_about = truncate_text(&about, available_width);
-                writeln!(out, "  {:<LONGEST_COMMAND_LEN$}{}", cmd_name.green(), truncated_about,)?;
+                writeln!(
+                    out,
+                    "  {:<LONGEST_COMMAND_LEN$}{}",
+                    cmd_name.green(),
+                    truncated_about,
+                )?;
                 printed_commands.insert(cmd_name.to_string());
             }
         }
@@ -130,7 +143,10 @@ pub fn print_grouped(out: &mut dyn std::fmt::Write) -> std::fmt::Result {
         out,
         "To use the GitButler CLI with coding agents (Claude Code hooks, Cursor hooks, MCP), see:"
     )?;
-    writeln!(out, "  https://docs.gitbutler.com/features/ai-integration/ai-overview")?;
+    writeln!(
+        out,
+        "  https://docs.gitbutler.com/features/ai-integration/ai-overview"
+    )?;
     writeln!(out)?;
 
     writeln!(out, "{}:", "Options".yellow())?;

@@ -22,7 +22,6 @@ legacy = [
     "but-api/legacy",
     "but-ctx/legacy",
     "dep:but-action",
-    "dep:but-hunk-dependency",
     "dep:but-claude",
     "dep:but-cursor",
     "dep:but-tools",
@@ -51,7 +50,6 @@ but-update.workspace = true
 but-installer.workspace = true
 but-oxidize.workspace = true
 but-path.workspace = true
-but-db.workspace = true
 but-ctx.workspace = true
 but-rebase.workspace = true
 but-github.workspace = true
@@ -68,7 +66,6 @@ but-llm.workspace = true
 but-action = { workspace = true, optional = true }
 # Still uses `gitbutler-stack`, but otherwise it is non-legacy.
 but-hunk-assignment.workspace = true
-but-hunk-dependency = { workspace = true, optional = true }
 but-claude = { workspace = true, optional = true }
 but-cursor = { workspace = true, optional = true }
 but-tools = { workspace = true, optional = true }
@@ -90,7 +87,7 @@ gitbutler-repo = { workspace = true, optional = true }
 
 git2.workspace = true
 schemars.workspace = true
-posthog-rs = { version = "0.3.7" }
+posthog-rs = { git = "https://github.com/gitbutlerapp/posthog-rs", rev = "664c9245f79aaedcdd025b9f3c141b62bb866b8e" }
 serde.workspace = true
 shell-words.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "io-std"] }
@@ -123,7 +120,7 @@ tracing-subscriber = { workspace = true, features = [
 tracing-forest.workspace = true
 cli-prompts.path = "vendor/cli-prompts"
 dirs.workspace = true
-minus = { version = "5.6.1", default-features = false, features = [
+minus = { git = "https://github.com/arijit79/minus", rev = "57f1848f831d153a10d65060562ce1fdde938a01", default-features = false, features = [
     "static_output",
     "search",
 ] }

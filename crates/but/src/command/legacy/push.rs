@@ -40,7 +40,11 @@ struct FailedBranch {
     error: String,
 }
 
-pub fn handle(args: push::Command, ctx: &mut Context, out: &mut OutputChannel) -> anyhow::Result<()> {
+pub fn handle(
+    args: push::Command,
+    ctx: &mut Context,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
     let id_map = IdMap::new_from_context(ctx, None)?;
 
     // Check gerrit mode early
@@ -66,7 +70,9 @@ pub fn handle(args: push::Command, ctx: &mut Context, out: &mut OutputChannel) -
     // Handle branch selection
     match branch_selection {
         BranchSelection::All => push_all_branches(ctx, &args, gerrit_mode, out),
-        BranchSelection::Single(branch_name) => push_single_branch(ctx, &branch_name, &args, gerrit_mode, out),
+        BranchSelection::Single(branch_name) => {
+            push_single_branch(ctx, &branch_name, &args, gerrit_mode, out)
+        }
         BranchSelection::None => Ok(()),
     }
 }
@@ -130,7 +136,11 @@ struct DryRunResult {
     branches: Vec<DryRunBranchInfo>,
 }
 
-fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut OutputChannel) -> anyhow::Result<()> {
+fn handle_dry_run(
+    ctx: &mut Context,
+    branch_id: &Option<String>,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
     let mut progress = out.progress_channel();
 
     // Fetch from remote first to get latest state
@@ -164,14 +174,21 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
             out.write_value(&DryRunResult { branches: vec![] })?;
         }
 
-        writeln!(progress, "{}", "No branches have unpushed commits.".dimmed())?;
+        writeln!(
+            progress,
+            "{}",
+            "No branches have unpushed commits.".dimmed()
+        )?;
         return Ok(());
     }
 
     // Get detailed information for each branch
     let mut dry_run_infos = Vec::new();
 
-    let stacks = but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
 
     // Get the default target for remote name
     let vb_state = gitbutler_stack::VirtualBranchesHandle::new(ctx.project_data_dir());
@@ -208,7 +225,13 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
                         .map(|c| {
                             let sha = c.id.to_string();
                             let sha_short: String = sha.chars().take(7).collect();
-                            let message = c.message.to_string().lines().next().unwrap_or("").to_string();
+                            let message = c
+                                .message
+                                .to_string()
+                                .lines()
+                                .next()
+                                .unwrap_or("")
+                                .to_string();
                             DryRunCommit {
                                 sha_short,
                                 sha,
@@ -225,7 +248,13 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
                         .map(|c| {
                             let sha = c.id.to_string();
                             let sha_short: String = sha.chars().take(7).collect();
-                            let message = c.message.to_string().lines().next().unwrap_or("").to_string();
+                            let message = c
+                                .message
+                                .to_string()
+                                .lines()
+                                .next()
+                                .unwrap_or("")
+                                .to_string();
                             DryRunUpstreamCommit {
                                 sha_short,
                                 sha,
@@ -261,7 +290,9 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
                     let stacked_on = stack_details
                         .branch_details
                         .iter()
-                        .find(|b| b.tip == branch_detail.base_commit && b.name != branch_detail.name)
+                        .find(|b| {
+                            b.tip == branch_detail.base_commit && b.name != branch_detail.name
+                        })
                         .map(|b| b.name.to_string());
 
                     dry_run_infos.push(DryRunBranchInfo {
@@ -304,7 +335,10 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
     let mut branches_by_stack: std::collections::HashMap<String, Vec<&DryRunBranchInfo>> =
         std::collections::HashMap::new();
     for info in &dry_run_infos {
-        branches_by_stack.entry(info.stack_name.clone()).or_default().push(info);
+        branches_by_stack
+            .entry(info.stack_name.clone())
+            .or_default()
+            .push(info);
     }
 
     let mut stack_names: Vec<_> = branches_by_stack.keys().collect();
@@ -441,7 +475,11 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
                         progress,
                         "{}    {}",
                         line_prefix.dimmed(),
-                        format!("... and {} more", info.unpushed_commits - info.commits.len()).dimmed()
+                        format!(
+                            "... and {} more",
+                            info.unpushed_commits - info.commits.len()
+                        )
+                        .dimmed()
                     )?;
                 }
             }
@@ -458,7 +496,11 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
                     format!(
                         "{} commit{}",
                         info.upstream_commits.len(),
-                        if info.upstream_commits.len() == 1 { "" } else { "s" }
+                        if info.upstream_commits.len() == 1 {
+                            ""
+                        } else {
+                            "s"
+                        }
                     )
                     .yellow()
                 )?;
@@ -511,12 +553,24 @@ fn handle_dry_run(ctx: &mut Context, branch_id: &Option<String>, out: &mut Outpu
         "{} Would push {} {} across {} {}",
         "Summary:".bright_blue().bold(),
         total_commits.to_string().yellow().bold(),
-        if total_commits == 1 { "commit" } else { "commits" },
+        if total_commits == 1 {
+            "commit"
+        } else {
+            "commits"
+        },
         total_branches.to_string().cyan().bold(),
-        if total_branches == 1 { "branch" } else { "branches" }
+        if total_branches == 1 {
+            "branch"
+        } else {
+            "branches"
+        }
     )?;
     writeln!(progress)?;
-    writeln!(progress, "{}", "Run without --dry-run to push these changes.".dimmed())?;
+    writeln!(
+        progress,
+        "{}",
+        "Run without --dry-run to push these changes.".dimmed()
+    )?;
 
     Ok(())
 }
@@ -536,7 +590,11 @@ fn push_single_branch(
     }
 
     writeln!(progress)?;
-    writeln!(progress, "{} Push completed successfully", "✓".green().bold())?;
+    writeln!(
+        progress,
+        "{} Push completed successfully",
+        "✓".green().bold()
+    )?;
     writeln!(progress)?;
     if !result.branch_sha_updates.is_empty() {
         for (branch, before_sha, after_sha) in &result.branch_sha_updates {
@@ -619,7 +677,11 @@ fn push_all_branches(
             out.write_value(&batch_result)?;
         }
 
-        writeln!(progress, "{}", "No branches have unpushed commits.".dimmed())?;
+        writeln!(
+            progress,
+            "{}",
+            "No branches have unpushed commits.".dimmed()
+        )?;
         return Ok(());
     }
 
@@ -674,7 +736,11 @@ fn push_all_branches(
             "✓".green().bold(),
             "Successfully pushed".green().bold(),
             total_commits_pushed.to_string().yellow().bold(),
-            if total_commits_pushed == 1 { "commit" } else { "commits" }
+            if total_commits_pushed == 1 {
+                "commit"
+            } else {
+                "commits"
+            }
         )?;
         writeln!(progress)?;
 
@@ -717,14 +783,22 @@ fn push_all_branches(
             }
         )?;
         for failed in &failed_branches {
-            writeln!(progress, "    {} - {}", failed.branch_name.red(), failed.error.dimmed())?;
+            writeln!(
+                progress,
+                "    {} - {}",
+                failed.branch_name.red(),
+                failed.error.dimmed()
+            )?;
         }
     }
 
     Ok(())
 }
 
-fn handle_no_branch_specified(ctx: &Context, out: &mut OutputChannel) -> anyhow::Result<BranchSelection> {
+fn handle_no_branch_specified(
+    ctx: &Context,
+    out: &mut OutputChannel,
+) -> anyhow::Result<BranchSelection> {
     let branches_with_info = get_branches_with_unpushed_info(ctx)?;
 
     if branches_with_info.is_empty() {
@@ -735,7 +809,9 @@ fn handle_no_branch_specified(ctx: &Context, out: &mut OutputChannel) -> anyhow:
 
     // Check if we're in an interactive terminal with human output format
     if !out.can_prompt() {
-        tracing::info!("Non-interactive mode detected. Pushing all branches with unpushed commits...");
+        tracing::info!(
+            "Non-interactive mode detected. Pushing all branches with unpushed commits..."
+        );
         // Non-interactive mode: push all branches with unpushed commits
         return Ok(BranchSelection::All);
     }
@@ -750,7 +826,11 @@ fn handle_no_branch_specified(ctx: &Context, out: &mut OutputChannel) -> anyhow:
 
     if branches_with_unpushed.is_empty() {
         writeln!(progress)?;
-        writeln!(progress, "{}", "✓ All branches are up to date with the remote.".green())?;
+        writeln!(
+            progress,
+            "{}",
+            "✓ All branches are up to date with the remote.".green()
+        )?;
         return Ok(BranchSelection::None);
     }
 
@@ -773,7 +853,10 @@ fn handle_no_branch_specified(ctx: &Context, out: &mut OutputChannel) -> anyhow:
         ));
     }
 
-    let prompt = cli_prompts::prompts::Selection::new("Which branch(es) would you like to push?", options.into_iter());
+    let prompt = cli_prompts::prompts::Selection::new(
+        "Which branch(es) would you like to push?",
+        options.into_iter(),
+    );
 
     let selection = prompt
         .display()
@@ -793,7 +876,10 @@ fn handle_no_branch_specified(ctx: &Context, out: &mut OutputChannel) -> anyhow:
 }
 
 fn get_branches_with_unpushed_info(ctx: &Context) -> anyhow::Result<Vec<(String, usize, String)>> {
-    let stacks = but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
 
     let mut branches_info = Vec::new();
 
@@ -810,34 +896,37 @@ fn get_branches_with_unpushed_info(ctx: &Context) -> anyhow::Result<Vec<(String,
                 let branch_name = head.name.to_string();
 
                 // Find the corresponding branch details to count unpushed commits
-                let unpushed_count =
-                    if let Some(branch_detail) = stack_details.branch_details.iter().find(|b| b.name == head.name) {
-                        // Count only commits that are LocalOnly (not pushed to remote)
-                        // LocalAndRemote means it exists on both, Integrated means it's already in base
-                        let local_only_count = branch_detail
-                            .commits
-                            .iter()
-                            .filter(|c| matches!(c.state, but_workspace::ui::CommitState::LocalOnly))
-                            .count();
+                let unpushed_count = if let Some(branch_detail) = stack_details
+                    .branch_details
+                    .iter()
+                    .find(|b| b.name == head.name)
+                {
+                    // Count only commits that are LocalOnly (not pushed to remote)
+                    // LocalAndRemote means it exists on both, Integrated means it's already in base
+                    let local_only_count = branch_detail
+                        .commits
+                        .iter()
+                        .filter(|c| matches!(c.state, but_workspace::ui::CommitState::LocalOnly))
+                        .count();
 
-                        // Additionally check if push_status indicates there are unpushed commits
-                        // even if we don't find any LocalOnly commits (e.g., for new branches)
-                        match branch_detail.push_status {
-                            but_workspace::ui::PushStatus::CompletelyUnpushed => {
-                                // All commits on the branch need to be pushed
-                                branch_detail.commits.len().max(local_only_count)
-                            }
-                            but_workspace::ui::PushStatus::UnpushedCommits
-                            | but_workspace::ui::PushStatus::UnpushedCommitsRequiringForce => {
-                                // There are commits to push
-                                local_only_count.max(1) // At least 1 if push_status says so
-                            }
-                            _ => local_only_count,
+                    // Additionally check if push_status indicates there are unpushed commits
+                    // even if we don't find any LocalOnly commits (e.g., for new branches)
+                    match branch_detail.push_status {
+                        but_workspace::ui::PushStatus::CompletelyUnpushed => {
+                            // All commits on the branch need to be pushed
+                            branch_detail.commits.len().max(local_only_count)
                         }
-                    } else {
-                        // If no detailed branch info found, assume no unpushed commits
-                        0
-                    };
+                        but_workspace::ui::PushStatus::UnpushedCommits
+                        | but_workspace::ui::PushStatus::UnpushedCommitsRequiringForce => {
+                            // There are commits to push
+                            local_only_count.max(1) // At least 1 if push_status says so
+                        }
+                        _ => local_only_count,
+                    }
+                } else {
+                    // If no detailed branch info found, assume no unpushed commits
+                    0
+                };
 
                 branches_info.push((branch_name, unpushed_count, stack_name.clone()));
             }
@@ -908,7 +997,11 @@ pub fn get_gerrit_flags(
     Ok(flags)
 }
 
-fn resolve_branch_name(ctx: &mut Context, id_map: &IdMap, branch_id: &str) -> anyhow::Result<String> {
+fn resolve_branch_name(
+    ctx: &mut Context,
+    id_map: &IdMap,
+    branch_id: &str,
+) -> anyhow::Result<String> {
     // Try to resolve as CliId first
     let cli_ids = id_map.parse_using_context(branch_id, ctx)?;
 
@@ -984,7 +1077,10 @@ fn format_branch_suggestions(branches: &[String]) -> String {
 }
 
 fn find_stack_id_by_branch_name(ctx: &Context, branch_name: &str) -> anyhow::Result<StackId> {
-    let stacks = but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
 
     // Find which stack this branch belongs to
     for stack_entry in &stacks {
@@ -1012,7 +1108,10 @@ fn find_stack_id_by_branch_name(ctx: &Context, branch_name: &str) -> anyhow::Res
 /// Check if a branch contains any conflicted commits
 /// Returns an error if conflicted commits are found
 fn check_for_conflicted_commits(ctx: &Context, branch_name: &str) -> anyhow::Result<()> {
-    let stacks = but_api::legacy::workspace::stacks(ctx, Some(but_workspace::legacy::StacksFilter::InWorkspace))?;
+    let stacks = but_api::legacy::workspace::stacks(
+        ctx,
+        Some(but_workspace::legacy::StacksFilter::InWorkspace),
+    )?;
 
     // Find the stack containing this branch and get its details
     for stack in &stacks {
@@ -1022,7 +1121,11 @@ fn check_for_conflicted_commits(ctx: &Context, branch_name: &str) -> anyhow::Res
                 let stack_details = but_api::legacy::workspace::stack_details(ctx, Some(stack_id))?;
 
                 // Find the branch details
-                if let Some(branch_detail) = stack_details.branch_details.iter().find(|b| b.name == branch_name) {
+                if let Some(branch_detail) = stack_details
+                    .branch_details
+                    .iter()
+                    .find(|b| b.name == branch_name)
+                {
                     // Check for conflicted commits
                     let conflicted_commits: Vec<String> = branch_detail
                         .commits
@@ -1038,7 +1141,11 @@ fn check_for_conflicted_commits(ctx: &Context, branch_name: &str) -> anyhow::Res
                              Please resolve conflicts before pushing using 'but resolve <commit>'.",
                             branch_name,
                             conflicted_commits.len(),
-                            if conflicted_commits.len() == 1 { "" } else { "s" },
+                            if conflicted_commits.len() == 1 {
+                                ""
+                            } else {
+                                "s"
+                            },
                             conflicted_commits.join(", ")
                         ));
                     }

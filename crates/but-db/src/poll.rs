@@ -4,12 +4,16 @@ use tokio::{sync::oneshot, task::JoinHandle};
 use crate::DbHandle;
 
 bitflags! {
-    /// What kind of data to listen to
+    /// What kind of data to listen to in [`crate::poll::poll_changes()`]
     #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
     pub struct ItemKind: u8 {
+        /// Changes in `butler_actions`.
         const Actions = 1 << 0;
+        /// Changes in `workflows`.
         const Workflows = 1 << 1;
+        /// Changes in `hunk_assignments`.
         const Assignments = 1 << 2;
+        /// Changes in `workspace_rules`.
         const Rules = 1 << 3;
     }
 }
@@ -196,8 +200,11 @@ impl DbHandle {
     }
 }
 
+/// A running background watcher task and its cancellation channel.
 pub struct DBWatcherHandle {
+    /// Sender used to request graceful cancellation of the watcher task.
     pub cancel_tx: Option<oneshot::Sender<()>>,
+    /// Join handle for the spawned watcher task.
     pub handle: JoinHandle<()>,
 }
 
@@ -211,6 +218,9 @@ impl Drop for DBWatcherHandle {
     }
 }
 
+/// Start a background async watcher that emits events for all supported [`ItemKind`] values.
+///
+/// The watcher polls the database every 500ms and forwards detected item changes to `send_event`.
 pub fn watch_in_background(
     db: &DbHandle,
     send_event: impl Fn(ItemKind) -> anyhow::Result<()> + Send + Sync + 'static,

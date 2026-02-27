@@ -132,11 +132,21 @@ impl Subcommands {
             Subcommands::Pr(forge::pr::Platform { cmd, .. }) => match cmd {
                 None | Some(forge::pr::Subcommands::New { .. }) => PrNew,
                 Some(forge::pr::Subcommands::Template { .. }) => PrTemplate,
+                Some(forge::pr::Subcommands::AutoMerge { off, .. }) => {
+                    if *off {
+                        DisableAutoMerge
+                    } else {
+                        EnableAutoMerge
+                    }
+                }
+                Some(forge::pr::Subcommands::SetDraft { .. }) => SetReviewDraft,
+                Some(forge::pr::Subcommands::SetReady { .. }) => SetReviewReady,
             },
             #[cfg(feature = "legacy")]
-            Subcommands::Actions(_) | Subcommands::Mcp { .. } | Subcommands::Setup { .. } | Subcommands::Teardown => {
-                Unknown
-            }
+            Subcommands::Actions(_)
+            | Subcommands::Mcp { .. }
+            | Subcommands::Setup { .. }
+            | Subcommands::Teardown => Unknown,
             Subcommands::Config(config::Platform { cmd }) => match cmd {
                 Some(config::Subcommands::Forge {
                     cmd: Some(config::ForgeSubcommand::Auth),
@@ -182,6 +192,7 @@ impl Subcommands {
                 skill::Subcommands::Install { .. } => SkillInstall,
                 skill::Subcommands::Check { .. } => SkillCheck,
             },
+            Subcommands::Edit { .. } => Edit,
             Subcommands::Onboarding | Subcommands::EvalHook => Unknown,
         }
     }
@@ -199,7 +210,9 @@ pub struct Props {
 
 impl Props {
     pub fn new() -> Self {
-        Props { values: HashMap::new() }
+        Props {
+            values: HashMap::new(),
+        }
     }
 
     pub fn from_result<E, T, R>(start: std::time::Instant, result: R) -> Props
@@ -288,7 +301,11 @@ impl BackgroundMetrics {
         // Only create client and sender if metrics are permitted
         let client = posthog_client(app_settings.clone());
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
-        let sender = if metrics_permitted { Some(sender) } else { None };
+        let sender = if metrics_permitted {
+            Some(sender)
+        } else {
+            None
+        };
         let metrics = BackgroundMetrics { sender };
 
         if let Some(client_future) = client {
@@ -357,7 +374,7 @@ fn posthog_client(app_settings: AppSettings) -> Option<impl Future<Output = post
     {
         let options = posthog_rs::ClientOptionsBuilder::default()
             .api_key(api_key.to_string())
-            .api_endpoint("https://eu.i.posthog.com/i/v0/e/".to_string())
+            .host("https://eu.i.posthog.com".to_string())
             .build()
             .ok()?;
         Some(posthog_rs::client(options))

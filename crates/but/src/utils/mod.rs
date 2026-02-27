@@ -1,7 +1,11 @@
 use std::io::Write;
 
 mod output_channel;
-pub use output_channel::{Confirm, ConfirmDefault, ConfirmOrEmpty, InputOutputChannel, OutputChannel};
+pub use output_channel::{
+    Confirm, ConfirmDefault, ConfirmOrEmpty, InputOutputChannel, OutputChannel,
+};
+
+mod pager;
 
 pub mod metrics;
 #[cfg(feature = "legacy")]

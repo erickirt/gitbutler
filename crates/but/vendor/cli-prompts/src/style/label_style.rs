@@ -1,6 +1,5 @@
-use crate::engine::CommandBuffer;
-
 use super::{Color, Formatting};
+use crate::engine::CommandBuffer;
 
 /// Style for the common part of all prompts: the prompt itself.
 #[derive(Clone)]

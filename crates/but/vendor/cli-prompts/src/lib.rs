@@ -18,7 +18,7 @@
 //!
 //! ## Getting started
 //!
-//! ```rust
+//! ```rust,no_run
 //!     use cli_prompts::{
 //!         prompts::{Input, AbortReason},
 //!         DisplayPrompt

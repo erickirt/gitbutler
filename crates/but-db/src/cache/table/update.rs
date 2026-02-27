@@ -17,6 +17,9 @@ pub(crate) const M: &[M<'static>] = &[M::up(
 );",
 )];
 
+// This table currently only has a single row representing the latest update check.
+const SINGLETON_RECORD_ID: u8 = 1;
+
 /// A utility for accessing the update checks.
 pub struct UpdateCheckHandle<'conn> {
     conn: &'conn rusqlite::Connection,
@@ -134,7 +137,8 @@ impl UpdateCheckHandle<'_> {
                 let checked_at = DateTime::from_naive_utc_and_offset(checked_at_naive, Utc);
 
                 let suppressed_at_naive: Option<chrono::NaiveDateTime> = row.get(6)?;
-                let suppressed_at = suppressed_at_naive.map(|naive| DateTime::from_naive_utc_and_offset(naive, Utc));
+                let suppressed_at = suppressed_at_naive
+                    .map(|naive| DateTime::from_naive_utc_and_offset(naive, Utc));
 
                 Ok(Some(CachedCheckResult {
                     checked_at,
@@ -178,7 +182,7 @@ impl UpdateCheckHandleMut<'_> {
               suppressed_at, suppress_duration_hours)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![
-                1, // Singleton record
+                SINGLETON_RECORD_ID,
                 result.checked_at.naive_utc(),
                 result.status.up_to_date,
                 result.status.latest_version,
@@ -194,6 +198,22 @@ impl UpdateCheckHandleMut<'_> {
         Ok(())
     }
 
+    /// Deletes the update check, which is equivalent to cache invalidation.
+    ///
+    /// This operation is idempotent and is safe to perform regardless of if an update check record
+    /// exists or not.
+    pub fn delete(self) -> rusqlite::Result<()> {
+        let sp = self.sp;
+
+        sp.execute(
+            "DELETE FROM `update-check` WHERE id = ?1;",
+            rusqlite::params![SINGLETON_RECORD_ID],
+        )?;
+        sp.commit()?;
+
+        Ok(())
+    }
+
     /// Suppresses update notifications for a specified duration in `hours`.
     ///
     /// Updates the existing cache record with suppression settings.
@@ -203,9 +223,11 @@ impl UpdateCheckHandleMut<'_> {
         let sp = self.sp;
 
         // Check if a record exists
-        let exists: bool = sp.query_row("SELECT EXISTS(SELECT 1 FROM `update-check` WHERE id = 1)", [], |row| {
-            row.get(0)
-        })?;
+        let exists: bool = sp.query_row(
+            "SELECT EXISTS(SELECT 1 FROM `update-check` WHERE id = 1)",
+            [],
+            |row| row.get(0),
+        )?;
 
         if !exists {
             return Err(rusqlite::Error::ToSqlConversionFailure(Box::<
@@ -219,8 +241,8 @@ impl UpdateCheckHandleMut<'_> {
         sp.execute(
             "UPDATE `update-check`
              SET suppressed_at = ?1, suppress_duration_hours = ?2
-             WHERE id = 1",
-            rusqlite::params![Utc::now().naive_utc(), hours],
+             WHERE id = ?3",
+            rusqlite::params![Utc::now().naive_utc(), hours, SINGLETON_RECORD_ID],
         )?;
 
         sp.commit()?;
@@ -234,8 +256,8 @@ impl UpdateCheckHandleMut<'_> {
         sp.execute(
             "UPDATE `update-check`
              SET suppressed_at = NULL, suppress_duration_hours = NULL
-             WHERE id = 1",
-            [],
+             WHERE id = ?1",
+            [SINGLETON_RECORD_ID],
         )?;
 
         sp.commit()?;

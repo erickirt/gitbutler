@@ -1,31 +1,34 @@
-import { gitlab } from '$lib/forge/gitlab/gitlabClient.svelte';
-import { detailedMrToInstance, mrToInstance } from '$lib/forge/gitlab/types';
-import { providesItem, invalidatesItem, ReduxTag, invalidatesList } from '$lib/state/tags';
-import { sleep } from '$lib/utils/sleep';
-import { toSerializable } from '@gitbutler/shared/network/types';
-import { writable } from 'svelte/store';
-import type { PostHogWrapper } from '$lib/analytics/posthog';
-import type { ForgePrService } from '$lib/forge/interface/forgePrService';
+import { gitlab } from "$lib/forge/gitlab/gitlabClient.svelte";
+import { detailedMrToInstance, mrToInstance } from "$lib/forge/gitlab/types";
+import { providesItem, invalidatesItem, ReduxTag, invalidatesList } from "$lib/state/tags";
+import { sleep } from "$lib/utils/sleep";
+import { toSerializable } from "@gitbutler/shared/network/types";
+import { writable } from "svelte/store";
+import type { PostHogWrapper } from "$lib/analytics/posthog";
+import type { ForgePrService } from "$lib/forge/interface/forgePrService";
 import type {
 	CreatePullRequestArgs,
 	DetailedPullRequest,
 	MergeMethod,
-	PullRequest
-} from '$lib/forge/interface/types';
-import type { QueryOptions } from '$lib/state/butlerModule';
-import type { GitLabApi } from '$lib/state/clientState.svelte';
-import type { StartQueryActionCreatorOptions } from '@reduxjs/toolkit/query';
+	PullRequest,
+} from "$lib/forge/interface/types";
+import type { QueryOptions } from "$lib/state/butlerModule";
+import type { BackendApi, GitLabApi } from "$lib/state/clientState.svelte";
+import type { StartQueryActionCreatorOptions } from "@reduxjs/toolkit/query";
 
 export class GitLabPrService implements ForgePrService {
-	readonly unit = { name: 'Merge request', abbr: 'MR', symbol: '!' };
+	readonly unit = { name: "Merge request", abbr: "MR", symbol: "!" };
 	loading = writable(false);
 	private api: ReturnType<typeof injectEndpoints>;
+	private backendApi: ReturnType<typeof injectBackendEndpoints>;
 
 	constructor(
 		gitlabApi: GitLabApi,
-		private posthog?: PostHogWrapper
+		backendApi: BackendApi,
+		private posthog?: PostHogWrapper,
 	) {
 		this.api = injectEndpoints(gitlabApi);
+		this.backendApi = injectBackendEndpoints(backendApi);
 	}
 
 	async createPr({
@@ -33,7 +36,7 @@ export class GitLabPrService implements ForgePrService {
 		body,
 		draft,
 		baseBranchName,
-		upstreamName
+		upstreamName,
 	}: CreatePullRequestArgs): Promise<PullRequest> {
 		this.loading.set(true);
 
@@ -43,7 +46,7 @@ export class GitLabPrService implements ForgePrService {
 				base: baseBranchName,
 				title,
 				body,
-				draft
+				draft,
 			});
 		};
 
@@ -54,7 +57,7 @@ export class GitLabPrService implements ForgePrService {
 		while (attempts < 4) {
 			try {
 				const response = await request();
-				this.posthog?.capture('Gitlab MR Successful');
+				this.posthog?.capture("Gitlab MR Successful");
 				return response;
 			} catch (err: any) {
 				lastError = err;
@@ -64,7 +67,7 @@ export class GitLabPrService implements ForgePrService {
 				this.loading.set(false);
 			}
 		}
-		this.posthog?.capture('Gitlab MR Failure');
+		this.posthog?.capture("Gitlab MR Failure");
 
 		throw lastError;
 	}
@@ -85,16 +88,44 @@ export class GitLabPrService implements ForgePrService {
 	async reopen(number: number) {
 		await this.api.endpoints.updatePr.mutate({
 			number,
-			update: { state: 'open' }
+			update: { state: "open" },
 		});
 	}
 
 	async update(
 		number: number,
-		update: { description?: string; state?: 'open' | 'closed'; targetBase?: string }
+		update: { description?: string; state?: "open" | "closed"; targetBase?: string },
 	) {
 		await this.api.endpoints.updatePr.mutate({ number, update });
 	}
+
+	async setDraft(projectId: string, reviewId: number, draft: boolean) {
+		await this.backendApi.endpoints.setDraftMR.mutate({ projectId, reviewId, draft });
+	}
+}
+
+function injectBackendEndpoints(api: BackendApi) {
+	return api.injectEndpoints({
+		endpoints: (build) => ({
+			setAutoMergeMR: build.mutation<
+				void,
+				{ projectId: string; reviewId: number; enable: boolean }
+			>({
+				extraOptions: { command: "set_review_auto_merge" },
+				query: (args) => args,
+				invalidatesTags: (_res, _err, { reviewId }) => [
+					invalidatesItem(ReduxTag.GitlabMRs, reviewId),
+				],
+			}),
+			setDraftMR: build.mutation<void, { projectId: string; reviewId: number; draft: boolean }>({
+				extraOptions: { command: "set_review_draftiness" },
+				query: (args) => args,
+				invalidatesTags: (_res, _err, { reviewId }) => [
+					invalidatesItem(ReduxTag.GitlabMRs, reviewId),
+				],
+			}),
+		}),
+	});
 }
 
 function injectEndpoints(api: GitLabApi) {
@@ -111,15 +142,14 @@ function injectEndpoints(api: GitLabApi) {
 						const data = {
 							...detailedMrToInstance(mr),
 							repositoryHttpsUrl,
-							repositorySshUrl
+							repositorySshUrl,
 						};
 						return { data };
 					} catch (e: unknown) {
 						return { error: toSerializable(e) };
 					}
 				},
-				providesTags: (_result, _error, args) =>
-					providesItem(ReduxTag.GitLabPullRequests, args.number)
+				providesTags: (_result, _error, args) => providesItem(ReduxTag.GitlabMRs, args.number),
 			}),
 			createPr: build.mutation<
 				PullRequest,
@@ -131,19 +161,19 @@ function injectEndpoints(api: GitLabApi) {
 						const upstreamProject = await api.Projects.show(upstreamProjectId);
 
 						// GitLab uses title prefix to mark drafts: "Draft:", "[Draft]", or "(Draft)"
-						const finalTitle = draft ? `[Draft] ${title}` : title;
+						const finalTitle = draft ? `Draft: ${title}` : title;
 
 						const mr = await api.MergeRequests.create(forkProjectId, head, base, finalTitle, {
 							description: body,
 							targetProjectId: upstreamProject.id,
-							removeSourceBranch: true
+							removeSourceBranch: true,
 						});
 						return { data: mrToInstance(mr) };
 					} catch (e: unknown) {
 						return { error: toSerializable(e) };
 					}
 				},
-				invalidatesTags: (result) => [invalidatesItem(ReduxTag.GitLabPullRequests, result?.number)]
+				invalidatesTags: (result) => [invalidatesItem(ReduxTag.GitlabMRs, result?.number)],
 			}),
 			mergePr: build.mutation<undefined, { number: number; method: MergeMethod }>({
 				queryFn: async ({ number, method }, query) => {
@@ -155,15 +185,15 @@ function injectEndpoints(api: GitLabApi) {
 
 						// For 'merge' and 'squash' methods, use the merge API directly
 						await api.MergeRequests.merge(upstreamProjectId, number, {
-							squash: method === 'squash',
-							shouldRemoveSourceBranch: true
+							squash: method === "squash",
+							shouldRemoveSourceBranch: true,
 						});
 						return { data: undefined };
 					} catch (e: unknown) {
 						return { error: toSerializable(e) };
 					}
 				},
-				invalidatesTags: [invalidatesList(ReduxTag.GitLabPullRequests)]
+				invalidatesTags: [invalidatesList(ReduxTag.GitlabMRs)],
 			}),
 			updatePr: build.mutation<
 				void,
@@ -172,7 +202,7 @@ function injectEndpoints(api: GitLabApi) {
 					update: {
 						targetBase?: string;
 						description?: string;
-						state?: 'open' | 'closed';
+						state?: "open" | "closed";
 					};
 				}
 			>({
@@ -181,15 +211,15 @@ function injectEndpoints(api: GitLabApi) {
 						const { api, upstreamProjectId } = gitlab(query.extra);
 						await api.MergeRequests.edit(upstreamProjectId, number, {
 							targetBranch: update.targetBase,
-							description: update.description
+							description: update.description,
 						});
 						return { data: undefined };
 					} catch (e: unknown) {
 						return { error: toSerializable(e) };
 					}
 				},
-				invalidatesTags: [invalidatesList(ReduxTag.GitLabPullRequests)]
-			})
-		})
+				invalidatesTags: [invalidatesList(ReduxTag.GitlabMRs)],
+			}),
+		}),
 	});
 }

@@ -3,7 +3,9 @@ use anyhow::{Context as _, Result};
 use but_api_macros::but_api;
 use but_core::RepositoryExt;
 use but_ctx::{Context, ThreadSafeContext};
-use but_forge::{ForgeName, ReviewTemplateFunctions, available_review_templates, get_review_template_functions};
+use but_forge::{
+    ForgeName, ReviewTemplateFunctions, available_review_templates, get_review_template_functions,
+};
 use gitbutler_repo::RepoCommands;
 use tracing::instrument;
 
@@ -15,13 +17,24 @@ pub fn pr_templates(ctx: &but_ctx::Context, forge: ForgeName) -> Result<Vec<Stri
     Ok(available_review_templates(&ctx.workdir_or_fail()?, &forge))
 }
 
+/// Get the forge provider name.
+///
+/// This is determined by the forge the base branch is pointing to.
+#[but_api]
+#[instrument(err(Debug))]
+pub fn forge_provider(ctx: &Context) -> Result<Option<ForgeName>> {
+    let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    Ok(forge_repo_info.map(|info| info.forge))
+}
+
 /// Get the list of review template paths for the given project.
 #[but_api]
 #[instrument(err(Debug))]
 pub fn list_available_review_templates(ctx: &Context) -> Result<Vec<String>> {
     let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
-    let forge = &base_branch
-        .forge_repo_info
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    let forge = &forge_repo_info
         .as_ref()
         .context("No forge could be determined for this repository branch")?
         .forge;
@@ -35,7 +48,11 @@ pub fn list_available_review_templates(ctx: &Context) -> Result<Vec<String>> {
 /// but uses the updated storage location.
 #[but_api]
 #[instrument(err(Debug))]
-pub fn pr_template(ctx: &but_ctx::Context, relative_path: std::path::PathBuf, forge: ForgeName) -> Result<String> {
+pub fn pr_template(
+    ctx: &but_ctx::Context,
+    relative_path: std::path::PathBuf,
+    forge: ForgeName,
+) -> Result<String> {
     let ReviewTemplateFunctions {
         is_valid_review_template_path,
         ..
@@ -73,8 +90,8 @@ pub fn review_template(ctx: &Context) -> Result<Option<json::ReviewTemplateInfo>
     let project = gitbutler_project::get_validated(ctx.legacy_project.id)?;
     let ctx = Context::new_from_legacy_project(project.clone())?;
     let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
-    let forge = &base_branch
-        .forge_repo_info
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    let forge = &forge_repo_info
         .as_ref()
         .context("No forge could be determined for this repository branch")?
         .forge;
@@ -118,8 +135,8 @@ pub fn set_review_template(ctx: &but_ctx::Context, template_path: Option<String>
     let mut git_config = repo.git_settings()?;
 
     let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
-    let forge = &base_branch
-        .forge_repo_info
+    let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+    let forge = &forge_repo_info
         .as_ref()
         .context("No forge could be determined for this repository branch")?
         .forge;
@@ -147,11 +164,13 @@ pub fn list_reviews(
     ctx: &mut Context,
     cache_config: Option<but_forge::CacheConfig>,
 ) -> Result<Vec<but_forge::ForgeReview>> {
-    let (storage, base_branch, preferred_forge_user) = {
+    let (storage, forge_repo_info, preferred_forge_user) = {
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
             ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
@@ -160,12 +179,35 @@ pub fn list_reviews(
 
     but_forge::list_forge_reviews_with_cache(
         preferred_forge_user,
-        &base_branch
-            .forge_repo_info
-            .context("No forge could be determined for this repository branch")?,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
         &storage,
         db,
         cache_config,
+    )
+}
+
+#[but_api]
+#[instrument(err(Debug))]
+pub fn get_review(ctx: &mut Context, review_id: usize) -> Result<but_forge::ForgeReview> {
+    let (storage, forge_repo_info, preferred_forge_user) = {
+        let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url)
+            .context("No forge could be determined for this repository.")?;
+
+        (
+            but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
+            forge_repo_info,
+            ctx.legacy_project.preferred_forge_user.clone(),
+        )
+    };
+
+    let db = &mut *ctx.db.get_mut()?;
+    but_forge::get_forge_review(
+        &preferred_forge_user,
+        &forge_repo_info,
+        review_id,
+        db,
+        &storage,
     )
 }
 
@@ -176,19 +218,21 @@ pub fn list_ci_checks_and_update_cache(
     reference: String,
     cache_config: Option<but_forge::CacheConfig>,
 ) -> Result<Vec<but_forge::CiCheck>> {
-    let (storage, base_branch) = {
+    let (storage, forge_repo_info, preferred_forge_user) = {
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
+            ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
     let db = &mut *ctx.db.get_mut()?;
+
     but_forge::ci_checks_for_ref_with_cache(
-        ctx.legacy_project.preferred_forge_user.clone(),
-        &base_branch
-            .forge_repo_info
-            .context("No forge could be determined for this repository branch")?,
+        preferred_forge_user,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
         &storage,
         &reference,
         db,
@@ -202,20 +246,32 @@ pub async fn publish_review(
     ctx: ThreadSafeContext,
     params: but_forge::CreateForgeReviewParams,
 ) -> Result<but_forge::ForgeReview> {
-    let (storage, base_branch, preferred_forge_user) = {
+    let (storage, forge_repo_info, forge_push_repo_info, preferred_forge_user) = {
         let ctx = ctx.into_thread_local();
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url)
+            .context("No forge could be determined for this repository branch")?;
+        let forge_push_repo_info = if base_branch.remote_url != base_branch.push_remote_url {
+            let info = but_forge::derive_forge_repo_info(&base_branch.push_remote_url).context(
+                "Failed to derive forge repository information from the push remote URL.",
+            )?;
+            Some(info)
+        } else {
+            None
+        };
+
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
+            forge_push_repo_info,
             ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
+
     but_forge::create_forge_review(
         &preferred_forge_user,
-        &base_branch
-            .forge_repo_info
-            .context("No forge could be determined for this repository branch")?,
+        &forge_repo_info,
+        &forge_push_repo_info,
         &params,
         &storage,
     )
@@ -226,21 +282,82 @@ pub async fn publish_review(
 #[but_api]
 #[instrument(err(Debug))]
 pub async fn merge_review(ctx: ThreadSafeContext, review_id: usize) -> Result<()> {
-    let (storage, base_branch, preferred_forge_user) = {
+    let (storage, forge_repo_info, preferred_forge_user) = {
         let ctx = ctx.into_thread_local();
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
             ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
+
     but_forge::merge_review(
         &preferred_forge_user,
-        &base_branch
-            .forge_repo_info
-            .context("No forge could be determined for this repository branch")?,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
         review_id,
+        &storage,
+    )
+    .await
+}
+
+/// Enable or disable a review's auto-merge.
+#[but_api]
+#[instrument(err(Debug))]
+pub async fn set_review_auto_merge(
+    ctx: ThreadSafeContext,
+    review_id: usize,
+    enable: bool,
+) -> Result<()> {
+    let (storage, forge_repo_info, preferred_forge_user) = {
+        let ctx = ctx.into_thread_local();
+        let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+
+        (
+            but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
+            forge_repo_info,
+            ctx.legacy_project.preferred_forge_user.clone(),
+        )
+    };
+
+    but_forge::set_review_auto_merge_state(
+        &preferred_forge_user,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
+        review_id,
+        enable,
+        &storage,
+    )
+    .await
+}
+
+/// Set a review to draft or ready-for-review
+#[but_api]
+#[instrument(err(Debug))]
+pub async fn set_review_draftiness(
+    ctx: ThreadSafeContext,
+    review_id: usize,
+    draft: bool,
+) -> Result<()> {
+    let (storage, forge_repo_info, preferred_forge_user) = {
+        let ctx = ctx.into_thread_local();
+        let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+
+        (
+            but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
+            forge_repo_info,
+            ctx.legacy_project.preferred_forge_user.clone(),
+        )
+    };
+
+    but_forge::set_review_draftiness(
+        &preferred_forge_user,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
+        review_id,
+        draft,
         &storage,
     )
     .await
@@ -253,20 +370,21 @@ pub async fn update_review_footers(
     ctx: ThreadSafeContext,
     reviews: Vec<but_forge::ForgeReviewDescriptionUpdate>,
 ) -> Result<()> {
-    let (storage, base_branch, preferred_forge_user) = {
+    let (storage, forge_repo_info, preferred_forge_user) = {
         let ctx = ctx.into_thread_local();
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
+
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
             ctx.legacy_project.preferred_forge_user.clone(),
         )
     };
+
     but_forge::update_review_description_tables(
         &preferred_forge_user,
-        &base_branch
-            .forge_repo_info
-            .context("No forge could be determined for this repository branch")?,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
         &reviews,
         &storage,
     )
@@ -280,20 +398,20 @@ pub async fn list_reviews_for_branch(
     branch: String,
     filter: Option<but_forge::ForgeReviewFilter>,
 ) -> Result<Vec<but_forge::ForgeReview>> {
-    let (storage, base_branch, project) = {
+    let (storage, forge_repo_info, project) = {
         let ctx = ctx.into_thread_local();
         let base_branch = gitbutler_branch_actions::base::get_base_branch_data(&ctx)?;
+        let forge_repo_info = but_forge::derive_forge_repo_info(&base_branch.remote_url);
         (
             but_forge_storage::Controller::from_path(but_path::app_data_dir()?),
-            base_branch,
+            forge_repo_info,
             ctx.legacy_project.clone(),
         )
     };
+
     but_forge::list_forge_reviews_for_branch(
         project.preferred_forge_user,
-        &base_branch
-            .forge_repo_info
-            .context("No forge could be determined for this repository branch")?,
+        &forge_repo_info.context("No forge could be determined for this repository branch")?,
         &branch,
         &storage,
         filter,

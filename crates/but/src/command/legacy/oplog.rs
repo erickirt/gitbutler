@@ -75,6 +75,7 @@ pub(crate) fn show_oplog(
                     OperationKind::CreateBranch => "BRANCH",
                     OperationKind::AmendCommit => "AMEND",
                     OperationKind::Absorb => "ABSORB",
+                    OperationKind::AutoCommit => "AUTO_COMMIT",
                     OperationKind::UndoCommit => "UNDO",
                     OperationKind::SquashCommit => "SQUASH",
                     OperationKind::UpdateCommitMessage => "REWORD",
@@ -163,7 +164,8 @@ pub(crate) fn show_oplog(
 fn snapshot_time_string(snapshot: &Snapshot) -> String {
     let time = snapshot.created_at.to_gix();
     // TODO: use `format_or_unix`.
-    time.format(ISO8601_NO_TZ).unwrap_or_else(|_| time.seconds.to_string())
+    time.format(ISO8601_NO_TZ)
+        .unwrap_or_else(|_| time.seconds.to_string())
 }
 
 pub(crate) fn restore_to_oplog(
@@ -188,7 +190,12 @@ pub(crate) fn restore_to_oplog(
     if let Some(mut out) = out.prepare_for_terminal_input() {
         use std::fmt::Write;
         writeln!(out, "{}", "Restoring to oplog snapshot...".blue().bold())?;
-        writeln!(out, "  Target: {} ({})", target_operation.green(), target_time.dimmed())?;
+        writeln!(
+            out,
+            "  Target: {} ({})",
+            target_operation.green(),
+            target_time.dimmed()
+        )?;
         writeln!(out, "  Snapshot: {}", commit_sha_string[..7].cyan().bold())?;
 
         // Confirm the restoration (safety check)
@@ -196,7 +203,9 @@ pub(crate) fn restore_to_oplog(
             writeln!(
                 out,
                 "\n{}",
-                "⚠️  This will overwrite your current workspace state.".yellow().bold()
+                "⚠️  This will overwrite your current workspace state."
+                    .yellow()
+                    .bold()
             )?;
             if out.confirm("Continue with restore?", ConfirmDefault::No)? == Confirm::No {
                 return Ok(());
@@ -208,7 +217,11 @@ pub(crate) fn restore_to_oplog(
     but_api::legacy::oplog::restore_snapshot(ctx, commit_id)?;
 
     if let Some(out) = out.for_human() {
-        writeln!(out, "\n{} Restore completed successfully!", "✓".green().bold(),)?;
+        writeln!(
+            out,
+            "\n{} Restore completed successfully!",
+            "✓".green().bold(),
+        )?;
 
         writeln!(
             out,
@@ -220,7 +233,10 @@ pub(crate) fn restore_to_oplog(
     Ok(())
 }
 
-pub(crate) fn undo_last_operation(ctx: &mut but_ctx::Context, out: &mut OutputChannel) -> anyhow::Result<()> {
+pub(crate) fn undo_last_operation(
+    ctx: &mut but_ctx::Context,
+    out: &mut OutputChannel,
+) -> anyhow::Result<()> {
     // Get the last two snapshots - restore to the second one back
     let snapshots = but_api::legacy::oplog::list_snapshots(ctx, 2, None, None, None)?;
 

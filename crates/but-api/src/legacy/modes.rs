@@ -44,7 +44,11 @@ pub struct HeadSha {
 pub fn head_sha(ctx: &but_ctx::Context) -> Result<HeadSha, Error> {
     let repo = ctx.repo.get()?;
     let mut head_ref = repo.head().map_err(anyhow::Error::from)?;
-    let head_sha = head_ref.peel_to_commit().map_err(anyhow::Error::from)?.id.to_string();
+    let head_sha = head_ref
+        .peel_to_commit()
+        .map_err(anyhow::Error::from)?
+        .id
+        .to_string();
     Ok(HeadSha { head_sha })
 }
 
