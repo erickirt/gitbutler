@@ -1,4 +1,1 @@
-<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M14.75 3V13H1.25V3H14.75Z" stroke="currentColor" stroke-width="1.5" />
-  <path d="M10.25 13V3M5.75 13V3" stroke="currentColor" stroke-width="1.5" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" width="100%" height="100%"><path stroke="currentColor" stroke-width="1.5" d="M14.75 3v10H1.25V3zm-4.5 10V3m-4.5 10V3"/></svg>

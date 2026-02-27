@@ -1,4 +1,1 @@
-<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M12.8945 8.72949L7.68555 13.9395L2.06055 8.31445L7.26953 3.10449L13.207 2.79199L12.8945 8.72949Z" stroke="currentColor" stroke-width="1.5"/>
-<circle cx="1.48543" cy="1.48543" r="1.48543" transform="matrix(-0.707107 -0.707107 -0.707107 0.707107 11.2014 7.10071)" fill="currentColor"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" width="100%" height="100%"><path stroke="currentColor" stroke-width="1.5" d="m12.895 8.73-5.21 5.21-5.624-5.626 5.209-5.21 5.937-.312z"/><circle cx="1.485" cy="1.485" r="1.485" fill="currentColor" transform="scale(-1 1)rotate(-45 2.97 17.07)"/></svg>

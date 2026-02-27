@@ -1,6 +1,1 @@
-<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M2 11L8 13L14 11" stroke="currentColor" stroke-width="1.5"/>
-<circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/>
-<path d="M11 6H15" stroke="currentColor" stroke-width="1.5"/>
-<path d="M1 6H5" stroke="currentColor" stroke-width="1.5"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" width="100%" height="100%"><path stroke="currentColor" stroke-width="1.5" d="m2 11 6 2 6-2"/><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path stroke="currentColor" stroke-width="1.5" d="M11 6h4M1 6h4"/></svg>

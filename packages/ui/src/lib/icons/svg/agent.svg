@@ -1,6 +1,1 @@
-<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M11.75 2.25V7.49512L12.0332 7.7207L14.75 9.87793V13.75H1.25V2.25H11.75Z" stroke="currentColor" stroke-width="1.5"/>
-<path d="M4 9.7121C5.53557 10.9876 7.32669 11.102 9 9.7121" stroke="currentColor" stroke-width="1.5"/>
-<rect x="3.70001" y="5" width="2" height="3" rx="1" fill="currentColor"/>
-<rect x="7.20001" y="5" width="2" height="3" rx="1" fill="currentColor"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" width="100%" height="100%"><path stroke="currentColor" stroke-width="1.5" d="M11.75 2.25v5.245l.283.226 2.717 2.157v3.872H1.25V2.25z"/><path stroke="currentColor" stroke-width="1.5" d="M4 9.712c1.536 1.276 3.327 1.39 5 0"/><rect width="2" height="3" x="3.7" y="5" fill="currentColor" rx="1"/><rect width="2" height="3" x="7.2" y="5" fill="currentColor" rx="1"/></svg>

@@ -1,7 +1,1 @@
-<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M1 3V13.0909H5.8125L8 14L10.1875 13.0909H15V3H10.1875L8 4L5.8125 3H1Z"
-    stroke="currentColor" stroke-width="1.5" />
-  <path d="M8 4V14" stroke="currentColor" stroke-width="1.5" />
-  <path d="M10 6.5H13" stroke="currentColor" stroke-width="1.5" />
-  <path d="M10 9H13" stroke="currentColor" stroke-width="1.5" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" width="100%" height="100%"><path stroke="currentColor" stroke-width="1.5" d="M1 3v10.09h4.813L8 14l2.188-.91H15V3h-4.812L8 4 5.813 3zm7 1v10m2-7.5h3M10 9h3"/></svg>

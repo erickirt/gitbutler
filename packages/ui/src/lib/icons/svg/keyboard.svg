@@ -1,13 +1,1 @@
-<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M14.75 2.75V13.25H1.25V2.75H14.75Z" stroke="currentColor" stroke-width="1.5"/>
-<rect x="3.5" y="5" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="4.78577" y="7.25" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="3.5" y="9.5" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="5.5" y="9.5" width="5" height="1.13" fill="currentColor"/>
-<rect x="6.07141" y="5" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="7.35718" y="7.25" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="8.64288" y="5" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="9.92859" y="7.25" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="11.2143" y="9.5" width="1.28572" height="1.125" fill="currentColor"/>
-<rect x="11.2143" y="5" width="1.28572" height="1.125" fill="currentColor"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" width="100%" height="100%"><path stroke="currentColor" stroke-width="1.5" d="M14.75 2.75v10.5H1.25V2.75z"/><path fill="currentColor" d="M3.5 5h1.286v1.125H3.5zm1.286 2.25h1.286v1.125H4.786zM3.5 9.5h1.286v1.125H3.5zm2 0h5v1.13h-5zM6.071 5h1.286v1.125H6.071zm1.286 2.25h1.286v1.125H7.357zM8.643 5h1.286v1.125H8.643zm1.286 2.25h1.286v1.125H9.929zm1.285 2.25H12.5v1.125h-1.286zm0-4.5H12.5v1.125h-1.286z"/></svg>
