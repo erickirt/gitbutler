@@ -57,7 +57,7 @@
 			{/if}
 			{#if icon}
 				<i class="badge__icon">
-					<NewIcon name={icon} />
+					<NewIcon name={icon} size={11} />
 				</i>
 			{/if}
 		</div>
@@ -138,12 +138,12 @@
 		/* SIZE */
 		&.icon-size {
 			padding: 3px 6px;
-			gap: 2px;
+			gap: 3px;
 		}
 
 		&.tag-size {
 			height: var(--size-tag);
-			padding: 0 8px;
+			padding: 3px 8px;
 			gap: 3px;
 		}
 
