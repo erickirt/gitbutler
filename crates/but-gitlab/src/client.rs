@@ -108,7 +108,7 @@ impl GitLabClient {
         let response = self
             .client
             .get(&url)
-            .query(&[("state", "opened"), ("sort", "created_at")])
+            .query(&[("state", "opened"), ("order_by", "created_at")])
             .send()
             .await?;
 
