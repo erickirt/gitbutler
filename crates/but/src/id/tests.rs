@@ -1058,6 +1058,68 @@ fn colon_uncommitted_filename() -> anyhow::Result<()> {
 }
 
 #[test]
+fn uncommitted_path() -> anyhow::Result<()> {
+    let stacks = vec![stack([segment("foo", [id(1)], None, [])])];
+    let hunk_assignments = vec![
+        hunk_assignment("prefixx", None),
+        hunk_assignment("prefix/a", None),
+        hunk_assignment("prefix/b", None),
+    ];
+    let id_map = IdMap::new(stacks, hunk_assignments)?;
+    let changed_paths_fn = |commit_id: gix::ObjectId,
+                            parent_id: Option<gix::ObjectId>|
+     -> anyhow::Result<Vec<but_core::TreeChange>> {
+        bail!("unexpected IDs {commit_id} {parent_id:?}");
+    };
+
+    // Returns one ID with all hunk assignments
+    insta::assert_debug_snapshot!(id_map.parse("prefix/", Box::new(changed_paths_fn))?, @r#"
+    [
+        PathPrefix {
+            id: "prefix/",
+            hunk_assignments: NonEmpty {
+                head: (
+                    "l0",
+                    HunkAssignment {
+                        id: None,
+                        hunk_header: None,
+                        path: "",
+                        path_bytes: "prefix/a",
+                        stack_id: None,
+                        hunk_locks: None,
+                        line_nums_added: None,
+                        line_nums_removed: None,
+                        diff: None,
+                    },
+                ),
+                tail: [
+                    (
+                        "k0",
+                        HunkAssignment {
+                            id: None,
+                            hunk_header: None,
+                            path: "",
+                            path_bytes: "prefix/b",
+                            stack_id: None,
+                            hunk_locks: None,
+                            line_nums_added: None,
+                            line_nums_removed: None,
+                            diff: None,
+                        },
+                    ),
+                ],
+            },
+        },
+    ]
+    "#);
+
+    // If nothing matches, returns no ID
+    insta::assert_debug_snapshot!(id_map.parse("doesnotmatch/", Box::new(changed_paths_fn))?, @"[]");
+
+    Ok(())
+}
+
+#[test]
 fn committed_files_are_deduplicated_by_commit_oid_path() -> anyhow::Result<()> {
     let stacks = vec![stack([segment("branch", [id(2)], Some(id(1)), [])])];
     let id_map = IdMap::new(stacks, Vec::new())?;

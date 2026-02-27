@@ -27,6 +27,9 @@ pub fn handle_tui(ctx: &mut Context, target_str: Option<&str>) -> anyhow::Result
                 let filter = WorktreeFilter::Uncommitted(Box::new(uncommitted_id.clone()));
                 DiffFileEntry::from_worktree(&id_map, Some(&filter))
             }
+            CliId::PathPrefix {
+                hunk_assignments, ..
+            } => DiffFileEntry::from_hunk_assignments(&hunk_assignments),
             CliId::Unassigned { .. } => {
                 DiffFileEntry::from_worktree(&id_map, Some(&WorktreeFilter::Unassigned))
             }
@@ -67,6 +70,9 @@ pub fn handle(
 
         match id {
             CliId::Uncommitted(id) => show::worktree(id_map, out, Some(Filter::Uncommitted(id))),
+            CliId::PathPrefix {
+                hunk_assignments, ..
+            } => show::hunk_assignments(&hunk_assignments, out),
             CliId::Unassigned { .. } => show::worktree(id_map, out, Some(Filter::Unassigned)),
             CliId::CommittedFile {
                 commit_id, path, ..

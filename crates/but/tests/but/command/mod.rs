@@ -10,6 +10,8 @@ mod claude;
 mod commit;
 #[cfg(feature = "legacy")]
 mod cursor;
+#[cfg(feature = "legacy")]
+mod diff;
 mod format;
 mod gui;
 mod help;
