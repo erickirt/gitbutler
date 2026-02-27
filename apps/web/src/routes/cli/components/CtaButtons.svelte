@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getOS } from "$lib/utils/getOS";
+	import { fetchAndProcessReleases, findBuild } from "$lib/utils/releaseUtils";
 	import { onMount } from "svelte";
 
 	interface Props {
@@ -10,9 +11,21 @@
 
 	let copied = $state(false);
 	let isLinux = $state(false);
+	let cliBinaryUrl = $state<string | undefined>(undefined);
 
-	onMount(() => {
+	onMount(async () => {
 		isLinux = getOS() === "Linux";
+		if (isLinux) {
+			try {
+				const releases = await fetchAndProcessReleases(1, "release");
+				if (releases[0]) {
+					const build = findBuild(releases[0].builds, "linux");
+					cliBinaryUrl = build?.url;
+				}
+			} catch {
+				// silently fail — link stays hidden
+			}
+		}
 	});
 
 	function handleCopy() {
@@ -28,12 +41,12 @@
 	<button type="button" class="copy-button" class:copied onclick={handleCopy}>
 		<h3>Get the But CLI</h3>
 
-		{#if isLinux}
+		{#if isLinux && cliBinaryUrl}
 			<code class="subtitle-text">curl -fsSL https://gitbutler.com/install.sh | sh</code>
 			<code class="subtitle-text-pop"
 				>or <a
 					class="subtitle-link"
-					href="#"
+					href={cliBinaryUrl}
 					onclick={(e) => e.stopPropagation()}
 					onmousedown={(e) => e.stopPropagation()}>Download the binary</a
 				>

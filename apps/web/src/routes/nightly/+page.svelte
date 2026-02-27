@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Footer from "$lib/components/marketing/Footer.svelte";
 	import Header from "$lib/components/marketing/Header.svelte";
+	import ReleaseDownloadLinks from "$lib/components/marketing/ReleaseDownloadLinks.svelte";
 	import { Icon } from "@gitbutler/ui";
 	import type { Release } from "$lib/types/releases";
 	import type { LatestReleaseBuilds } from "$lib/utils/releaseUtils";
@@ -145,16 +146,22 @@
 							></span
 						>
 
-						<div class="download-card-cli-link">
-							<svg width="20" height="18" viewBox="0 0 20 18" xmlns="http://www.w3.org/2000/svg">
-								<path
-									opacity="0.5"
-									fill="currentColor"
-									d="M16 0C18.2091 0 20 1.79086 20 4V14C20 16.2091 18.2091 18 16 18H4L3.79395 17.9951C1.68056 17.8879 0 16.14 0 14V4C0 1.79086 1.79086 8.45489e-08 4 0H16ZM4 1.5C2.61929 1.5 1.5 2.61929 1.5 4V14C1.5 15.3807 2.61929 16.5 4 16.5H16C17.3807 16.5 18.5 15.3807 18.5 14V4C18.5 2.61929 17.3807 1.5 16 1.5H4ZM15.3359 14.0156H10.0029V12.5156H15.3359V14.0156ZM10.4756 8.34961L11.1914 8.93164L10.4756 9.51367L5.1416 13.8477L4.19629 12.6836L8.8125 8.93164L4.19629 5.18066L5.1416 4.0166L10.4756 8.34961Z"
-								/>
-							</svg>
-							<a href="/cli">Download CLI binary</a>
-						</div>
+						{#if linuxArch === "x86-64" ? latestNightlyBuilds.linux_cli_x86_64?.url : latestNightlyBuilds.linux_cli_aarch64?.url}
+							<div class="download-card-cli-link">
+								<svg width="20" height="18" viewBox="0 0 20 18" xmlns="http://www.w3.org/2000/svg">
+									<path
+										opacity="0.5"
+										fill="currentColor"
+										d="M16 0C18.2091 0 20 1.79086 20 4V14C20 16.2091 18.2091 18 16 18H4L3.79395 17.9951C1.68056 17.8879 0 16.14 0 14V4C0 1.79086 1.79086 8.45489e-08 4 0H16ZM4 1.5C2.61929 1.5 1.5 2.61929 1.5 4V14C1.5 15.3807 2.61929 16.5 4 16.5H16C17.3807 16.5 18.5 15.3807 18.5 14V4C18.5 2.61929 17.3807 1.5 16 1.5H4ZM15.3359 14.0156H10.0029V12.5156H15.3359V14.0156ZM10.4756 8.34961L11.1914 8.93164L10.4756 9.51367L5.1416 13.8477L4.19629 12.6836L8.8125 8.93164L4.19629 5.18066L5.1416 4.0166L10.4756 8.34961Z"
+									/>
+								</svg>
+								<a
+									href={linuxArch === "x86-64"
+										? (latestNightlyBuilds.linux_cli_x86_64?.url ?? "")
+										: (latestNightlyBuilds.linux_cli_aarch64?.url ?? "")}>Download CLI binary</a
+								>
+							</div>
+						{/if}
 					</div>
 				</div>
 
@@ -551,20 +558,6 @@
 			color: var(--clr-theme-pop-element);
 			text-decoration: underline wavy;
 			text-decoration-color: var(--clr-theme-pop-element);
-		}
-	}
-
-	.release-row__links {
-		display: flex;
-		flex-wrap: wrap;
-		padding: 24px;
-		gap: 18px 20px;
-		background-image: radial-gradient(var(--clr-border-2) 1px, transparent 1px);
-		background-size: 6px 6px;
-		font-size: 13px;
-
-		& .download-link {
-			background-color: var(--clr-bg-2);
 		}
 	}
 
