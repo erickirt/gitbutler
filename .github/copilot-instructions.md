@@ -135,7 +135,7 @@ pnpm begood
 **Prettier Config**:
 
 - Tabs for indentation
-- Single quotes
+- Double quotes
 - No trailing commas
 - 100 character line width
 
