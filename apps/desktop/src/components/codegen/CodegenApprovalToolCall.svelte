@@ -28,6 +28,7 @@
 	let denyDropdownButton = $state<ReturnType<typeof DropdownButton>>();
 	let wildcardButton = $state<HTMLElement>();
 	let wildcardContextMenu = $state<ReturnType<typeof ContextMenu>>();
+	let wildcardMenuOpen = $state(false);
 
 	type AllowDecision = "allowOnce" | "allowSession" | "allowProject" | "allowAlways";
 	type DenyDecision = "denyOnce" | "denySession" | "denyProject" | "denyAlways";
@@ -115,7 +116,8 @@
 			<Button
 				bind:el={wildcardButton}
 				kind="outline"
-				icon="chevron-select"
+				isDropdown
+				dropdownOpen={wildcardMenuOpen}
 				shrinkable
 				onclick={() => {
 					wildcardContextMenu?.toggle();
@@ -125,7 +127,11 @@
 					"Select scope"}
 			</Button>
 
-			<ContextMenu bind:this={wildcardContextMenu} leftClickTrigger={wildcardButton}>
+			<ContextMenu
+				bind:this={wildcardContextMenu}
+				leftClickTrigger={wildcardButton}
+				ontoggle={(isOpen) => (wildcardMenuOpen = isOpen)}
+			>
 				<ContextMenuSection>
 					{#each wildcardSelector.options as option}
 						<ContextMenuItem

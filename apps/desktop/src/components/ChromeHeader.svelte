@@ -94,6 +94,7 @@
 	);
 
 	let newProjectLoading = $state(false);
+	let projectSelectorOpen = $state(false);
 
 	const unreadCount = $derived(ircService.unreadCount());
 	const isNotificationsUnread = $derived(unreadCount.current > 0);
@@ -160,6 +161,7 @@
 						goto(projectPath(value));
 					}
 				}}
+				ontoggle={(isOpen) => (projectSelectorOpen = isOpen)}
 				popupAlign="center"
 				customWidth={280}
 			>
@@ -169,7 +171,8 @@
 						reversedDirection
 						width="auto"
 						kind="outline"
-						icon="chevron-select"
+						isDropdown
+						dropdownOpen={projectSelectorOpen}
 						class="project-selector-btn"
 					>
 						{#snippet custom()}

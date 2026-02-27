@@ -27,6 +27,8 @@
 	const { branchUuid, changeId, patchCommit, commitPageHeaderHeight }: Props = $props();
 
 	let isInterdiffBarVisible = $state(false);
+	let beforeSelectorOpen = $state(false);
+	let afterSelectorOpen = $state(false);
 
 	const allOptions: readonly SelectItemType<string>[] = $derived.by(() => {
 		const out = [{ value: "-1", label: "Base" }];
@@ -115,11 +117,12 @@
 					onselect={(value) => {
 						setBeforeVersion(parseInt(value));
 					}}
+					ontoggle={(isOpen) => (beforeSelectorOpen = isOpen)}
 					autoWidth
 					popupAlign="right"
 				>
 					{#snippet customSelectButton()}
-						<Button kind="outline" icon="chevron-select" size="tag">
+						<Button kind="outline" isDropdown dropdownOpen={beforeSelectorOpen} size="tag">
 							{beforeOptions.find((option) => option.value === selectedBefore.toString())?.label}
 						</Button>
 					{/snippet}
@@ -144,11 +147,12 @@
 					onselect={(value) => {
 						setAfterVersion(patchCommit.version, parseInt(value));
 					}}
+					ontoggle={(isOpen) => (afterSelectorOpen = isOpen)}
 					autoWidth
 					popupAlign="right"
 				>
 					{#snippet customSelectButton()}
-						<Button kind="outline" icon="chevron-select" size="tag">
+						<Button kind="outline" isDropdown dropdownOpen={afterSelectorOpen} size="tag">
 							{afterOptions.find((option) => option.value === selectedAfter.toString())?.label}
 						</Button>
 					{/snippet}

@@ -90,7 +90,8 @@
 			bind:el={iconEl}
 			{style}
 			{kind}
-			icon={visible ? "chevron-up" : "chevron-down"}
+			isDropdown
+			dropdownOpen={visible}
 			{loading}
 			disabled={disabled || loading}
 			dropdownChild
