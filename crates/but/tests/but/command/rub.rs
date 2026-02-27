@@ -100,6 +100,25 @@ Staged all hunks in a.txt in the unassigned area → [A].
 }
 
 #[test]
+fn uncommitted_file_by_path_prefix_to_branch() -> anyhow::Result<()> {
+    let env = Sandbox::init_scenario_with_target_and_default_settings("two-stacks")?;
+
+    env.setup_metadata(&["A", "B"])?;
+    commit_file_with_worktree_changes_as_two_hunks(&env, "A", "path/a.txt");
+
+    env.but("rub path/ A")
+        .assert()
+        .success()
+        .stdout_eq(snapbox::str![[r#"
+Staged hunk(s) → [A].
+
+"#]])
+        .stderr_eq(str![""]);
+
+    Ok(())
+}
+
+#[test]
 fn committed_file_to_unassigned() -> anyhow::Result<()> {
     let env = Sandbox::init_scenario_with_target_and_default_settings("two-stacks")?;
 
