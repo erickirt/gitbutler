@@ -1,5 +1,6 @@
 /CODEOWNERS @krlvi @schacon
 /Cargo.toml @krlvi @Byron @Caleb-T-Owens
+/.github @krlvi @schacon @Byron @Caleb-T-Owens @estib-vega @mtsgrd @slarse
 /crates/but-core @krlvi @Byron @Caleb-T-Owens
 /crates/but-ctx @krlvi @Byron @Caleb-T-Owens
 /crates/but-db @krlvi @Byron @Caleb-T-Owens
