@@ -604,9 +604,7 @@
 	});
 
 	$effect(() => {
-		if (visibleRange.end !== 0) {
-			onVisibleChange?.(visibleRange);
-		}
+		onVisibleChange?.(visibleRange);
 	});
 
 	onDestroy(() => {
