@@ -53,7 +53,8 @@ impl Subcommands {
         OneshotMetricsContext::new_if_enabled(settings, cmd)
     }
 
-    fn to_metrics_command(&self) -> CommandName {
+    /// Turn `self` into a `CommandName` that serves as metric identifier.
+    pub(crate) fn to_metrics_command(&self) -> CommandName {
         use CommandName::*;
 
         use crate::args::{alias as alias_args, branch, claude, cursor, forge, skill, worktree};

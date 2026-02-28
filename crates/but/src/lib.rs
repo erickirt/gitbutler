@@ -120,7 +120,9 @@ pub async fn handle_args(args: impl Iterator<Item = OsString>) -> Result<()> {
     if args.trace > 0 {
         trace::init(args.trace)?;
     }
-    let _span = tracing::info_span!("CLI").entered();
+    let _span =
+        tracing::info_span!("CLI", cmd = ?args.cmd.as_ref().map(|cmd| cmd.to_metrics_command()))
+            .entered();
 
     let namespace = option_env!("IDENTIFIER").unwrap_or("com.gitbutler.app");
     but_secret::secret::set_application_namespace(namespace);
