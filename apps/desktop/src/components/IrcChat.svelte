@@ -24,7 +24,6 @@
 						{#snippet headerActions()}
 							<Button
 								icon="arrow-up-righ"
-								size="icon"
 								kind="ghost"
 								onclick={() => {
 									ircService.setPopup(currentName, true);

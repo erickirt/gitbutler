@@ -8,8 +8,8 @@
 </script>
 
 <script lang="ts">
-	import InfoButton from "$components/InfoButton.svelte";
 	import Icon from "$components/Icon.svelte";
+	import InfoButton from "$components/InfoButton.svelte";
 	import {
 		CountColumnSide,
 		isDeltaLine,

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
-	import { type ModalType } from "$components/Modal.svelte";
 	import Icon from "$components/Icon.svelte";
+	import { type ModalType } from "$components/Modal.svelte";
 	import { type Snippet } from "svelte";
 
 	interface Props {

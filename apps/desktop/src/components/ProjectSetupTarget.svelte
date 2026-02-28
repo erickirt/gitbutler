@@ -9,16 +9,7 @@
 	import { unique } from "$lib/utils/array";
 	import { getBestBranch, getBestRemote, getBranchRemoteFromRef } from "$lib/utils/branch";
 	import { inject } from "@gitbutler/core/context";
-	import {
-		Button,
-		CardGroup,
-		Icon,
-		Link,
-		Select,
-		SelectItem,
-		TestId,
-		Toggle,
-	} from "@gitbutler/ui";
+	import { Button, CardGroup, Icon, Link, Select, SelectItem, TestId, Toggle } from "@gitbutler/ui";
 	import { slide } from "svelte/transition";
 	import type { RemoteBranchInfo } from "$lib/baseBranch/baseBranch";
 

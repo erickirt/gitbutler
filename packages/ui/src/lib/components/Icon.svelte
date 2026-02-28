@@ -16,6 +16,7 @@
 	}
 
 	export const allIconNames = iconNames;
+	// eslint-disable-next-line no-import-assign
 	export type { IconName };
 </script>
 

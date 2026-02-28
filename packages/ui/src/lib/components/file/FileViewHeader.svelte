@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
 	import Button from "$components/Button.svelte";
-	import LineStats from "$components/LineStats.svelte";
 	import Icon from "$components/Icon.svelte";
+	import LineStats from "$components/LineStats.svelte";
 	import ExecutableLabel from "$components/file/ExecutableLabel.svelte";
 	import FileName from "$components/file/FileName.svelte";
 	import FileStatusBadge from "$components/file/FileStatusBadge.svelte";

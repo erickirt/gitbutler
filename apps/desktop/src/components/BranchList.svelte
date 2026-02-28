@@ -32,7 +32,6 @@
 	import { ensureValue } from "$lib/utils/validation";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal, TestId } from "@gitbutler/ui";
-	import { getForgeLogo } from "@gitbutler/ui/utils/getForgeLogo";
 	import { QueryStatus } from "@reduxjs/toolkit/query";
 	import { tick } from "svelte";
 	import type { CommitStatusType } from "$lib/commits/commit";

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
-	import { type IconName } from "$lib/icons/names";
 	import { focusable } from "$lib/focus/focusable";
+	import { type IconName } from "$lib/icons/names";
 	import type { Snippet } from "svelte";
 
 	interface Props {

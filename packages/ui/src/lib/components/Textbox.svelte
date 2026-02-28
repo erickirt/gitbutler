@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
-	import { type IconName } from "$lib/icons/names";
 	import { focusable } from "$lib/focus/focusable";
+	import { type IconName } from "$lib/icons/names";
 	import { clickOutside } from "$lib/utils/clickOutside";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { onMount, tick } from "svelte";

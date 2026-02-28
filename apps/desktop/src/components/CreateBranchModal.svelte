@@ -248,8 +248,7 @@
 					Creates a branch that depends on a selected stack.
 					<br />
 					A stack's top branches also have a
-					<i class="create-dependent-icon"><Icon name="stack-plus" /></i> icon to create dependent
-					branches.
+					<i class="create-dependent-icon"><Icon name="stack-plus" /></i> icon to create dependent branches.
 				{/if}
 			</p>
 		</div>
