@@ -141,7 +141,7 @@
 
 		<CommitLine
 			commitStatus={args.type}
-			diverged={args.type === "LocalAndRemote" ? args.diverged ?? false : false}
+			diverged={args.type === "LocalAndRemote" ? (args.diverged ?? false) : false}
 			{tooltip}
 			{lastCommit}
 			{lastBranch}

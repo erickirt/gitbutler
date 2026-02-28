@@ -22,8 +22,8 @@ export type ContentBlock =
 
 export type Message = {
 	createdAt: string;
-} & /* This is strictly only things that the real fleshy human has said */
-(| {
+} /* This is strictly only things that the real fleshy human has said */ & (
+	| {
 			source: "user";
 			message: string;
 			attachments?: PromptAttachment[];

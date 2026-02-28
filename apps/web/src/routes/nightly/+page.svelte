@@ -127,14 +127,14 @@
 							<a
 								class="download-card-title download-card-link"
 								href={linuxArch === "x86-64"
-									? latestNightlyBuilds.linux_deb_x86_64?.url ?? ""
-									: latestNightlyBuilds.linux_deb_aarch64?.url ?? ""}>.DEB</a
+									? (latestNightlyBuilds.linux_deb_x86_64?.url ?? "")
+									: (latestNightlyBuilds.linux_deb_aarch64?.url ?? "")}>.DEB</a
 							>
 							<a
 								class="download-card-title download-card-link"
 								href={linuxArch === "x86-64"
-									? latestNightlyBuilds.linux_rpm_x86_64?.url ?? ""
-									: latestNightlyBuilds.linux_rpm_aarch64?.url ?? ""}>.RPM</a
+									? (latestNightlyBuilds.linux_rpm_x86_64?.url ?? "")
+									: (latestNightlyBuilds.linux_rpm_aarch64?.url ?? "")}>.RPM</a
 							>
 						</div>
 
@@ -157,8 +157,8 @@
 								</svg>
 								<a
 									href={linuxArch === "x86-64"
-										? latestNightlyBuilds.linux_cli_x86_64?.url ?? ""
-										: latestNightlyBuilds.linux_cli_aarch64?.url ?? ""}>Download CLI binary</a
+										? (latestNightlyBuilds.linux_cli_x86_64?.url ?? "")
+										: (latestNightlyBuilds.linux_cli_aarch64?.url ?? "")}>Download CLI binary</a
 								>
 							</div>
 						{/if}

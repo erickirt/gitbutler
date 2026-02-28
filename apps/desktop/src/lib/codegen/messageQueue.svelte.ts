@@ -255,7 +255,7 @@ export class MessageSender {
 	}
 
 	get prompt() {
-		return this.selectedBranch.current ? this.laneState?.prompt.current ?? "" : "";
+		return this.selectedBranch.current ? (this.laneState?.prompt.current ?? "") : "";
 	}
 
 	setPrompt(prompt: string) {

@@ -299,8 +299,8 @@
 
 		{#snippet caption()}
 			{#if $appSettings?.ui.cliIsManagedByPackageManager}
-				The <code>but</code> CLI is managed by your package manager. Please use your package manager
-				to install, update, or remove it.
+				The <code>but</code> CLI is managed by your package manager. Please use your package manager to
+				install, update, or remove it.
 			{:else if platformName === "windows"}
 				On Windows, you can manually copy the executable (<code>`but`</code>) to a directory in your
 				PATH. Click "Show Command" for instructions.
