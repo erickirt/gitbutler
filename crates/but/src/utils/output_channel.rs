@@ -1,5 +1,6 @@
 use std::io::{IsTerminal, Write};
 
+use but_secret::Sensitive;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::{
@@ -284,7 +285,7 @@ impl std::fmt::Write for InputOutputChannel<'_> {
 
 impl InputOutputChannel<'_> {
     fn readline(&mut self, prompt: &str, echo: InputEcho) -> anyhow::Result<ReadlineInput> {
-        const PLACEHOLDER: &str = "•";
+        const PLACEHOLDER_FOR_SECRET: &str = "•";
         self.out.stdout.write_all(prompt.as_bytes())?;
         self.out.stdout.flush()?;
 
@@ -302,7 +303,9 @@ impl InputOutputChannel<'_> {
                                 self.out.stdout.flush()?;
                             }
                             InputEcho::Hidden => {
-                                self.out.stdout.write_all(PLACEHOLDER.as_bytes())?;
+                                self.out
+                                    .stdout
+                                    .write_all(PLACEHOLDER_FOR_SECRET.as_bytes())?;
                                 self.out.stdout.flush()?;
                             }
                         }
@@ -342,7 +345,8 @@ impl InputOutputChannel<'_> {
                                 self.out.stdout.flush()?;
                             }
                             InputEcho::Hidden => {
-                                let placeholders = PLACEHOLDER.repeat(text.chars().count());
+                                let placeholders =
+                                    PLACEHOLDER_FOR_SECRET.repeat(text.chars().count());
                                 self.out.stdout.write_all(placeholders.as_bytes())?;
                                 self.out.stdout.flush()?;
                             }
@@ -379,10 +383,13 @@ impl InputOutputChannel<'_> {
     /// input was empty.
     ///
     /// The entered text is masked in the terminal with placeholders.
-    pub fn prompt_secret(&mut self, prompt: impl AsRef<str>) -> anyhow::Result<Option<String>> {
+    pub fn prompt_secret(
+        &mut self,
+        prompt: impl AsRef<str>,
+    ) -> anyhow::Result<Option<Sensitive<String>>> {
         Ok(
             match self.readline(&format!("{}\n> ", prompt.as_ref()), InputEcho::Hidden)? {
-                ReadlineInput::Text(line) => Some(line),
+                ReadlineInput::Text(line) => Some(Sensitive(line)),
                 ReadlineInput::Empty | ReadlineInput::EndOfInput => None,
             },
         )
