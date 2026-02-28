@@ -4,8 +4,9 @@
 //! and ANSI-escape-aware so that colored strings are measured and truncated
 //! correctly.
 
+use std::borrow::Cow;
 use terminal_size::Width;
-use unicode_width::UnicodeWidthChar;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 /// Returns the current terminal width in columns, defaulting to 80
 /// when detection fails (e.g. when stdout is not a TTY).
@@ -22,13 +23,26 @@ pub fn terminal_width() -> usize {
 ///
 /// When truncation occurs an `…` character (1 column wide) is appended
 /// and the total result is guaranteed to be ≤ `max_width` columns.
-pub fn truncate_text(text: &str, max_width: usize) -> String {
+pub fn truncate_text<'a>(text: impl Into<Cow<'a, str>>, max_width: usize) -> Cow<'a, str> {
+    let text = text.into();
+
     if max_width == 0 {
-        return String::new();
+        return Cow::Borrowed("");
     }
 
+    let visible_width = strip_ansi_codes(text.as_ref()).width();
+    if visible_width <= max_width {
+        return text;
+    }
+
+    if max_width == 1 {
+        return Cow::Borrowed("…");
+    }
+
+    // We know truncation is needed; reserve one display column for ellipsis.
+    let target_width = max_width.saturating_sub(1);
     let mut width = 0;
-    let mut result = String::new();
+    let mut out = String::new();
     let mut in_ansi = false;
     let mut ansi_buffer = String::new();
 
@@ -40,66 +54,45 @@ pub fn truncate_text(text: &str, max_width: usize) -> String {
             continue;
         }
 
-        // Inside an escape sequence — keep buffering until the
-        // terminating 'm'.
+        // Inside an escape sequence — keep buffering until the terminating 'm'.
         if in_ansi {
             ansi_buffer.push(ch);
             if ch == 'm' {
                 // Flush the whole escape sequence into the result
                 // without counting toward display width.
-                result.push_str(&ansi_buffer);
-                ansi_buffer.clear();
+                out.extend(ansi_buffer.drain(..));
                 in_ansi = false;
             }
             continue;
         }
 
         let ch_width = ch.width().unwrap_or(0);
-        if width + ch_width > max_width {
-            // Text will be truncated – reserve 1 column for '…'.
-            // Walk back if needed so the ellipsis still fits.
-            while width >= max_width {
-                if let Some(last) = result.pop() {
-                    // If we popped an ANSI terminator we need to
-                    // discard the whole escape sequence we just
-                    // partially undid.  In practice this is unlikely
-                    // since escapes are zero-width, but be safe.
-                    if last == 'm' {
-                        // Pop back to the ESC that started this sequence.
-                        while let Some(c) = result.pop() {
-                            if c == '\x1b' {
-                                break;
-                            }
-                        }
-                        // The escape was zero-width, keep walking.
-                        continue;
-                    }
-                    width -= last.width().unwrap_or(0);
-                } else {
-                    break;
-                }
-            }
-            result.push('…');
-            return result;
+        if width + ch_width > target_width {
+            out.push('…');
+            return out.into();
         }
-        result.push(ch);
+        out.push(ch);
         width += ch_width;
     }
 
-    // No truncation needed.
-    result
+    out.into()
 }
 
 /// Remove all ANSI escape sequences from `s`, returning plaintext.
 ///
 /// Useful when you need to measure the *display* width of a string
 /// that may contain color / style codes.
-pub fn strip_ansi_codes(s: &str) -> String {
-    let mut result = String::new();
+pub fn strip_ansi_codes(s: &str) -> Cow<'_, str> {
+    let mut out = Cow::Borrowed(s);
+    let mut needs_mutation = false;
     let mut in_escape = false;
 
-    for ch in s.chars() {
+    for (idx, ch) in s.char_indices() {
         if ch == '\x1b' {
+            if !needs_mutation {
+                out.to_mut().truncate(idx);
+                needs_mutation = true;
+            }
             in_escape = true;
             continue;
         }
@@ -111,24 +104,19 @@ pub fn strip_ansi_codes(s: &str) -> String {
             continue;
         }
 
-        result.push(ch);
+        if needs_mutation {
+            out.to_mut().push(ch);
+        }
     }
 
-    result
+    out
 }
 
 #[cfg(test)]
-mod tests {
+mod truncate_text_tests {
     use unicode_width::UnicodeWidthStr;
 
-    use super::{strip_ansi_codes, truncate_text};
-
-    // ── Plain-text truncation ────────────────────────────────────
-
-    #[test]
-    fn short_text_is_not_truncated() {
-        assert_eq!(truncate_text("hello", 10), "hello");
-    }
+    use super::truncate_text;
 
     #[test]
     fn text_at_exact_limit_is_not_truncated() {
@@ -138,6 +126,16 @@ mod tests {
     #[test]
     fn text_exceeding_limit_is_truncated_with_ellipsis() {
         assert_eq!(truncate_text("hello world", 5), "hell…");
+    }
+
+    #[test]
+    fn truncation_does_not_drop_plain_text_when_boundary_ends_with_m() {
+        assert_eq!(truncate_text("lorem ipsum", 5), "lore…");
+    }
+
+    #[test]
+    fn max_width_of_two_keeps_one_character_plus_ellipsis() {
+        assert_eq!(truncate_text("hello", 2), "h…");
     }
 
     #[test]
@@ -156,26 +154,31 @@ mod tests {
     }
 
     #[test]
-    fn unicode_single_width_characters_are_handled() {
-        // ü is a single-width character (1 display column)
-        assert_eq!(truncate_text("über-cool", 5), "über…");
+    fn unicode_single_width_characters() {
+        assert_eq!(
+            truncate_text("über-cool", 5),
+            "über…",
+            "ü is a single-width character (1 display column"
+        );
     }
 
     #[test]
-    fn cjk_double_width_characters_are_handled() {
+    fn cjk_double_width_characters() {
         // Each CJK character occupies 2 display columns.
-        // 你(2) + 好(2) = 4 cols, + …(1) = 5 cols total.
-        assert_eq!(truncate_text("你好世界", 5), "你好…");
+        assert_eq!(
+            truncate_text("你好世界", 5),
+            "你好…",
+            "你(2) + 好(2) = 4 cols, + …(1) = 5 cols total."
+        );
         assert_eq!(truncate_text("你好世界", 5).width(), 5);
     }
 
     #[test]
-    fn cjk_truncation_does_not_exceed_max_width() {
+    fn cjk_does_not_exceed_max_width() {
         // With max_width 4, a second CJK char (2 cols) leaves no room
         // for the ellipsis alongside it, so only the first char + … fits.
-        // 你(2) + …(1) = 3 cols ≤ 4
         let result = truncate_text("你好世界", 4);
-        assert!(result.width() <= 4);
+        assert_eq!(result.width(), 3, "你(2) + …(1) = 3 cols ≤ 4");
         assert_eq!(result, "你…");
     }
 
@@ -184,51 +187,89 @@ mod tests {
         let msg = "this is a overly long commit message to demonstrate truncation";
         let result = truncate_text(msg, 60);
         assert!(result.ends_with('…'));
-        // For ASCII text, display width == char count
-        assert_eq!(result.width(), 60);
+        assert_eq!(
+            result.width(),
+            60,
+            "For ASCII text, display width == char count"
+        );
     }
 
     #[test]
-    fn emoji_characters_are_handled() {
+    fn emoji_characters() {
         // Many emoji are wide characters; ensure we respect their display width.
         let single = "🙂";
-        let single_width = UnicodeWidthStr::width(single);
+        let single_width = single.width();
         assert!(single_width >= 1);
         // A single emoji that fits within max_width should not be truncated.
         assert_eq!(truncate_text(single, single_width), single);
         // Repeated emoji should be truncated without exceeding max_width.
         let repeated = "🙂🙂🙂";
+        let result = truncate_text(repeated, single_width * 2 + 1);
+        assert_eq!(result, "🙂🙂…");
+
         let result = truncate_text(repeated, single_width * 2);
-        assert!(result.width() <= single_width * 2);
+        assert_eq!(
+            result, "🙂…",
+            "4 columns aren't enough, so we use less than the allowed width"
+        );
     }
 
     #[test]
     fn zero_width_combining_characters_are_handled() {
-        // "a" + COMBINING ACUTE ACCENT; display width should be 1.
         let text = "a\u{0301}";
-        assert_eq!(UnicodeWidthStr::width(text), 1);
-        // With max_width equal to the display width, no truncation should occur.
-        assert_eq!(truncate_text(text, 1), text);
+        assert_eq!(
+            text.width(),
+            1,
+            "'a' + COMBINING ACUTE ACCENT; display width should be 1."
+        );
+        assert_eq!(
+            truncate_text(text, 1),
+            text,
+            "With max_width equal to the display width, no truncation should occur."
+        );
     }
 
-    // ── ANSI-aware truncation ────────────────────────────────────
+    #[test]
+    fn ansi_codes_only_produce_no_visible_output_within_width() {
+        let just_color = "\x1b[31m\x1b[0m";
+        let max_width = 5;
+        assert!(
+            max_width < just_color.width(),
+            "Naive counting would want to truncate this string"
+        );
+        assert_eq!(
+            truncate_text(just_color, max_width),
+            just_color,
+            "nothing changes as non-printing characters don't participate"
+        );
+    }
 
     #[test]
     fn ansi_colored_text_is_truncated_without_counting_escapes() {
         // "\x1b[31m" = red, "\x1b[0m" = reset — both zero-width.
         let colored = "\x1b[31mhello world\x1b[0m";
         let result = truncate_text(colored, 5);
-        // The ANSI prefix should be preserved and the visible text
-        // truncated to 4 chars + ellipsis.
-        assert!(result.starts_with("\x1b[31m"));
-        let plain = strip_ansi_codes(&result);
-        assert_eq!(plain, "hell…");
+        assert_eq!(
+                result, "\x1b[31mhell…",
+                "The ANSI prefix should be preserved and the visible text truncated to 4 chars + ellipsis.
+                This also means we will remove relevant ansi codes."
+            );
     }
+}
+
+#[cfg(test)]
+mod strip_ansi_codes_tests {
+    use super::strip_ansi_codes;
 
     #[test]
-    fn ansi_codes_only_produce_no_visible_output_within_width() {
-        let just_color = "\x1b[31m\x1b[0m";
-        assert_eq!(truncate_text(just_color, 5), just_color);
+    fn broken_ansi_sequence_is_handled_without_panic() {
+        let broken = "hello world\x1b[31broken";
+        assert_eq!(
+            strip_ansi_codes(broken),
+            "hello world",
+            "Missing the terminating 'm' after the CSI sequence is fine,
+            but it hides everything after"
+        );
     }
 
     #[test]

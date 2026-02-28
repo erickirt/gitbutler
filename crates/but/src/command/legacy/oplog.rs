@@ -126,7 +126,7 @@ pub(crate) fn show_oplog(
                     details.title.clone()
                 };
 
-                let display_title = truncate_text(&display_title, 80);
+                let display_title = truncate_text(display_title, 80).into_owned();
 
                 (op_type, display_title)
             } else {

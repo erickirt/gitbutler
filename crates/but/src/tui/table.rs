@@ -196,7 +196,7 @@ fn format_cell(content: &str, width: usize, align: Alignment) -> String {
     let content_width = stripped.width();
 
     if content_width >= width {
-        return truncate_text(content, width);
+        return truncate_text(content, width).into_owned();
     }
 
     // Calculate padding
@@ -206,5 +206,3 @@ fn format_cell(content: &str, width: usize, align: Alignment) -> String {
         Alignment::Left => format!("{}{}", content, " ".repeat(padding_needed)),
     }
 }
-
-
