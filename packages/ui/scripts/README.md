@@ -29,11 +29,13 @@ const iconMapping: Record<string, string> = {
 ### What it does
 
 1. Searches for all occurrences of the old icon names in:
+
    - TypeScript/JavaScript/Svelte files in `apps/`, `packages/`, `crates/`, and `e2e/`
    - String literals and identifiers
    - Type unions and object properties
 
 2. Replaces them with the new icon names while preserving:
+
    - Quote styles (single/double)
    - Context and surrounding code
    - File integrity

@@ -383,8 +383,7 @@
 
 	/* Shared checkered background pattern */
 	.checkered-bg {
-		background-image:
-			linear-gradient(45deg, var(--clr-bg-3) 25%, transparent 25%),
+		background-image: linear-gradient(45deg, var(--clr-bg-3) 25%, transparent 25%),
 			linear-gradient(-45deg, var(--clr-bg-3) 25%, transparent 25%),
 			linear-gradient(45deg, transparent 75%, var(--clr-bg-3) 75%),
 			linear-gradient(-45deg, transparent 75%, var(--clr-bg-3) 75%);

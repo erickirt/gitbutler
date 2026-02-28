@@ -28,7 +28,7 @@
 	// Initialize expanded state from map, default to false (collapsed)
 	const initialExpanded =
 		toolCallKey && toolCallExpandedState
-			? (toolCallExpandedState.individual.get(toolCallKey) ?? false)
+			? toolCallExpandedState.individual.get(toolCallKey) ?? false
 			: false;
 
 	function handleToggle(newExpanded: boolean) {

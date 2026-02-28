@@ -85,8 +85,8 @@
 	let signingProgram = $derived(
 		gbConfig.response
 			? signingFormat === "openpgp"
-				? (gbConfig.response.gpgProgram ?? "")
-				: (gbConfig.response.gpgSshProgram ?? "")
+				? gbConfig.response.gpgProgram ?? ""
+				: gbConfig.response.gpgSshProgram ?? ""
 			: "",
 	);
 

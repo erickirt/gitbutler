@@ -139,11 +139,11 @@
 			}
 			if (Array.isArray(answer)) {
 				// Multi-select: replace '__other__' with the actual text
-				const resolvedAnswers = answer.map((a) => (a === "__other__" ? (otherText[key] ?? "") : a));
+				const resolvedAnswers = answer.map((a) => (a === "__other__" ? otherText[key] ?? "" : a));
 				answers[question.question] = resolvedAnswers.join(", ");
 			} else {
 				// Single-select: replace '__other__' with the actual text
-				answers[question.question] = answer === "__other__" ? (otherText[key] ?? "") : answer;
+				answers[question.question] = answer === "__other__" ? otherText[key] ?? "" : answer;
 			}
 		}
 		await onSubmitAnswers(answers);

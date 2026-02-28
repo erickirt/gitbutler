@@ -17,7 +17,7 @@
 				"chore/update-dependencies",
 				"feature/add-password-reset",
 				"hotfix/correct-typo-in-readme",
-			]
+			],
 		},
 	});
 </script>
