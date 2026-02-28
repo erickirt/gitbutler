@@ -1,15 +1,15 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { keysStringToArr } from "$lib/utils/hotkeys";
 	import { getContext } from "svelte";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	// Context key for submenu coordination
 	const SUBMENU_CONTEXT_KEY = "contextmenu-submenu-coordination";
 
 	interface Props {
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: IconName;
 		emoji?: string;
 		label: string;
 		disabled?: boolean;

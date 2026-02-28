@@ -90,11 +90,11 @@
 		<div class="drag-animation-wrapper" class:activated={$dropLabel !== undefined}>
 			{@render dropLabelSnippet({ label: $dropLabel, amount: childrenAmount })}
 			<div class="dragchip-ai-session-container">
-				<Icon name="ai-small" />
+				<Icon name="ai" />
 				{#if label}
 					<span class="text-12 text-semibold truncate dragchip-ai-session-label">{label}</span>
 				{/if}
-				<Icon name="draggable" />
+				<Icon name="drag-square" />
 			</div>
 		</div>
 	</div>

@@ -21,8 +21,8 @@
 		ContextMenuItem,
 		Modal,
 		Tooltip,
+		type IconName,
 	} from "@gitbutler/ui";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 	type Props = {
 		projectId: string;
@@ -46,17 +46,21 @@
 		});
 	}
 
-	function getFilterConfig(filter: RuleFilter) {
+	function getFilterConfig(filter: RuleFilter): {
+		icon: IconName | null;
+		label: string;
+		tooltip: string;
+	} {
 		switch (filter.type) {
 			case "pathMatchesRegex":
 				return {
-					icon: "folder" as keyof typeof iconsJson,
+					icon: "folder",
 					label: filter.subject,
 					tooltip: `Path: ${filter.subject}`,
 				};
 			case "contentMatchesRegex":
 				return {
-					icon: "text-width" as keyof typeof iconsJson,
+					icon: "text-contain",
 					label: filter.subject,
 					tooltip: `Containing text: ${filter.subject}`,
 				};
@@ -68,13 +72,13 @@
 				};
 			case "semanticType":
 				return {
-					icon: "tag" as keyof typeof iconsJson,
+					icon: "tag",
 					label: semanticTypeToString(filter.subject.type),
 					tooltip: `Semantic type: ${semanticTypeToString(filter.subject.type)}`,
 				};
 			case "claudeCodeSessionId":
 				return {
-					icon: "ai-outline" as keyof typeof iconsJson,
+					icon: "ai",
 					label: filter.subject,
 					tooltip: `Claude session: ${filter.subject}`,
 				};
@@ -84,15 +88,13 @@
 	type FilterConfig = ReturnType<typeof getFilterConfig>;
 </script>
 
-{#snippet stackPill(
-	icon: keyof typeof iconsJson,
-	label: string,
-	tooltip: string,
-	hasError?: boolean,
-)}
+{#snippet stackPill(icon: IconName, label: string, tooltip: string, hasError?: boolean)}
 	<Tooltip text={tooltip}>
 		<div class="target-pill" class:error={hasError}>
-			<Icon name={icon} color={hasError ? "danger" : "var(--clr-text-2)"} />
+			<Icon
+				name={icon}
+				color={hasError ? "var(--clr-theme-danger-element)" : "var(--clr-text-2)"}
+			/>
 			<span class="text-12 truncate">{label}</span>
 		</div>
 	</Tooltip>
@@ -106,9 +108,9 @@
 			{#snippet children(stack)}
 				{#if stack !== null}
 					{@const stackName = getStackName(stack)}
-					{@render stackPill("branch-remote", stackName, stackName)}
+					{@render stackPill("branch", stackName, stackName)}
 				{:else}
-					{@render stackPill("error-small", "branch missing", "Associated stack not found", true)}
+					{@render stackPill("danger", "branch missing", "Associated stack not found", true)}
 				{/if}
 			{/snippet}
 		</ReduxResult>
@@ -141,7 +143,7 @@
 	</Tooltip>
 {/snippet}
 
-{#snippet renderSessionPill(tooltip: string, icon: keyof typeof iconsJson, title: string)}
+{#snippet renderSessionPill(tooltip: string, icon: IconName, title: string)}
 	<Tooltip text={tooltip}>
 		<div class="ai-pill">
 			<Icon name={icon} color="var(--clr-theme-purple-element)" />

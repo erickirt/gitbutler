@@ -91,10 +91,10 @@
 	<div class="flex items-center gap-8 m-b-6">
 		<div class="flex items-center gap-8 flex-1">
 			{#if isClaudeNotAvailable}
-				<Icon name="warning" color="warning" />
+				<Icon name="warning" color="var(--clr-theme-warn-element)" />
 				<h4 class="text-16 text-semibold text-body">Claude Code can't be found</h4>
 			{:else}
-				<Icon name="success" color="safe" />
+				<Icon name="tick" color="var(--clr-theme-safe-element)" />
 				<h4 class="text-16 text-semibold text-body">Claude code is connected</h4>
 			{/if}
 		</div>
@@ -133,7 +133,7 @@
 			<Icon name="tick" />
 		</div>
 	{:else}
-		<AsyncButton style="gray" action={handleCheckAvailability} icon="update" loading={isChecking}>
+		<AsyncButton style="gray" action={handleCheckAvailability} icon="refresh" loading={isChecking}>
 			Check Connection
 		</AsyncButton>
 	{/if}

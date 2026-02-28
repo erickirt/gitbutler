@@ -64,7 +64,7 @@
 				/>
 				<ContextMenuItem
 					label="Commit"
-					icon="text-width"
+					icon="text-contain"
 					onclick={() => {
 						// eslint-disable-next-line no-console
 						console.log("Commit and bleep");
@@ -422,7 +422,7 @@
 				/>
 			</ContextMenuSection>
 			<ContextMenuSection title="Advanced">
-				<ContextMenuItemSubmenu label="Format" icon="text-bold">
+				<ContextMenuItemSubmenu label="Format" icon="text-block">
 					{#snippet submenu({ close })}
 						<ContextMenuSection>
 							<ContextMenuItem

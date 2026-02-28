@@ -124,7 +124,7 @@
 >
 	{#if draggable && !showCheckbox && !notched}
 		<div class="draggable-handle">
-			<Icon name="draggable-narrow" />
+			<Icon name="drag-vertical" />
 		</div>
 	{/if}
 
@@ -154,7 +154,7 @@
 		{#if conflicted}
 			<Tooltip text={conflictHint}>
 				<div class="conflicted-icon">
-					<Icon name="warning-small" />
+					<Icon name="warning" />
 				</div>
 			</Tooltip>
 		{:else if fileStatus}
@@ -170,7 +170,7 @@
 					onmouseenter={() => onlockhover?.()}
 					onmouseleave={() => onlockunhover?.()}
 				>
-					<Icon name="locked" />
+					<Icon name="lock" />
 				</div>
 			</Tooltip>
 		{/if}
@@ -189,7 +189,7 @@
 						e.stopPropagation();
 						onresolveclick?.(e);
 					}}
-					icon="tick-small"
+					icon="tick"
 				>
 					Mark resolved
 				</Button>

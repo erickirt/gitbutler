@@ -8,7 +8,7 @@
 </script>
 
 <div class="project-name">
-	<Icon name="repo-book-small" />
+	<Icon name="repo" />
 	<span class="text-13 text-semibold">
 		{projectName}
 	</span>

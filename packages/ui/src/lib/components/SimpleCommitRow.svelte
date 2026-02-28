@@ -46,7 +46,7 @@
 	<div class="simple-commit-item no-select" class:content-only={onlyContent}>
 		{#if !onlyContent}
 			{#if isDone}
-				<Icon name="success" color="safe" />
+				<Icon name="tick" color="var(--clr-theme-safe-element)" />
 			{:else}
 				<Icon name="commit" />
 			{/if}
@@ -79,7 +79,7 @@
 					<span class="details-divider">•</span>
 					<button type="button" class="details-btn link-btn" onclick={() => onOpen(url)}>
 						<span>Open</span>
-						<Icon name="open-link" />
+						<Icon name="arrow-up-righ" />
 					</button>
 				{/if}
 

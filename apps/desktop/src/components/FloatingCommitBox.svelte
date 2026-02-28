@@ -43,7 +43,7 @@
 >
 	<div class="modal-header" bind:this={headerElRef}>
 		<div class="drag-handle">
-			<Icon name="draggable" />
+			<Icon name="drag-square" />
 		</div>
 		<h4 class="text-14 text-semibold">
 			{title}

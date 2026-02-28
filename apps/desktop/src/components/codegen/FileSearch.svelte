@@ -28,7 +28,7 @@
 		in:fly={{ y: 8, duration: 200 }}
 	>
 		<div class="dialog-popup__header">
-			<Icon name="search-small" color="var(--clr-text-3)" />
+			<Icon name="search" color="var(--clr-text-3)" />
 			<h3 class="text-12 text-bold flex-1">Search for files</h3>
 			<p class="text-11 clr-text-3">
 				<span class="text-italic text-bold"> Esc </span>

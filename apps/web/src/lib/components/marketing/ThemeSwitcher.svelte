@@ -14,7 +14,7 @@
 		onclick={() => setTheme("light")}
 		aria-label="Light theme"
 	>
-		<Icon name="light-theme" />
+		<Icon name="theme-light" />
 	</button>
 	<button
 		type="button"
@@ -23,7 +23,7 @@
 		onclick={() => setTheme("system")}
 		aria-label="System theme"
 	>
-		<Icon name="system-theme" />
+		<Icon name="theme-system" />
 	</button>
 	<button
 		type="button"
@@ -32,7 +32,7 @@
 		onclick={() => setTheme("dark")}
 		aria-label="Dark theme"
 	>
-		<Icon name="dark-theme" />
+		<Icon name="theme-dark" />
 	</button>
 </div>
 

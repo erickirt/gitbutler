@@ -1,11 +1,11 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
 	import { focusable } from "$lib/focus/focusable";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type IconName } from "$lib/icons/names";
 	import type { Snippet } from "svelte";
 
 	interface Props {
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: IconName;
 		iconSnippet?: Snippet;
 		selected?: boolean;
 		disabled?: boolean;

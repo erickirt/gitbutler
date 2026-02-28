@@ -78,11 +78,11 @@
 								<div class="text-12 text-body check-result">
 									<i class="check-icon">
 										{#await check.promise}
-											<Icon name="spinner" spinnerRadius={4} />
+											<Icon name="spinner" size={14} />
 										{:then}
-											<Icon name="success-small" color="safe" />
+											<Icon name="tick" size={14} />
 										{:catch}
-											<Icon name="error-small" color="danger" />
+											<Icon name="danger" size={14} />
 										{/await}
 									</i>{check.name}
 
@@ -111,7 +111,7 @@
 			</InfoMessage>
 		</div>
 	{/if}
-	<Button style="pop" wide icon="item-tick" {loading} {disabled} onclick={checkCredentials}>
+	<Button style="pop" wide icon="tick" {loading} {disabled} onclick={checkCredentials}>
 		{#if loading || checks?.length === 0}
 			Test credentials
 		{:else}

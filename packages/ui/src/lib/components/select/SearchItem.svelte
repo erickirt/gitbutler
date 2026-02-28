@@ -43,7 +43,7 @@
 		</i>
 	{:else}
 		<button type="button" class="icon" onclick={resetFilter}>
-			<Icon name="cross-in-circle" />
+			<Icon name="cross-circle" />
 		</button>
 	{/if}
 

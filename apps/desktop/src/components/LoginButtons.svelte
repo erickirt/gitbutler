@@ -7,7 +7,7 @@
 
 <Button
 	style="pop"
-	icon="signin"
+	icon="login"
 	onclick={async () => {
 		openGeneralSettings("general");
 	}}

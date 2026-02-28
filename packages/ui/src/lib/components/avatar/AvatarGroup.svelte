@@ -12,9 +12,10 @@
 </script>
 
 <script lang="ts">
-	import Icon, { type IconName } from "$components/Icon.svelte";
+	import Icon from "$components/Icon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
 	import Avatar from "$components/avatar/Avatar.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	const { avatars, maxAvatars = 3, size = "medium", icon, iconColor }: Props = $props();

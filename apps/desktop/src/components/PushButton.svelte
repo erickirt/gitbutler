@@ -190,7 +190,7 @@
 				branchDetails.remoteTrackingBranch,
 			)}
 			onclick={() => handleClick({ withForce, skipForcePushProtection: false, gerritFlags: [] })}
-			icon={multipleBranches && !isLastBranchInStack ? "push-below" : "push"}
+			icon={multipleBranches && !isLastBranchInStack ? "push-all" : "push"}
 		>
 			{isGerritMode ? "Push" : withForce ? "Force push" : "Push"}
 		</Button>

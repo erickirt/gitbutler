@@ -135,7 +135,7 @@
 							}}
 							aria-label="Remove tag"
 						>
-							<Icon name="cross-small" />
+							<Icon name="cross" size={14} />
 						</button>
 					{/if}
 				</div>

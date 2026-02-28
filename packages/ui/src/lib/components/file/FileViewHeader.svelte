@@ -59,7 +59,7 @@
 >
 	{#if draggable}
 		<div class="file-header__drag-handle">
-			<Icon name="draggable-narrow" />
+			<Icon name="drag-vertical" />
 		</div>
 	{/if}
 

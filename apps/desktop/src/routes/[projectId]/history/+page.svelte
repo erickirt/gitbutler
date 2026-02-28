@@ -173,7 +173,7 @@
 				<Button
 					size="tag"
 					kind="outline"
-					icon="camera-small"
+					icon="camera"
 					tooltip="Create a manual snapshot of your current state"
 					onclick={() => createSnapshotModal?.show()}
 				>

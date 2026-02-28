@@ -333,7 +333,7 @@
 						{#if conflictedFiles.length > 0}
 							<Button
 								kind="outline"
-								icon="open-editor-small"
+								icon="open-in-ide"
 								reversedDirection
 								onclick={() => openAllConflictedFiles(project.path)}
 								tooltip={conflictedFiles.length === 1
@@ -363,7 +363,7 @@
 					<Button
 						testId={TestId.EditModeSaveAndExitButton}
 						style="pop"
-						icon="tick-small"
+						icon="tick"
 						onclick={handleSave}
 						disabled={loading}
 						{loading}

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { cubicOut } from "svelte/easing";
 	import { scale } from "svelte/transition";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 	interface Props {
-		icon?: keyof typeof iconsJson;
+		icon?: IconName;
 		hasUnread: boolean;
 		onclick: (event?: any) => void;
 	}

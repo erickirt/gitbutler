@@ -30,7 +30,7 @@
 
 		{#if issueUpdate.resolved}
 			<div class="issue-update__status-icon">
-				<Icon name="tick-small" />
+				<Icon name="tick" />
 			</div>
 
 			<p class="text-12 issue-update__status">resolved</p>

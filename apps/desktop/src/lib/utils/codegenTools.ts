@@ -1,7 +1,5 @@
+import { type IconName } from "@gitbutler/ui";
 import type { ToolCall } from "$lib/codegen/messages";
-import type iconsJson from "@gitbutler/ui/data/icons.json";
-
-export type IconName = keyof typeof iconsJson;
 
 /**
  * Maps tool call names to appropriate icons based on partial string matching
@@ -14,7 +12,7 @@ export function getToolIcon(toolName: string): IconName {
 		return "folder";
 	}
 	if (name.includes("read") || name.includes("file")) {
-		return "docs-small";
+		return "docs";
 	}
 	if ((name.includes("write") && !name.includes("todo")) || name.includes("edit")) {
 		return "edit";
@@ -26,13 +24,13 @@ export function getToolIcon(toolName: string): IconName {
 		return "search";
 	}
 	if (name.includes("bash") || name.includes("terminal") || name.includes("shell")) {
-		return "logs";
+		return "terminal";
 	}
 	if (name.includes("batch") || name.includes("script")) {
-		return "text";
+		return "script";
 	}
 	if (name.includes("exit")) {
-		return "signout";
+		return "logout";
 	}
 	if (name.includes("task")) {
 		return "spinner";
@@ -40,7 +38,6 @@ export function getToolIcon(toolName: string): IconName {
 	if (name.includes("askuserquestion")) {
 		return "chat";
 	}
-
 	// Default icon for unknown tool types
 	return "settings";
 }

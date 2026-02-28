@@ -58,13 +58,13 @@
 			class:renamed={status === "rename"}
 		>
 			{#if status === "addition"}
-				<Icon name="file-added" />
+				<Icon name="change-addition" />
 			{:else if status === "modification"}
-				<Icon name="file-modified" />
+				<Icon name="change-modification" />
 			{:else if status === "deletion"}
-				<Icon name="file-deleted" />
+				<Icon name="change-deletion" />
 			{:else if status === "rename"}
-				<Icon name="file-moved" />
+				<Icon name="change-rename" />
 			{/if}
 		</div>
 	</Tooltip>

@@ -41,7 +41,7 @@
 							{/snippet}
 							{#snippet empty()}
 								<div class="commit-not-found text-12">
-									<Icon name="error-small" color="var(--clr-text-2)" />
+									<Icon name="danger" color="var(--clr-text-2)" />
 									<span>Commit {commitId.slice(0, 7)} not found</span>
 								</div>
 							{/snippet}

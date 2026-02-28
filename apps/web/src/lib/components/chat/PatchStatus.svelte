@@ -21,7 +21,7 @@
 
 <div class="patch-status" class:request-changes={!event.data.status}>
 	<div class="patch-status__icon" class:request-changes={!event.data.status}>
-		<Icon name={event.data.status ? "confeti" : "refresh-small"} />
+		<Icon name={event.data.status ? "tick" : "refresh"} />
 	</div>
 
 	<div class="patch-status-content">

@@ -23,8 +23,7 @@
 					<IrcChannel type="private" nick={chat.current.username}>
 						{#snippet headerActions()}
 							<Button
-								icon="open-link"
-								size="icon"
+								icon="arrow-up-righ"
 								kind="ghost"
 								onclick={() => {
 									ircService.setPopup(currentName, true);

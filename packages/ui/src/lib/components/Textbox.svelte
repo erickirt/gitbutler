@@ -1,10 +1,10 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
 	import { focusable } from "$lib/focus/focusable";
+	import { type IconName } from "$lib/icons/names";
 	import { clickOutside } from "$lib/utils/clickOutside";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { onMount, tick } from "svelte";
-	import type iconsJson from "$lib/data/icons.json";
 	import type { Snippet } from "svelte";
 
 	interface Props {
@@ -12,8 +12,8 @@
 		id?: string;
 		testId?: string;
 		type?: inputType;
-		iconLeft?: keyof typeof iconsJson;
-		iconRight?: keyof typeof iconsJson;
+		iconLeft?: IconName;
+		iconRight?: IconName;
 		customIconLeft?: Snippet;
 		customIconRight?: Snippet;
 		size?: "default" | "large";
@@ -158,7 +158,7 @@
 			</div>
 		{:else if iconLeft}
 			<div class="textbox__icon textbox__icon--left">
-				<Icon name={!disabled ? iconLeft : "locked"} />
+				<Icon name={!disabled ? iconLeft : "lock"} />
 			</div>
 		{/if}
 
@@ -168,7 +168,7 @@
 			</div>
 		{:else if iconRight}
 			<div class="textbox__icon textbox__icon--right">
-				<Icon name={!disabled ? iconRight : "locked"} />
+				<Icon name={!disabled ? iconRight : "lock"} />
 			</div>
 		{/if}
 
@@ -226,7 +226,7 @@
 						isInputValid = htmlInput.checkValidity();
 					}}
 				>
-					<Icon name="minus-small" />
+					<Icon name="minus" />
 				</button>
 				<button
 					type="button"
@@ -242,7 +242,7 @@
 						isInputValid = htmlInput.checkValidity();
 					}}
 				>
-					<Icon name="plus-small" />
+					<Icon name="plus" />
 				</button>
 			</div>
 		{/if}
@@ -258,7 +258,7 @@
 					htmlInput.focus();
 				}}
 			>
-				<Icon name={showPassword ? "eye-shown" : "eye-hidden"} />
+				<Icon name={showPassword ? "eye" : "eye-closed"} />
 			</button>
 		{/if}
 	</div>

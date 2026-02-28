@@ -94,6 +94,7 @@
 	);
 
 	let newProjectLoading = $state(false);
+	let projectSelectorOpen = $state(false);
 
 	const unreadCount = $derived(ircService.unreadCount());
 	const isNotificationsUnread = $derived(unreadCount.current > 0);
@@ -138,7 +139,7 @@
 				</Button>
 			{:else}
 				<div class="chrome-you-are-up-to-date">
-					<Icon name="tick-small" />
+					<Icon name="tick" />
 					<span class="text-12">You’re up to date</span>
 				</div>
 			{/if}
@@ -160,6 +161,7 @@
 						goto(projectPath(value));
 					}
 				}}
+				ontoggle={(isOpen) => (projectSelectorOpen = isOpen)}
 				popupAlign="center"
 				customWidth={280}
 			>
@@ -169,12 +171,13 @@
 						reversedDirection
 						width="auto"
 						kind="outline"
-						icon="select-chevron"
+						isDropdown
+						dropdownOpen={projectSelectorOpen}
 						class="project-selector-btn"
 					>
 						{#snippet custom()}
 							<div class="project-selector-btn__content">
-								<Icon name="repo-book-small" color="var(--clr-text-2)" />
+								<Icon name="repo" color="var(--clr-text-2)" />
 								<span class="text-12 text-bold">{projectTitle}</span>
 							</div>
 						{/snippet}
@@ -224,7 +227,7 @@
 				<Tooltip text="Current branch">
 					<div class="chrome-current-branch">
 						<div class="chrome-current-branch__content">
-							<Icon name="branch-remote" color="var(--clr-text-2)" />
+							<Icon name="branch" color="var(--clr-text-2)" />
 							<span class="text-12 text-bold clr-text-2 truncate">{currentBranchName}</span>
 							{#if isNotInWorkspace}
 								<span class="text-12 text-bold clr-text-2 op-60"> read-only </span>
@@ -265,7 +268,7 @@
 			<Button
 				testId={TestId.ChromeHeaderCreateBranchButton}
 				kind="outline"
-				icon="plus-small"
+				icon="plus"
 				hotkey="⌘B"
 				reversedDirection
 				onclick={() => createBranchModal?.show()}
@@ -277,7 +280,7 @@
 					testId={TestId.ChromeHeaderCreateCodegenSessionButton}
 					kind="outline"
 					tooltip="New Codegen Session"
-					icon="ai-new-session"
+					icon="ai-plus"
 					onclick={() => {
 						createAiStack();
 					}}

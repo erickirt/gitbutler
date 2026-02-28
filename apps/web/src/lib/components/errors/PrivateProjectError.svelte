@@ -14,7 +14,7 @@
 <div class="private-project-error">
 	<div class="wrapper">
 		<div class="icon-container">
-			<Icon name="locked-small" size={48} />
+			<Icon name="lock" size={48} />
 		</div>
 		<h2 class="title text-15 text-body text-bold">Private Project</h2>
 		<p class="error-message text-13 text-body">

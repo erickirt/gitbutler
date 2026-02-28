@@ -198,7 +198,7 @@
 
 {#snippet shortNote(text: string)}
 	<div class="ai-settings__short-note">
-		<Icon name="info-small" />
+		<Icon name="info" size={14} />
 		<p class="text-12 text-body">{text}</p>
 	</div>
 {/snippet}

@@ -37,7 +37,7 @@
 		{#if prefix}{prefix}
 		{/if}{displayText}
 	</span>
-	<Icon name="copy-small" />
+	<Icon name="copy" size={14} />
 </button>
 
 <style lang="postcss">

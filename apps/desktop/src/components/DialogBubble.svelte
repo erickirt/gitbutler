@@ -36,7 +36,7 @@
 	<div class="bubble">
 		<div class="bubble__header text-13 text-bold">
 			{#if role === MessageRole.User}
-				<Icon name="profile" />
+				<Icon name="user" />
 				<span>User</span>
 			{:else if role === MessageRole.System}
 				<Icon name="robot" />
@@ -68,12 +68,7 @@
 	{#if isLast && editing}
 		<div class="bubble-actions">
 			{#if !disableRemove}
-				<Button
-					icon="bin-small"
-					kind="outline"
-					style="danger"
-					onclick={() => onRemoveLastExample()}
-				>
+				<Button icon="bin" kind="outline" style="danger" onclick={() => onRemoveLastExample()}>
 					Remove example
 				</Button>
 			{/if}

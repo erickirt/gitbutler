@@ -24,7 +24,7 @@
 		{#if user?.picture}
 			<img class="user-icon__image" src={user.picture} alt="" referrerpolicy="no-referrer" />
 		{:else}
-			<Icon name="profile" />
+			<Icon name="user" />
 		{/if}
 	</button>
 </Tooltip>

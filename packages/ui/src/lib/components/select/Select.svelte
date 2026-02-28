@@ -35,7 +35,7 @@
 		customSelectButton?: Snippet;
 		itemSnippet: Snippet<[{ item: SelectItem<T>; highlighted: boolean; idx: number }]>;
 		children?: Snippet;
-		icon?: keyof typeof iconsJson;
+		icon?: IconName;
 		autofocus?: boolean;
 		onselect?: (value: T, modifiers?: Modifiers) => void;
 		ontoggle?: (isOpen: boolean) => void;
@@ -43,16 +43,16 @@
 </script>
 
 <script lang="ts" generics="T extends string">
+	import Icon from "$components/Icon.svelte";
 	import Textbox from "$components/Textbox.svelte";
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 	import OptionsGroup from "$components/select/OptionsGroup.svelte";
 	import SearchItem from "$components/select/SearchItem.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { portal } from "$lib/utils/portal";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { resizeObserver } from "$lib/utils/resizeObserver";
-
 	import { type Snippet } from "svelte";
-	import type iconsJson from "$lib/data/icons.json";
 
 	const {
 		id,
@@ -346,13 +346,18 @@
 				readonly
 				type="select"
 				iconLeft={icon}
-				iconRight="select-chevron"
 				value={options.find((item) => item.value === value)?.label}
 				disabled={disabled || loading}
 				{autofocus}
 				onmousedown={toggleList}
 				onkeydown={(ev: KeyboardEvent) => handleKeyDown(ev)}
-			/>
+			>
+				{#snippet customIconRight()}
+					<div class="select-chevron" class:open={listOpen}>
+						<Icon name="chevron-down" />
+					</div>
+				{/snippet}
+			</Textbox>
 		</div>
 	{/if}
 	{#if listOpen}
@@ -475,6 +480,15 @@
 		100% {
 			transform: translateY(0);
 			opacity: 1;
+		}
+	}
+
+	.select-chevron {
+		display: flex;
+		transition: transform 0.15s ease;
+
+		&.open {
+			transform: rotate(180deg);
 		}
 	}
 

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type IconName } from "$lib/icons/names";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		el?: HTMLButtonElement;
-		icon?: keyof typeof iconsJson;
+		icon?: IconName;
 		tooltip: string;
 		thin?: boolean;
 		activated?: boolean;

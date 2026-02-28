@@ -23,7 +23,7 @@
 
 <div class="codeblock-wrapper" style="margin-bottom: {marginBottom}">
 	<button type="button" class="codeblock__copy-btn" onclick={handleCopy}>
-		<Icon name={copied ? "tick" : "copy-small"} />
+		<Icon name={copied ? "tick" : "copy"} />
 	</button>
 
 	<div class="codeblock scrollbar" style="max-height: {maxHeight}">

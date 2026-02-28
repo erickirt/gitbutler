@@ -2,13 +2,13 @@
 	import Button from "$components/Button.svelte";
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type IconName } from "$lib/icons/names";
 	import type { ComponentColorType, ComponentKindType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		testId?: string;
-		icon?: keyof typeof iconsJson;
+		icon?: IconName;
 		style?: ComponentColorType;
 		kind?: ComponentKindType;
 		disabled?: boolean;
@@ -90,7 +90,8 @@
 			bind:el={iconEl}
 			{style}
 			{kind}
-			icon={visible ? "chevron-up" : "chevron-down"}
+			isDropdown
+			dropdownOpen={visible}
 			{loading}
 			disabled={disabled || loading}
 			dropdownChild

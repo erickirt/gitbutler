@@ -217,7 +217,7 @@
 			style="pop"
 			{loading}
 			onclick={onSetTargetClick}
-			icon="chevron-right-small"
+			icon="chevron-right"
 			testId={TestId.ProjectSetupPageTargetContinueButton}
 			id="set-base-branch"
 		>

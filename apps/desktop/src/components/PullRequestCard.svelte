@@ -210,7 +210,7 @@
 				<Button
 					kind="outline"
 					size="tag"
-					icon="copy-small"
+					icon="copy"
 					tooltip="Copy {abbr} link"
 					onclick={() => {
 						clipboardService.write(pr.htmlUrl, { message: `${abbr} link copied` });
@@ -219,7 +219,7 @@
 				<Button
 					kind="outline"
 					size="tag"
-					icon="open-link"
+					icon="arrow-up-righ"
 					tooltip="Open {abbr} in browser"
 					onclick={() => {
 						urlService.openExternalUrl(pr.htmlUrl);
@@ -249,7 +249,7 @@
 				<span class="separator">•</span>
 				<div class="factoid">
 					<span class="label">
-						<Icon name="chat-small" />
+						<Icon name="chat" size={14} />
 					</span>
 					<span>{pr.commentsCount}</span>
 				</div>

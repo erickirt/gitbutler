@@ -1,10 +1,9 @@
 <script lang="ts" module>
-	import iconsJson from "@gitbutler/ui/data/icons.json";
 	// This module script is necessary to make Svelte recognize the generics in the component
 	export type Page = {
 		id: string;
 		label: string;
-		icon: keyof typeof iconsJson;
+		icon: IconName;
 		adminOnly?: boolean;
 		[key: string]: any; // Allow additional properties for flexibility
 	};
@@ -12,7 +11,7 @@
 
 <script lang="ts" generics="T extends Page">
 	import ConfigurableScrollableContainer from "$components/ConfigurableScrollableContainer.svelte";
-	import { Icon } from "@gitbutler/ui";
+	import { Icon, type IconName } from "@gitbutler/ui";
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import { type Snippet } from "svelte";
 

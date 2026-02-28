@@ -112,9 +112,7 @@
 								: "No remote tracking branch"}
 						>
 							<div class="remote-tracking-branch-icon" class:disabled={!remoteTrackingBranch}>
-								<Icon
-									name={remoteTrackingBranch ? "remote-target-branch" : "no-remote-target-branch"}
-								/>
+								<Icon name={remoteTrackingBranch ? "target-branch" : "target-cross"} />
 							</div>
 						</Tooltip>
 					{/if}

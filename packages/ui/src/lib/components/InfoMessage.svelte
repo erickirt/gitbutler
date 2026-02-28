@@ -5,32 +5,28 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
 	import Icon from "$components/Icon.svelte";
+	import { type IconName } from "$lib/icons/names";
 	import { copyToClipboard } from "$lib/utils/clipboard";
-
-	import type iconsJson from "$lib/data/icons.json";
-	import type { ComponentColorType } from "$lib/utils/colorTypes";
+	import { type ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
-	type IconColor = ComponentColorType | undefined;
-	type IconName = keyof typeof iconsJson;
-
 	interface Props {
-		icon?: IconName | undefined;
+		icon?: IconName;
 		style?: MessageStyle;
 		outlined?: boolean;
 		filled?: boolean;
 		class?: string;
-		primaryLabel?: string | undefined;
-		primaryIcon?: IconName | undefined;
-		primaryTestId?: string | undefined;
+		primaryLabel?: string;
+		primaryIcon?: IconName;
+		primaryTestId?: string;
 		primaryAction?: () => void;
-		secondaryLabel?: string | undefined;
-		secondaryIcon?: IconName | undefined;
-		secondaryTestId?: string | undefined;
+		secondaryLabel?: string;
+		secondaryIcon?: IconName;
+		secondaryTestId?: string;
 		secondaryAction?: () => void;
-		tertiaryLabel?: string | undefined;
-		tertiaryTestId?: string | undefined;
-		tertiaryIcon?: IconName | undefined;
+		tertiaryLabel?: string;
+		tertiaryTestId?: string;
+		tertiaryIcon?: IconName;
 		tertiaryAction?: () => void;
 		shadow?: boolean;
 		error?: string | undefined;
@@ -67,15 +63,15 @@
 	const iconMap: { [Key in MessageStyle]: IconName } = {
 		info: "info",
 		warning: "warning",
-		danger: "error",
-		success: "success",
+		danger: "danger",
+		success: "tick-circle",
 	};
 
-	const iconColorMap: { [Key in MessageStyle]: IconColor } = {
-		info: "pop",
-		warning: "warning",
-		danger: "danger",
-		success: "safe",
+	const iconColorMap: { [Key in MessageStyle]: string } = {
+		info: "var(--clr-theme-pop-element)",
+		warning: "var(--clr-theme-warn-element)",
+		danger: "var(--clr-theme-danger-element)",
+		success: "var(--clr-theme-safe-element)",
 	};
 
 	const primaryButtonMap: { [Key in MessageStyle]: ComponentColorType } = {
@@ -122,7 +118,7 @@
 		{#if primaryLabel || secondaryLabel}
 			<div class="info-message__actions">
 				{#if error}
-					<Button kind="ghost" onclick={() => copyToClipboard(error)} icon="copy-small">
+					<Button kind="ghost" onclick={() => copyToClipboard(error)} icon="copy">
 						Copy error message
 					</Button>
 				{/if}

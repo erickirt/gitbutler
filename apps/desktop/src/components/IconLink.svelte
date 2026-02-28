@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { URL_SERVICE } from "$lib/utils/url";
 	import { inject } from "@gitbutler/core/context";
-	import { Icon } from "@gitbutler/ui";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
+	import { Icon, type IconName } from "@gitbutler/ui";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		href: string;
-		icon: keyof typeof iconsJson;
+		icon: IconName;
 		children: Snippet;
 	}
 

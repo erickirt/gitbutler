@@ -81,7 +81,7 @@
 			{projectId}
 			branchName={branch.branchName}
 			isTopBranch
-			iconName="home-small"
+			iconName="home"
 			trackingBranch={branch.remoteName || undefined}
 			readonly
 			selected={false}

@@ -135,7 +135,7 @@
 
 		{#if !selected && !args.disableCommitActions}
 			<div class="commit-row__drag-handle">
-				<Icon name="draggable-narrow" />
+				<Icon name="drag-vertical" />
 			</div>
 		{/if}
 
@@ -151,7 +151,7 @@
 		<div class="commit-content" class:has-conflicts={hasConflicts}>
 			{#if hasConflicts}
 				<div class="commit-conflict-indicator">
-					<Icon name="warning-small" />
+					<Icon name="warning" />
 				</div>
 			{/if}
 

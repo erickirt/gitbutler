@@ -60,7 +60,7 @@
 			</h2>
 
 			<div class="problem__error text-12 text-body">
-				<Icon name="error" color="danger" />
+				<Icon name="danger" color="var(--clr-theme-danger-element)" />
 				{#if !isDefined(error)}
 					'An unknown error occured'
 				{:else if error instanceof Object && "message" in error}

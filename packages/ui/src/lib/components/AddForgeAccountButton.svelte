@@ -3,7 +3,7 @@
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import ContextMenuItem from "$components/ContextMenuItem.svelte";
 	import ContextMenuSection from "$components/ContextMenuSection.svelte";
-	import type { IconName } from "$components/Icon.svelte";
+	import type { IconName } from "$lib/icons/names";
 
 	interface MenuItem {
 		label: string;
@@ -32,7 +32,7 @@
 	onclick={() => addAccountContextMenu?.toggle()}
 	{disabled}
 	{loading}
-	icon="plus-small"
+	icon="plus"
 >
 	{buttonText}
 </Button>

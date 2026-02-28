@@ -20,8 +20,8 @@
 	import { focusable } from "@gitbutler/ui/focus/focusable";
 	import { slide } from "svelte/transition";
 	import type { PushStatus } from "$lib/stacks/stack";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 	import type { Snippet } from "svelte";
+	import type { ComponentProps } from "svelte";
 
 	type Props = {
 		branchName: string;
@@ -36,7 +36,7 @@
 		isPushed: boolean;
 		lineColor: string;
 		conflicts?: boolean;
-		iconName: keyof typeof iconsJson;
+		iconName: ComponentProps<typeof BranchHeaderIcon>["iconName"];
 		roundedBottom?: boolean;
 		onclick?: () => void;
 		disableClick?: boolean;
@@ -141,7 +141,7 @@
 	>
 		{#if dragArgs && !dragArgs.disabled && !conflicts}
 			<div class="branch-header__drag-handle" data-no-drag>
-				<Icon name="draggable-narrow" />
+				<Icon name="drag-vertical" />
 			</div>
 		{/if}
 

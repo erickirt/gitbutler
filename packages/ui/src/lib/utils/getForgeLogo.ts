@@ -1,18 +1,18 @@
-import type iconsJson from "$lib/data/icons.json";
+import { type IconName } from "$lib/icons/names";
 
-export function getForgeLogo(forgeName: string, small = false): keyof typeof iconsJson {
+export function getForgeLogo(forgeName: string, small = false): IconName {
 	if (forgeName === "gitlab") {
 		if (small) {
-			return "gitlab-small";
+			return "gitlab";
 		}
 		return "gitlab";
 	} else if (forgeName === "github") {
 		if (small) {
-			return "github-outline-small";
+			return "github";
 		}
 
-		return "github-outline";
+		return "github";
 	}
 
-	return "question-mark-small";
+	return "question";
 }

@@ -76,7 +76,7 @@
 							{splitFilePath(path).filename}
 						</span>
 
-						<Icon name="text" color="var(--clr-text-3)" />
+						<Icon name="text-block" color="var(--clr-text-3)" />
 						<span>
 							{start}:{end}
 						</span>
@@ -116,7 +116,7 @@
 					aria-label="Remove {attachment}"
 					title="Remove file"
 				>
-					<Icon name="cross-small" />
+					<Icon name="cross" size={14} />
 				</button>
 			{/if}
 		</div>

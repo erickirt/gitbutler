@@ -69,15 +69,15 @@
 		{/if}
 		<div class="flex gap-8 m-t-8">
 			{#if buildType !== null}
-				<AsyncButton style="gray" kind="outline" icon="open-editor-small" action={followDeeplink}
+				<AsyncButton style="gray" kind="outline" icon="open-in-ide" action={followDeeplink}
 					>Open client</AsyncButton
 				>
 			{:else}
-				<AsyncButton style="gray" kind="outline" icon="copy-small" action={copyAccessToken}
+				<AsyncButton style="gray" kind="outline" icon="copy" action={copyAccessToken}
 					>Copy Access Token</AsyncButton
 				>
 			{/if}
-			<Button style="gray" kind="ghost" onclick={() => goto("/profile")} icon="profile"
+			<Button style="gray" kind="ghost" onclick={() => goto("/profile")} icon="user"
 				>Profile page</Button
 			>
 		</div>

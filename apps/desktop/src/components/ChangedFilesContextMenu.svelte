@@ -392,7 +392,7 @@
 						/>
 						<ContextMenuItem
 							label="Stash into branch…"
-							icon="stash"
+							icon="branch-stash"
 							onclick={async () => {
 								stashConfirmationModal?.show(item);
 								stashBranchName = await stackService.fetchNewBranchName(projectId);
@@ -405,7 +405,7 @@
 						/>
 						<ContextMenuItem
 							label="Absorb changes"
-							icon="absorb"
+							icon="commit-absorb"
 							testId={TestId.FileListItemContextMenu_Absorb}
 							onclick={() => {
 								triggerAbsorbChanges(item.changes);
@@ -415,7 +415,7 @@
 						/>
 						<ContextMenuItem
 							label="Auto commit"
-							icon="auto-commit"
+							icon="commit-ai"
 							onclick={async () => {
 								contextMenu.close();
 								triggerAutoCommit(changes);
@@ -427,7 +427,7 @@
 						{@const commitId = selectionId.commitId}
 						<ContextMenuItem
 							label="Uncommit changes"
-							icon="undo-small"
+							icon="commit-undo"
 							onclick={async () => uncommitChanges(stackId, commitId, changes)}
 						/>
 					{/if}
@@ -451,7 +451,7 @@
 									/>
 									<ContextMenuItem
 										label="Split into dependent branch"
-										icon="new-dep-branch"
+										icon="stack-plus"
 										onclick={() => {
 											splitIntoDependentBranch(changes);
 											contextMenu.close();
@@ -507,7 +507,7 @@
 				{#if !isChangedFolderItem(item)}
 					<ContextMenuItem
 						label="Open in {$userSettings.defaultCodeEditor.displayName}"
-						icon="open-editor"
+						icon="open-in-ide"
 						disabled={deletion}
 						onclick={async () => {
 							try {
@@ -533,7 +533,7 @@
 				{#if itemPath}
 					<ContextMenuItem
 						label={showInFolderLabel}
-						icon="open-folder"
+						icon="open-in-folder"
 						onclick={async () => {
 							const project = await projectService.fetchProject(projectId);
 							const projectPath = project?.path;

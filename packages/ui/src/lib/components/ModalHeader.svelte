@@ -25,15 +25,15 @@
 
 <div class="modal__header" class:sticky>
 	{#if type === "warning"}
-		<Icon name="warning" color="warning" />
+		<Icon name="warning" color="var(--clr-theme-warn-element)" />
 	{/if}
 
 	{#if type === "danger"}
-		<Icon name="error" color="danger" />
+		<Icon name="danger" color="var(--clr-theme-danger-element)" />
 	{/if}
 
 	{#if type === "success"}
-		<Icon name="success" color="safe" />
+		<Icon name="tick-circle" color="var(--clr-theme-safe-element)" />
 	{/if}
 
 	<h2 class="text-14 text-bold">

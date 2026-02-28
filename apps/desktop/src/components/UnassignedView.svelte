@@ -143,7 +143,7 @@
 							checkFilesForCommit();
 							posthog.captureAction(ActionEvent.CommitToNewBranch);
 						}}
-						icon={isCommitting ? undefined : "plus-small"}
+						icon={isCommitting ? undefined : "plus"}
 						testId={TestId.CommitToNewBranchButton}
 						kind="outline"
 					>

@@ -46,7 +46,7 @@
 		>
 			<span class="text-11">{isOpen ? "Fold files" : `Show ${foldedAmount} files`}</span>
 			<div class="toggle-btn__icon" style="transform: rotate({isOpen ? '180deg' : '0'})">
-				<Icon name="chevron-down-small" />
+				<Icon name="chevron-down" size={14} />
 			</div>
 		</button>
 	{/if}

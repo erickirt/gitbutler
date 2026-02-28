@@ -65,7 +65,7 @@
 >
 	{#if draggable && !showCheckbox}
 		<div class="draggable-handle">
-			<Icon name="draggable-narrow" />
+			<Icon name="drag-vertical" />
 		</div>
 	{/if}
 

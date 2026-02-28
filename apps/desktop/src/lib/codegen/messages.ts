@@ -20,53 +20,54 @@ export type ContentBlock =
 	| { type: "toolCall"; toolCall: ToolCall }
 	| { type: "toolCallPendingApproval"; toolCall: ToolCall };
 
-export type Message = { createdAt: string } &
-	/* This is strictly only things that the real fleshy human has said */
-	(| {
-				source: "user";
-				message: string;
-				attachments?: PromptAttachment[];
-		  }
-		/* Output from claude. Content blocks preserve original ordering of text and tool calls. */
-		| {
-				source: "claude";
-				/** @deprecated Use contentBlocks instead for proper ordering */
-				message: string;
-				/** @deprecated Use contentBlocks instead for proper ordering */
-				toolCalls: ToolCall[];
-				/** @deprecated Use contentBlocks instead for proper ordering */
-				toolCallsPendingApproval: ToolCall[];
-				/** Content blocks in their original order from the API response */
-				contentBlocks: ContentBlock[];
-		  }
-		| {
-				source: "claude";
-				subtype: "compaction";
-				message: string;
-				toolCalls: ToolCall[];
-				toolCallsPendingApproval: ToolCall[];
-				contentBlocks: ContentBlock[];
-		  }
-		/* Claude is asking the user a question */
-		| {
-				source: "claude";
-				subtype: "askUserQuestion";
-				/** The tool_use_id from the AskUserQuestion tool call */
-				toolUseId: string;
-				/** The questions to ask the user */
-				questions: AskUserQuestion[];
-				/** Whether the question has been answered */
-				answered: boolean;
-				/** Optional tool result text when answered */
-				resultText?: string;
-		  }
-		| ({
-				source: "system";
-		  } & SystemMessage)
-		| ({
-				source: "gitButler";
-		  } & GitButlerUpdate)
-	);
+export type Message = {
+	createdAt: string;
+} /* This is strictly only things that the real fleshy human has said */ & (
+	| {
+			source: "user";
+			message: string;
+			attachments?: PromptAttachment[];
+	  }
+	/* Output from claude. Content blocks preserve original ordering of text and tool calls. */
+	| {
+			source: "claude";
+			/** @deprecated Use contentBlocks instead for proper ordering */
+			message: string;
+			/** @deprecated Use contentBlocks instead for proper ordering */
+			toolCalls: ToolCall[];
+			/** @deprecated Use contentBlocks instead for proper ordering */
+			toolCallsPendingApproval: ToolCall[];
+			/** Content blocks in their original order from the API response */
+			contentBlocks: ContentBlock[];
+	  }
+	| {
+			source: "claude";
+			subtype: "compaction";
+			message: string;
+			toolCalls: ToolCall[];
+			toolCallsPendingApproval: ToolCall[];
+			contentBlocks: ContentBlock[];
+	  }
+	/* Claude is asking the user a question */
+	| {
+			source: "claude";
+			subtype: "askUserQuestion";
+			/** The tool_use_id from the AskUserQuestion tool call */
+			toolUseId: string;
+			/** The questions to ask the user */
+			questions: AskUserQuestion[];
+			/** Whether the question has been answered */
+			answered: boolean;
+			/** Optional tool result text when answered */
+			resultText?: string;
+	  }
+	| ({
+			source: "system";
+	  } & SystemMessage)
+	| ({
+			source: "gitButler";
+	  } & GitButlerUpdate)
+);
 
 export type ToolCallName =
 	| "Read"

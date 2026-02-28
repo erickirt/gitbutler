@@ -1,9 +1,17 @@
+<script lang="ts" module>
+	export type BranchIconName =
+		| "branch"
+		| "branch-local"
+		| "branch-double-commit"
+		| "branch-tick"
+		| "home";
+</script>
+
 <script lang="ts">
 	import { Icon } from "@gitbutler/ui";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 	interface Props {
-		iconName: keyof typeof iconsJson;
+		iconName: BranchIconName;
 		color: string;
 		small?: boolean;
 		large?: boolean;

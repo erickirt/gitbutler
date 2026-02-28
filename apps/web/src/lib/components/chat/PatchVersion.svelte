@@ -33,7 +33,7 @@
 
 <div class="patch-version">
 	<div class="patch-version__icon">
-		<Icon name="patch" />
+		<Icon name="version-patch" />
 	</div>
 
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

@@ -22,17 +22,17 @@
 	style,
 	reversedDirection,
 }: {
-	size: "icon" | "cta" | "button" | "tag";
+	size: "button" | "tag";
 	label: string;
 	style?: ComponentColorType;
 	reversedDirection?: boolean;
 })}
 	<div class="group">
-		<Button {size} {style} kind="solid" icon="plus-small" {reversedDirection}>
+		<Button {size} {style} kind="solid" icon="plus" {reversedDirection}>
 			{label}
 		</Button>
-		<Button {size} {style} kind="outline" icon="plus-small" {reversedDirection}>{label}</Button>
-		<Button {size} {style} kind="ghost" icon="plus-small" {reversedDirection}>{label}</Button>
+		<Button {size} {style} kind="outline" icon="plus" {reversedDirection}>{label}</Button>
+		<Button {size} {style} kind="ghost" icon="plus" {reversedDirection}>{label}</Button>
 
 		<Button {size} {style} kind="solid" {reversedDirection}>{label}</Button>
 		<Button {size} {style} kind="outline" {reversedDirection}>{label}</Button>
@@ -42,9 +42,9 @@
 		<Button {size} {style} kind="outline" {reversedDirection} hotkey="Esc">{label}</Button>
 		<Button {size} {style} kind="ghost" {reversedDirection} hotkey="Esc">{label}</Button>
 
-		<Button {size} {style} kind="solid" icon="plus-small" />
-		<Button {size} {style} kind="outline" icon="plus-small" />
-		<Button {size} {style} kind="ghost" icon="plus-small" />
+		<Button {size} {style} kind="solid" icon="plus" />
+		<Button {size} {style} kind="outline" icon="plus" />
+		<Button {size} {style} kind="ghost" icon="plus" />
 	</div>
 {/snippet}
 
@@ -58,12 +58,6 @@
 	reversedDirection?: boolean;
 })}
 	{@render buttonGroup({
-		size: "cta",
-		label,
-		style,
-		reversedDirection,
-	})}
-	{@render buttonGroup({
 		size: "button",
 		label,
 		style,
@@ -71,12 +65,6 @@
 	})}
 	{@render buttonGroup({
 		size: "tag",
-		label,
-		style,
-		reversedDirection,
-	})}
-	{@render buttonGroup({
-		size: "icon",
 		label,
 		style,
 		reversedDirection,

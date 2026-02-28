@@ -20,7 +20,7 @@
 			<Button
 				style="pop"
 				testId={TestId.OnboardingPageAnalyticsSettingsContinueButton}
-				icon="chevron-right-small"
+				icon="chevron-right"
 				onclick={() => {
 					settingsService.updateOnboardingComplete(true);
 					initAnalyticsIfEnabled($appSettings, posthog, true).then(() => {

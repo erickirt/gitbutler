@@ -32,7 +32,6 @@
 	import { ensureValue } from "$lib/utils/validation";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal, TestId } from "@gitbutler/ui";
-	import { getForgeLogo } from "@gitbutler/ui/utils/getForgeLogo";
 	import { QueryStatus } from "@reduxjs/toolkit/query";
 	import { tick } from "svelte";
 	import type { CommitStatusType } from "$lib/commits/commit";
@@ -272,7 +271,7 @@
 					{#snippet buttons()}
 						{#if first}
 							<Button
-								icon="new-dep-branch"
+								icon="stack-plus"
 								size="tag"
 								kind="outline"
 								tooltip={isReadOnly ? "Read-only mode" : "Create new branch"}
@@ -305,7 +304,7 @@
 									}}
 									testId={TestId.CreateReviewButton}
 									disabled={!!projectState.exclusiveAction.current}
-									icon={getForgeLogo(forge.current.name, true)}
+									icon="pr-plus"
 								>
 									{`Create ${forge.current.name === "gitlab" ? "MR" : "PR"}`}
 								</Button>
@@ -321,7 +320,7 @@
 											urlService.openExternalUrl(prUrl);
 										}
 									}}
-									icon={forge.current.name === "gitlab" ? "view-mr-browser" : "view-pr-browser"}
+									icon="arrow-up-righ"
 								>
 									{`View ${forge.current.name === "gitlab" ? "MR" : "PR"}`}
 								</Button>
@@ -337,7 +336,7 @@
 						/>
 						{#if !$codegenDisabled && first && codegenQuery?.response?.length === 0}
 							<Button
-								icon="ai-small"
+								icon="ai"
 								style="gray"
 								size="tag"
 								tooltip="New Codegen Session"

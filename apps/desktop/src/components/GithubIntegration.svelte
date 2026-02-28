@@ -233,7 +233,7 @@
 								<Button
 									style="pop"
 									disabled={GhActivationLinkPressed}
-									icon="open-link"
+									icon="arrow-up-righ"
 									onclick={() => {
 										urlService.openExternalUrl("https://github.com/login/device");
 										GhActivationLinkPressed = true;
@@ -362,11 +362,11 @@
 		disabled={showingFlow !== undefined}
 		loading={storePatResult.current.isLoading || storeGhePatResult.current.isLoading}
 		menuItems={[
-			{ label: "Authorize GitHub Account", icon: "connect-github", onclick: gitHubStartOauth },
-			{ label: "Add Personal Access Token", icon: "token-lock", onclick: startPatFlow },
+			{ label: "Authorize GitHub Account", icon: "link", onclick: gitHubStartOauth },
+			{ label: "Add Personal Access Token", icon: "lock-auth", onclick: startPatFlow },
 			{
 				label: "Add GitHub Enterprise Account",
-				icon: "enterprise",
+				icon: "factory",
 				onclick: startGitHubEnterpriseFlow,
 			},
 		]}

@@ -84,6 +84,7 @@
 	let selectedWithEmoji = $state<string>("happy");
 	let selectedLongOption = $state<string>();
 	let selectedWithSeparators = $state<string>("new");
+	let customBtnOpen = $state(false);
 </script>
 
 <script lang="ts">
@@ -120,11 +121,12 @@
 				onselect={(value: string) => {
 					selectedItem = value;
 				}}
+				ontoggle={(isOpen) => (customBtnOpen = isOpen)}
 				customWidth={120}
 				popupAlign="center"
 			>
 				{#snippet customSelectButton()}
-					<Button kind="outline" icon="select-chevron" size="tag">
+					<Button kind="outline" isDropdown dropdownOpen={customBtnOpen} size="tag">
 						{args.options.find(
 							(option: { value: string; label: string }) => option.value === selectedItem,
 						)?.label}
@@ -219,8 +221,8 @@
 						<SelectItem selected={item.value === selectedWithIcon} {highlighted}>
 							{#snippet iconSnippet()}
 								<div class="custom-component">
-									<Icon name="plus-small" />
-									<Icon name="minus-small" />
+									<Icon name="plus" />
+									<Icon name="minus" />
 								</div>
 							{/snippet}
 							{item.label}

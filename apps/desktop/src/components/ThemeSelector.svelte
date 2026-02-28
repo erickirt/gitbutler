@@ -44,7 +44,12 @@
 				onchange={() => userSettings.update((s) => ({ ...s, theme: theme.value }))}
 			/>
 			<div class="theme-card__preview">
-				<i class="theme-card__icon"><Icon name="success" color="pop" /></i>
+				<i class="theme-card__icon"
+					><Icon
+						name="tick-circle"
+						color={theme.value === "light" ? "var(--clr-core-pop-50)" : "var(--clr-core-pop-60)"}
+					/></i
+				>
 
 				<img src={theme.preview} alt={theme.name} />
 			</div>

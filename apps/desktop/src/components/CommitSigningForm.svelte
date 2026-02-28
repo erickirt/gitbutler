@@ -166,7 +166,7 @@
 					</InfoMessage>
 				{/if}
 
-				<Button style="pop" wide icon="item-tick" onclick={checkSigning}>
+				<Button style="pop" wide icon="tick" onclick={checkSigning}>
 					{#if !checked}
 						Test signing
 					{:else}

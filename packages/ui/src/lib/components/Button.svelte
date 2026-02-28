@@ -14,7 +14,7 @@
 		reversedDirection?: boolean;
 		width?: number | string | undefined;
 		maxWidth?: number | undefined;
-		size?: "icon" | "tag" | "button" | "cta";
+		size?: "tag" | "button";
 		wide?: boolean;
 		grow?: boolean;
 		align?: "flex-start" | "center" | "flex-end" | "stretch" | "baseline" | "auto";
@@ -26,7 +26,9 @@
 		iconClass?: string;
 		customStyle?: string;
 		// Additional elements
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: IconName;
+		isDropdown?: boolean;
+		dropdownOpen?: boolean;
 		hotkey?: string;
 		tooltip?: string;
 		tooltipPosition?: TooltipPosition;
@@ -50,10 +52,10 @@
 	import Icon from "$components/Icon.svelte";
 	import Tooltip, { type TooltipAlign, type TooltipPosition } from "$components/Tooltip.svelte";
 	import { focusable } from "$lib/focus/focusable";
+	import { type IconName } from "$lib/icons/names";
 	import { formatHotkeyForPlatform } from "$lib/utils/hotkeySymbols";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { onMount, tick } from "svelte";
-	import type iconsJson from "$lib/data/icons.json";
 	import type { ComponentColorType, ComponentKindType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
@@ -83,6 +85,8 @@
 		customStyle,
 		testId,
 		icon,
+		isDropdown = false,
+		dropdownOpen = false,
 		tooltip,
 		tooltipPosition,
 		tooltipAlign,
@@ -174,11 +178,7 @@
 		{...testId ? { "data-testid": testId } : null}
 	>
 		{#if children}
-			<span
-				class="btn-label text-semibold truncate"
-				class:text-12={size === "button" || size === "cta"}
-				class:text-11={size === "tag" || size === "icon"}
-			>
+			<span class="btn-label text-semibold truncate text-12">
 				{@render children()}
 
 				{#if displayHotkey}
@@ -194,10 +194,14 @@
 			</span>
 		{/if}
 
-		{#if icon || loading}
+		{#if icon || loading || isDropdown}
 			<div class={["btn-icon", iconClass]}>
 				{#if loading}
-					<Icon name="spinner" spinnerRadius={size === "tag" ? 4 : 5} />
+					<Icon name="spinner" />
+				{:else if isDropdown}
+					<div class="btn-dropdown-chevron" class:open={dropdownOpen}>
+						<Icon name="chevron-down" />
+					</div>
 				{:else if icon}
 					<Icon name={icon} />
 				{/if}
@@ -402,12 +406,6 @@
 		}
 
 		/* Size modifiers with size variables */
-		&.icon-size {
-			--btn-size: var(--size-icon);
-			--btn-padding: 2px;
-			--btn-gap: 0;
-		}
-
 		&.tag-size {
 			--btn-size: var(--size-tag);
 			--btn-padding: 2px 4px;
@@ -417,12 +415,6 @@
 		&.button-size {
 			--btn-size: var(--size-button);
 			--btn-padding: 4px 6px;
-			--btn-gap: 2px;
-		}
-
-		&.cta-size {
-			--btn-size: var(--size-cta);
-			--btn-padding: 6px 8px;
 			--btn-gap: 2px;
 		}
 
@@ -492,6 +484,15 @@
 			display: inline-block;
 			overflow: hidden;
 			text-overflow: ellipsis;
+		}
+	}
+
+	.btn-dropdown-chevron {
+		display: flex;
+		transition: transform 0.15s ease;
+
+		&.open {
+			transform: rotate(180deg);
 		}
 	}
 </style>

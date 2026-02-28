@@ -31,7 +31,7 @@
 	tooltip="Last fetch from upstream"
 	{loading}
 	{disabled}
-	icon="update"
+	icon="refresh"
 	reversedDirection
 	onclick={async (e: MouseEvent) => {
 		e.preventDefault();
@@ -62,7 +62,7 @@
 	{#snippet custom()}
 		{#if baseBranch.response}
 			<div class="target-branch">
-				<Icon name="remote-target-branch" color="var(--clr-text-2)" />
+				<Icon name="target-branch" color="var(--clr-text-2)" />
 				<span class="text-12 text-semibold">
 					{baseBranch.response.remoteName}/{baseBranch.response.shortName}
 				</span>

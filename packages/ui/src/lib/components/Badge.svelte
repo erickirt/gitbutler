@@ -2,7 +2,7 @@
 	import Icon from "$components/Icon.svelte";
 	import SkeletonBone from "$components/SkeletonBone.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
-	import type iconsJson from "$lib/data/icons.json";
+	import { type IconName } from "$lib/icons/names";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 	import type { Snippet } from "svelte";
 
@@ -12,7 +12,7 @@
 		kind?: "solid" | "soft";
 		size?: "icon" | "tag";
 		class?: string;
-		icon?: keyof typeof iconsJson | undefined;
+		icon?: IconName;
 		tooltip?: string;
 		skeleton?: boolean;
 		skeletonWidth?: string;
@@ -53,11 +53,11 @@
 			{onclick}
 		>
 			{#if children}
-				<span class="badge__label text-11 text-semibold">{@render children()}</span>
+				<span class="badge__label text-11 text-bold">{@render children()}</span>
 			{/if}
 			{#if icon}
 				<i class="badge__icon">
-					<Icon name={icon} />
+					<Icon name={icon} size={11} />
 				</i>
 			{/if}
 		</div>
@@ -70,8 +70,7 @@
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
-		border-radius: 20px;
-		line-height: 90%;
+		border-radius: 30px;
 		text-align: center;
 
 		/* SOLID */
@@ -138,85 +137,42 @@
 
 		/* SIZE */
 		&.icon-size {
-			min-width: var(--size-icon);
-			height: var(--size-icon);
-			gap: 1px;
-
-			& .badge__label {
-				padding: 0 2px 0 5px;
-			}
-
-			/* When no icon, use equal padding */
-			&:not(:has(.badge__icon)) .badge__label {
-				padding: 0 5px;
-			}
+			padding: 3px 6px;
+			gap: 3px;
 		}
 
 		&.tag-size {
-			min-width: var(--size-tag);
 			height: var(--size-tag);
-			gap: 2px;
-
-			& .badge__label {
-				padding: 0 2px 0 8px;
-			}
-
-			& .badge__icon {
-				padding-right: 4px;
-				padding-left: 0;
-			}
-
-			/* When no icon, use equal padding */
-			&:not(:has(.badge__icon)) .badge__label {
-				padding: 0 8px;
-			}
+			padding: 3px 8px;
+			gap: 3px;
 		}
 
 		&.reversed {
 			flex-direction: row-reverse;
-
-			&.icon-size {
-				& .badge__label {
-					padding: 0 5px 0 2px;
-				}
-
-				& .badge__icon {
-					padding-right: 0;
-					padding-left: 2px;
-				}
-
-				/* When no icon, use equal padding */
-				&:not(:has(.badge__icon)) .badge__label {
-					padding: 0 5px;
-				}
-			}
-
-			&.tag-size {
-				& .badge__label {
-					padding: 0 8px 0 2px;
-				}
-
-				& .badge__icon {
-					padding-right: 0;
-					padding-left: 4px;
-				}
-
-				/* When no icon, use equal padding */
-				&:not(:has(.badge__icon)) .badge__label {
-					padding: 0 8px;
-				}
-			}
 		}
 	}
 
 	.badge__label {
 		display: flex;
 		line-height: var(--size-icon);
+		line-height: 1;
 		white-space: nowrap;
 	}
 
 	.badge__icon {
 		display: flex;
 		opacity: 0.7;
+	}
+
+	@supports (text-box: trim-both ex alphabetic) {
+		.badge__label {
+			text-box: trim-both ex alphabetic;
+		}
+	}
+
+	@support not (text-box: trim-both ex alphabetic) {
+		.badge__label {
+			padding-top: 1px;
+		}
 	}
 </style>

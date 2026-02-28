@@ -19,7 +19,7 @@
 		</div>
 
 		<div class="chat-message__diff-section__actions">
-			<Button kind="ghost" size="icon" icon="show-in-code" onclick={onGoToDiff} />
+			<Button kind="ghost" size="tag" icon="open-in-ide" onclick={onGoToDiff} />
 		</div>
 	</div>
 

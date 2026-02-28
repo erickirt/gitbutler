@@ -256,7 +256,7 @@
 		{/if}
 	{/snippet}
 	{#snippet actions()}
-		<Button onclick={openRuleEditor} icon="plus-small" size="tag" kind="ghost" />
+		<Button onclick={openRuleEditor} icon="plus" size="tag" kind="ghost" />
 	{/snippet}
 	<div class="rules-list" use:focusable>
 		{@render ruleListContent()}
@@ -392,8 +392,8 @@
 								? "leftmost-lane"
 								: stackTargetSelected.type === "rightmost"
 									? "rightmost-lane"
-									: "branch-remote"
-							: "branch-remote"}
+									: "branch"
+							: "branch"}
 					>
 						{#snippet itemSnippet({ item, highlighted })}
 							<SelectItem
@@ -409,7 +409,7 @@
 										{:else if target.type === "rightmost"}
 											<Icon name="rightmost-lane" />
 										{:else}
-											<Icon name="branch-remote" />
+											<Icon name="branch" />
 										{/if}
 									{/if}
 								{/snippet}

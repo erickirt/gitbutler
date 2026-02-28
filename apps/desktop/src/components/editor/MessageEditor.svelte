@@ -361,7 +361,7 @@
 			<div class="message-textarea__toolbar__left">
 				<Button
 					kind="ghost"
-					icon={useFloatingBox.current ? "exit-floating-box" : "enter-floating-box"}
+					icon={useFloatingBox.current ? "pop-in" : "pop-out"}
 					tooltip={useFloatingBox.current ? "Exit floating mode" : "Use floating mode"}
 					onclick={() => {
 						useFloatingBox.set(!useFloatingBox.current);
@@ -374,7 +374,7 @@
 				{#if enableFileUpload}
 					<Button
 						kind="ghost"
-						icon="attachment-small"
+						icon="paperclip"
 						tooltip="Drop, paste or click to upload files"
 						onclick={handleAttachFiles}
 					/>
@@ -425,7 +425,7 @@
 			</div>
 			<DropdownButton
 				kind="outline"
-				icon="ai-small"
+				icon="ai"
 				shrinkable
 				disabled={!canUseAI}
 				loading={aiIsLoading}

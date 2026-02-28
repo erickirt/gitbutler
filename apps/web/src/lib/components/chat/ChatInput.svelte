@@ -269,7 +269,7 @@
 					<div class="chat-input__inner-toolbar__shrinkable">
 						<Button
 							kind="ghost"
-							icon="attachment-small"
+							icon="paperclip"
 							reversedDirection
 							onclick={attachFiles}
 							shrinkable

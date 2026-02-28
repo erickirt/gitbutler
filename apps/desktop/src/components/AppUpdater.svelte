@@ -94,7 +94,7 @@
 {#if version || status === "Up-to-date"}
 	<div class="update-banner" data-testid="update-banner" class:busy={$loading}>
 		<div class="floating-button">
-			<Button icon="cross-small" size="tag" kind="ghost" onclick={handleDismiss} />
+			<Button icon="cross" size="tag" kind="ghost" onclick={handleDismiss} />
 		</div>
 
 		<h4 class="text-13 text-semibold update-banner__status">

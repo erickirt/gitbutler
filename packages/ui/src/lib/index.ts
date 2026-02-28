@@ -30,7 +30,6 @@ export {
 } from "$components/IntegrationSeriesRow.svelte";
 export { default as KebabButton } from "$components/KebabButton.svelte";
 export { default as LineStats } from "$components/LineStats.svelte";
-export { default as LinkButton } from "$components/LinkButton.svelte";
 export { default as Modal, type ModalProps } from "$components/Modal.svelte";
 export { default as ModalHeader } from "$components/ModalHeader.svelte";
 export { default as ModalFooter } from "$components/ModalFooter.svelte";
@@ -160,7 +159,6 @@ export {
 	type MentionSuggestion,
 	type MentionSuggestionUpdate,
 } from "$lib/richText/plugins/Mention.svelte";
-export { default as FormattingBar } from "$lib/richText/tools/FormattingBar.svelte";
 export { default as FormattingButton } from "$lib/richText/tools/FormattingButton.svelte";
 export * from "$lib/utils/testIds";
 

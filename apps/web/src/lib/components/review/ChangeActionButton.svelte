@@ -59,9 +59,9 @@
 	const icon = $derived.by(() => {
 		switch (action) {
 			case "approve":
-				return "success";
+				return "tick-circle";
 			case "requestChanges":
-				return "refresh-small";
+				return "refresh";
 		}
 	});
 

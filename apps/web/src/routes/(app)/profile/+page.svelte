@@ -121,7 +121,7 @@
 						Ready to take a break? Click here to log out and unwind.
 					{/snippet}
 					{#snippet actions()}
-						<Button kind="outline" icon="signout" onclick={logout}>Log out</Button>
+						<Button kind="outline" icon="logout" onclick={logout}>Log out</Button>
 					{/snippet}
 				</CardGroup.Item>
 
@@ -141,7 +141,7 @@
 							Copy your token to use with the desktop app or CLI.
 						{/snippet}
 						{#snippet actions()}
-							<Button kind="outline" icon="copy-small" onclick={copyAccessToken}>Copy token</Button>
+							<Button kind="outline" icon="copy" onclick={copyAccessToken}>Copy token</Button>
 						{/snippet}
 					</CardGroup.Item>
 					<CardGroup.Item>
@@ -151,7 +151,7 @@
 							This logs you out everywhere, including the desktop app.
 						{/snippet}
 						{#snippet actions()}
-							<Button kind="outline" icon="update" onclick={refreshAccessToken}
+							<Button kind="outline" icon="refresh" onclick={refreshAccessToken}
 								>Refresh token</Button
 							>
 						{/snippet}
@@ -223,7 +223,7 @@
 					rel="noopener noreferrer"
 				>
 					<div class="tip-link__title">
-						<Icon name="docs-small" color="var(--clr-text-2)" />
+						<Icon name="docs" color="var(--clr-text-2)" />
 						<h3 class="text-14 text-semibold">Get Started</h3>
 					</div>
 					<p class="text-12 text-body clr-text-2">
@@ -239,7 +239,7 @@
 					rel="noopener noreferrer"
 				>
 					<div class="tip-link__title">
-						<Icon name="discord-outline" color="var(--clr-text-2)" />
+						<Icon name="discord" color="var(--clr-text-2)" />
 						<h3 class="text-14 text-semibold">Join the Community</h3>
 					</div>
 					<p class="text-12 text-body clr-text-2">Join our Discord for help and discussion.</p>

@@ -33,10 +33,7 @@
 
 		<SegmentControl selected={selectedSegment} onselect={(id) => (selectedSegment = id)}>
 			{#each promptDirs as dir}
-				<SegmentControl.Item
-					id={dir.label}
-					icon={dir.label === "Global" ? "global-small" : "folder"}
-				>
+				<SegmentControl.Item id={dir.label} icon={dir.label === "Global" ? "globe" : "folder"}>
 					{dir.label}
 				</SegmentControl.Item>
 			{/each}
@@ -54,7 +51,7 @@
 		{/if}
 
 		<Button
-			icon="open-editor-small"
+			icon="arrow-up-righ"
 			onclick={() => {
 				const dir = promptDirs.find((d) => d.label === selectedSegment);
 				if (dir) {

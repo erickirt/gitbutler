@@ -1,7 +1,7 @@
 import { showToast } from "$lib/notifications/toasts";
 import { TestId } from "@gitbutler/ui";
+import type { BranchIconName } from "$components/BranchHeaderIcon.svelte";
 import type { Workspace, WorkspaceLegacy } from "@gitbutler/core/api";
-import type iconsJson from "@gitbutler/ui/data/icons.json";
 
 export type CreateBranchFromBranchOutcome = {
 	stackId: string;
@@ -128,16 +128,16 @@ export function getColorFromPushStatus(pushStatus: PushStatus): string {
 	}
 }
 
-export function pushStatusToIcon(pushStatus: PushStatus): keyof typeof iconsJson {
+export function pushStatusToIcon(pushStatus: PushStatus): BranchIconName {
 	switch (pushStatus) {
 		case "nothingToPush":
 		case "unpushedCommits":
 		case "unpushedCommitsRequiringForce":
-			return "branch-remote";
+			return "branch";
 		case "completelyUnpushed":
 			return "branch-local";
 		case "integrated":
-			return "branch-remote";
+			return "branch";
 	}
 }
 

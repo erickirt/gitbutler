@@ -85,7 +85,7 @@
 	<CollapseStackButton {stackId} {projectId} {disabled} />
 
 	<div class="drag-handle-icon">
-		<Icon name="draggable-wide" />
+		<Icon name="drag-horizontal" />
 	</div>
 
 	<KebabButton minimal>

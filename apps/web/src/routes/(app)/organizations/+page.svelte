@@ -84,7 +84,7 @@
 											</div>
 											<div class="organization-stats">
 												<div class="stat">
-													<Icon name="profile" />
+													<Icon name="user" />
 													<span>{getOrganizationMembersCount(organization)} members</span>
 												</div>
 												<div class="stat">

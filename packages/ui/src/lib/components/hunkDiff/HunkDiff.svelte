@@ -110,7 +110,7 @@
 >
 	{#if !draggingDisabled}
 		<div class="table__drag-handle">
-			<Icon name="draggable" />
+			<Icon name="drag-square" />
 		</div>
 	{/if}
 	<ScrollableContainer horz whenToShow="always" zIndex="0">
@@ -134,9 +134,9 @@
 					>
 						<div class="table__checkbox" class:staged>
 							{#if staged && !hideCheckboxes}
-								<Icon name="tick-small" />
+								<Icon name="tick" />
 							{:else if showingCheckboxes}
-								<Icon name="minus-small" />
+								<Icon name="minus" />
 							{/if}
 						</div>
 					</th>

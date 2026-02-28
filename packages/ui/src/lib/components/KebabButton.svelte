@@ -2,7 +2,7 @@
 	import Button from "$components/Button.svelte";
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import Icon from "$components/Icon.svelte";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
+	import { type IconName } from "$lib/icons/names";
 	import type { Snippet } from "svelte";
 
 	interface Props {
@@ -15,7 +15,7 @@
 		contextMenu: Snippet<[{ close: () => void }]>;
 		menuSide?: "top" | "bottom" | "left" | "right";
 		menuAlign?: "start" | "center" | "end";
-		icon?: keyof typeof iconsJson;
+		icon?: IconName;
 		onMenuClose?: () => void;
 		onMenuOpen?: () => void;
 		onMenuToggle?: (isOpen: boolean, isLeftClick: boolean) => void;

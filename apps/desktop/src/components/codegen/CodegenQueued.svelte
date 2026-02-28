@@ -79,7 +79,7 @@
 	<div class="queued-messages" in:slide={{ duration: 300 }}>
 		<div class="queue-header">
 			<div class="flex items-center gap-8">
-				<Icon name="time" />
+				<Icon name="clock" />
 				<span class="text-12">Queued messages</span>
 			</div>
 

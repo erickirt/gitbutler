@@ -1,7 +1,5 @@
 <script lang="ts">
-	import Tooltip from "$components/Tooltip.svelte";
-	import ghLogo from "$lib/assets/review-badge/gh-logo.svg?raw";
-	import glLogo from "$lib/assets/review-badge/gl-logo.svg?raw";
+	import Badge from "$components/Badge.svelte";
 
 	interface Props {
 		type: string | undefined;
@@ -15,6 +13,19 @@
 	const reviewUnit = $derived(type === "MR" ? "MR" : "PR");
 	const reviewSymbol = $derived(reviewUnit === "MR" ? "!" : "#");
 	const id = $derived(`${reviewSymbol}${number}`);
+
+	function getBadgeStyle(status: Props["status"]): "safe" | "danger" | "purple" | "gray" {
+		switch (status) {
+			case "open":
+				return "safe";
+			case "closed":
+				return "danger";
+			case "merged":
+				return "purple";
+			default:
+				return "gray";
+		}
+	}
 
 	const badgeDetails = $derived.by(() => {
 		if (title) {
@@ -36,70 +47,16 @@
 	});
 </script>
 
-<Tooltip text={badgeDetails}>
-	<div class="review-badge pr-{status}">
-		<div class="review-badge__icon">
-			{#if type === "MR"}
-				{@html glLogo}
-			{:else if type === "PR"}
-				{@html ghLogo}
-			{/if}
-		</div>
-
-		<span class="text-11 text-semibold review-badge-text">
-			{#if status === "draft"}
-				Draft {reviewUnit}
-			{:else}
-				{reviewUnit} {id}
-			{/if}
-		</span>
-	</div>
-</Tooltip>
-
-<style lang="postcss">
-	.review-badge {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: fit-content;
-		height: var(--size-icon);
-		padding-right: 5px;
-		padding-left: 4px;
-		gap: 3px;
-		border-radius: var(--radius-ml);
-		line-height: 1;
-	}
-
-	.review-badge__icon {
-		display: flex;
-		flex-shrink: 0;
-	}
-
-	.review-badge-text {
-		white-space: nowrap;
-	}
-
-	.pr-open,
-	.pr-unknown {
-		border: 1px solid var(--clr-border-2);
-		background-color: var(--clr-bg-muted);
-		color: var(--clr-text-1);
-	}
-
-	.pr-closed {
-		background-color: var(--clr-theme-danger-soft);
-		color: var(--clr-theme-danger-on-soft);
-	}
-
-	.pr-draft {
-		border: 1px solid var(--clr-border-1);
-		border-style: dotted;
-		background-color: var(--clr-bg-muted);
-		color: var(--clr-text-1);
-	}
-
-	.pr-merged {
-		background-color: var(--clr-theme-purple-soft);
-		color: var(--clr-theme-purple-on-soft);
-	}
-</style>
+<Badge
+	tooltip={badgeDetails}
+	style={getBadgeStyle(status)}
+	kind="soft"
+	icon={type === "MR" ? "gitlab" : type === "PR" ? "github" : undefined}
+	reversedDirection
+>
+	{#if status === "draft"}
+		Draft {reviewUnit}
+	{:else}
+		{reviewUnit} {id}
+	{/if}
+</Badge>

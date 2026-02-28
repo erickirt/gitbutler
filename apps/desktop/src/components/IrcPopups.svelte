@@ -27,7 +27,6 @@
 			<IrcChannel bind:headerElRef={ircHeaderEl} nick={chat.username} type="private">
 				{#snippet headerActions()}
 					<Button
-						size="icon"
 						icon="cross"
 						kind="ghost"
 						onclick={() => {
@@ -35,8 +34,7 @@
 						}}
 					/>
 					<Button
-						size="icon"
-						icon={collapsed ? "chevron-down-small" : "chevron-up-small"}
+						icon={collapsed ? "chevron-down" : "chevron-up"}
 						kind="ghost"
 						onclick={() => {
 							collapsed = !collapsed;

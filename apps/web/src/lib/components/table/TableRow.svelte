@@ -93,13 +93,13 @@
 								<AvatarGroup
 									avatars={(value as { approvers: AvatarsType[] }).approvers}
 									maxAvatars={2}
-									icon="tick-small"
+									icon="tick"
 									iconColor="safe"
 								/>
 								<AvatarGroup
 									avatars={(value as { rejectors: AvatarsType[] }).rejectors}
 									maxAvatars={2}
-									icon="refresh-small"
+									icon="refresh"
 									iconColor="warning"
 								/>
 							{:else}
@@ -123,7 +123,7 @@
 					{:else if key === "comments"}
 						<div class="text-12 dynclmn-comments" class:dynclmn-placeholder={!value}>
 							<span>{value}</span>
-							<div class="dynclmn-comments-icon"><Icon name="comments-small" /></div>
+							<div class="dynclmn-comments-icon"><Icon name="chat" size={14} /></div>
 						</div>
 					{:else}
 						{value}
@@ -181,13 +181,13 @@
 									<AvatarGroup
 										avatars={reviewers.approvers}
 										maxAvatars={2}
-										icon="tick-small"
+										icon="tick"
 										iconColor="safe"
 									/>
 									<AvatarGroup
 										avatars={reviewers.rejectors}
 										maxAvatars={2}
-										icon="refresh-small"
+										icon="refresh"
 										iconColor="warning"
 									/>
 								</div>

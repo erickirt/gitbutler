@@ -72,7 +72,7 @@
 
 							<div class="text-12 commit-failed__file-entry__dependency-locks">
 								<div class="commit-failed__file-entry__dependency-locks__label">
-									<Icon name="locked" />
+									<Icon name="lock" color="var(--clr-theme-warn-element)" />
 									<span class="clr-text-2">Depends on:</span>
 								</div>
 								<div class="commit-failed__file-entry__dependency-locks__content">
@@ -90,7 +90,7 @@
 											{@const commitTitle =
 												commitMessage?.message.split("\n")[0] || "No commit message provided"}
 											<p class="text-body commit-failed__file-entry-dependency-lock">
-												<i class="commit-failed__text-icon"><Icon name="branch-small" /></i>
+												<i class="commit-failed__text-icon"><Icon name="branch" /></i>
 												<span class="text-semibold">{branchName}</span>
 												<i class="clr-text-2">in commit</i>
 												<i class="commit-failed__text-icon"><Icon name="commit" /></i>
@@ -102,7 +102,7 @@
 											</p>
 										{:else}
 											<p class="text-body commit-failed__file-entry-dependency-lock">
-												<i class="commit-failed__text-icon"><Icon name="branch-small" /></i>
+												<i class="commit-failed__text-icon"><Icon name="branch" /></i>
 												<span class="text-semibold">Unknown stack</span>
 												<i class="clr-text-2">in commit</i>
 												<i class="commit-failed__text-icon"><Icon name="commit" /></i>

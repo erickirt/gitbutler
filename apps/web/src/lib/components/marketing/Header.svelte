@@ -3,8 +3,7 @@
 	import GitbutlerLogoLink from "$lib/components/GitbutlerLogoLink.svelte";
 	import HeaderAuthSection from "$lib/components/HeaderAuthSection.svelte";
 	import * as jsonLinks from "$lib/data/links.json";
-	import { Icon } from "@gitbutler/ui";
-	import type iconsJson from "@gitbutler/ui/data/icons.json";
+	import { Icon, type IconName } from "@gitbutler/ui";
 
 	interface Props {
 		disableLogoLink?: boolean;
@@ -14,7 +13,7 @@
 </script>
 
 <!-- Link snippet for reusable navigation links -->
-{#snippet link(props: { href: string; label: string; icon?: keyof typeof iconsJson })}
+{#snippet link(props: { href: string; label: string; icon?: IconName })}
 	<a
 		href={props.href}
 		target="_self"
@@ -41,12 +40,12 @@
 			{@render link({
 				href: jsonLinks.resources.source.url,
 				label: "Source",
-				icon: "github-outline",
+				icon: "github",
 			})}
 			{@render link({
 				href: jsonLinks.social.discord.url,
 				label: "Community",
-				icon: "discord-outline",
+				icon: "discord",
 			})}
 			{@render link({
 				href: jsonLinks.resources.downloads.url,

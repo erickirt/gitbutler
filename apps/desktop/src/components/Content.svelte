@@ -106,7 +106,7 @@
 		onkeydown={(e) => e.key === "Enter" && toggleExpand()}
 	>
 		{#if !isInEditing}
-			<Icon name="doc" />
+			<Icon name="file-text" />
 			<h3 class="text-15 text-bold title">{promptName}</h3>
 			<div class="icon">
 				<Icon name={expanded ? "chevron-up" : "chevron-down"} />
@@ -164,7 +164,7 @@
 							e.stopPropagation();
 							deletePrompt?.(prompt);
 						}}
-						icon="bin-small">Delete</Button
+						icon="bin">Delete</Button
 					>
 					<Button kind="outline" icon="edit" onclick={() => (editing = true)}>Edit prompt</Button>
 				{/if}

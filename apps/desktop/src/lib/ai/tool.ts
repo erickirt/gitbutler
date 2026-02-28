@@ -364,28 +364,28 @@ function isCommitToolQuery(result: unknown): result is CommitToolResult {
 
 export function getToolCallIcon(name: ToolName, isError: boolean): IconName {
 	if (isError) {
-		return "error";
+		return "danger";
 	}
 
 	switch (name) {
 		case "split_commit":
-			return "branch-shadow-commit";
+			return "branch-double-commit";
 		case "commit":
 			return "commit";
 		case "amend":
-			return "amend-commit";
+			return "commit-edit";
 		case "create_blank_commit":
-			return "blank-commit";
+			return "commit";
 		case "create_branch":
 			return "branch-local";
 		case "get_project_status":
 			return "info";
 		case "move_file_changes":
-			return "move-commit-file-small";
+			return "split";
 		case "get_commit_details":
 			return "info";
 		case "squash_commits":
-			return "squash-commit";
+			return "commit-squash";
 		case "split_branch":
 			return "branch-local";
 		case "get_branch_changes":

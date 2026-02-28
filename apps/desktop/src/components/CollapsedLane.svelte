@@ -30,7 +30,7 @@
 	<CollapseStackButton {stackId} {projectId} isFolded onToggle={(fn) => (toggleFold = fn)} />
 
 	<div class="drag-handle-icon">
-		<Icon name="draggable-wide" />
+		<Icon name="drag-horizontal" />
 	</div>
 
 	<div class="text-14 text-semibold stack-names">
@@ -39,7 +39,7 @@
 				<span class="branch-name">{branchName}</span>
 
 				{#if branchName !== branchNames[branchNames.length - 1]}
-					<Icon name="text-link" color="var(--clr-text-3)" rotate={90} />
+					<Icon name="link" color="var(--clr-text-3)" rotate={90} />
 				{/if}
 			{/each}
 		{:else}
