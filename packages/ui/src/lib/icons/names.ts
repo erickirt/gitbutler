@@ -29,6 +29,7 @@ export const iconNames = [
 	"branch",
 	"branch-double-commit",
 	"branch-local",
+	"branch-merge",
 	"branch-stash",
 	"branch-tick",
 	"bulb",

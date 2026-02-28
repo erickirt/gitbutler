@@ -35,6 +35,9 @@ const replaceColorsWithCurrentColor = {
 							node.attributes[attr] = "currentColor";
 						}
 					}
+					if (node.attributes["stroke"] && node.attributes["stroke"] !== "none") {
+						node.attributes["vector-effect"] = "non-scaling-stroke";
+					}
 				},
 			},
 		};
@@ -50,6 +53,8 @@ const svgoConfig = {
 				overrides: {
 					// Don't collapse groups — our icons use them intentionally
 					collapseGroups: false,
+					// Keep viewBox — required for proper scaling
+					removeViewBox: false,
 				},
 			},
 		},

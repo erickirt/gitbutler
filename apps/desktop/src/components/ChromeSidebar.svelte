@@ -49,8 +49,8 @@
 			>
 				{#snippet custom()}
 					<svg
-						width="17"
-						height="13"
+						width="1.063rem"
+						height="0.813rem"
 						viewBox="0 0 17 13"
 						fill="none"
 						stroke="currentColor"
@@ -87,48 +87,51 @@
 			>
 				{#snippet custom()}
 					<svg
-						width="1rem"
-						height="1rem"
-						viewBox="0 0 16 14"
+						width="1.063rem"
+						height="0.938rem"
+						viewBox="0 0 17 15"
 						fill="none"
 						stroke="currentColor"
 						xmlns="http://www.w3.org/2000/svg"
 					>
-						<path d="M4.75 2.75L10.75 2.75" stroke="var(--clr-branches)" stroke-width="1.5" />
+						<path d="M5.75 3.25H10.75" stroke="var(--clr-branches)" stroke-width="1.5" />
 						<path
-							d="M2.75 4.75L2.75 7.75L5.75 10.75L11.25 10.75"
+							d="M3.75 5.25L5.06623 9.19868C5.47457 10.4237 6.62099 11.25 7.91228 11.25L10.75 11.25"
 							stroke="var(--clr-branches)"
 							stroke-width="1.5"
 						/>
 						<rect
-							x="15"
-							y="1"
-							width="4"
-							height="4"
-							transform="rotate(90 15 1)"
-							stroke-width="1.5"
+							x="15.75"
+							y="0.75"
+							width="5"
+							height="5"
+							rx="2.5"
+							transform="rotate(90 15.75 0.75)"
 							fill="var(--clr-branches)"
 							stroke="var(--clr-branches)"
+							stroke-width="1.5"
 						/>
 						<rect
-							x="15"
-							y="9"
-							width="4"
-							height="4"
-							transform="rotate(90 15 9)"
-							stroke-width="1.5"
+							x="5.75"
+							y="0.75"
+							width="5"
+							height="5"
+							rx="2.5"
+							transform="rotate(90 5.75 0.75)"
 							fill="var(--clr-branches)"
 							stroke="var(--clr-branches)"
+							stroke-width="1.5"
 						/>
 						<rect
-							x="5"
-							y="1"
-							width="4"
-							height="4"
-							transform="rotate(90 5 1)"
-							stroke-width="1.5"
+							x="15.75"
+							y="8.75"
+							width="5"
+							height="5"
+							rx="2.5"
+							transform="rotate(90 15.75 8.75)"
 							fill="var(--clr-branches)"
 							stroke="var(--clr-branches)"
+							stroke-width="1.5"
 						/>
 					</svg>
 				{/snippet}
@@ -220,7 +223,7 @@
 							<path
 								fill-rule="evenodd"
 								clip-rule="evenodd"
-								d="M12.874 4.36609V11.3661L6.8125 14.8661L0.75 11.3661V4.36609L6.8125 0.866089L12.874 4.36609ZM4.21387 6.36609V9.36609L6.8125 10.8661L9.41016 9.36609V6.36609L6.8125 4.86609L4.21387 6.36609Z"
+								d="M5.8125 1.01783C6.43123 0.6608 7.19383 0.660645 7.8125 1.01783L11.874 3.36354C12.4928 3.7208 12.874 4.38143 12.874 5.09596V9.78639C12.8739 10.5008 12.4928 11.1606 11.874 11.5178L7.8125 13.8635C7.19378 14.2208 6.43126 14.2207 5.8125 13.8635L1.75 11.5178C1.13136 11.1606 0.750083 10.5008 0.75 9.78639V5.09596C0.75 4.38143 1.13121 3.7208 1.75 3.36354L5.8125 1.01783ZM7.8125 5.01783C7.19383 4.66065 6.43123 4.6608 5.8125 5.01783L5.21387 5.36354C4.59518 5.72083 4.21387 6.3815 4.21387 7.09596V7.78639C4.21395 8.5007 4.59533 9.16056 5.21387 9.51783L5.8125 9.86354C6.43126 10.2207 7.19378 10.2208 7.8125 9.86354L8.41016 9.51783C9.02884 9.16059 9.41007 8.5008 9.41016 7.78639V7.09596C9.41016 6.38143 9.02896 5.7208 8.41016 5.36354L7.8125 5.01783Z"
 								stroke="var(--clr-settings-bg)"
 								fill="var(--clr-settings-bg)"
 								stroke-width="1.5"
