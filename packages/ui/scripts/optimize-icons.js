@@ -35,7 +35,8 @@ const replaceColorsWithCurrentColor = {
 							node.attributes[attr] = "currentColor";
 						}
 					}
-					if (node.attributes["stroke"] && node.attributes["stroke"] !== "none") {
+					const vectorShapes = ["path", "circle", "ellipse", "rect", "line", "polyline", "polygon"];
+					if (vectorShapes.includes(node.name)) {
 						node.attributes["vector-effect"] = "non-scaling-stroke";
 					}
 				},
