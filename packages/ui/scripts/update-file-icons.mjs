@@ -67,10 +67,10 @@ function optimizeSvg(raw) {
 
 	// Normalise <svg …> attribute order: xmlns first, then fill="none", then viewBox
 	svg = svg.replace(/<svg([^>]*)>/, (_, attrs) => {
-		const get = (name) => {
+		function get(name) {
 			const m = attrs.match(new RegExp(`${name}="([^"]*)"`));
 			return m ? m[1] : null;
-		};
+		}
 		const xmlns = get("xmlns") ?? "http://www.w3.org/2000/svg";
 		const viewBox = get("viewBox") ?? "0 0 14 14";
 		return `<svg xmlns="${xmlns}" fill="none" viewBox="${viewBox}">`;
@@ -145,10 +145,10 @@ for (const file of svgFiles) {
 
 	if (patched) {
 		tsContent = patched;
-		console.log(`✓ updated  "${key}"`);
+		console.warn(`✓ updated  "${key}"`);
 		updated++;
 	} else {
-		console.log(`⚠ no match "${key}" – skipping (add manually if needed)`);
+		console.warn(`⚠ no match "${key}" – skipping (add manually if needed)`);
 		newEntries.push({ key, svg: optimized });
 		skipped++;
 	}
@@ -156,10 +156,10 @@ for (const file of svgFiles) {
 
 writeFileSync(tsFile, tsContent, "utf8");
 
-console.log(`\nDone. ${updated} updated, ${skipped} skipped.`);
+console.warn(`\nDone. ${updated} updated, ${skipped} skipped.`);
 if (newEntries.length) {
-	console.log("\nSVG values for skipped icons (add manually to fileIcons.ts):");
+	console.warn("\nSVG values for skipped icons (add manually to fileIcons.ts):");
 	for (const { key, svg } of newEntries) {
-		console.log(`\n  "${key}":\n    '${svg}',`);
+		console.warn(`\n  "${key}":\n    '${svg}',`);
 	}
 }
