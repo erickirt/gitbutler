@@ -15,14 +15,14 @@ fn context_for_repo(repo: &git2::Repository) -> Context {
 }
 
 #[test]
-fn allows_read_inside_worktree() {
+fn allows_read_inside_worktree_with_relative_path() {
     let (repo, _tmp) = test_repository();
     let workdir = repo.workdir().expect("workdir exists");
     fs::write(workdir.join("file.txt"), "hello from workspace").expect("write file");
 
     let ctx = context_for_repo(&repo);
     let info = ctx
-        .read_file_from_workspace(Path::new("file.txt"))
+        .read_file_from_workspace("file.txt".as_ref())
         .expect("read file in workspace");
 
     assert_eq!(info.content, Some("hello from workspace".to_owned()));
@@ -52,7 +52,7 @@ fn rejects_dotdot_traversal() {
         .expect_err("traversal must be rejected");
 
     assert!(
-        err.to_string().contains("outside the worktree directory"),
+        err.to_string().contains("isn't in the worktree directory"),
         "{err:#}"
     );
 }
@@ -67,7 +67,7 @@ fn rejects_symlink_escape() {
         .expect("workdir has parent")
         .join("gitbutler-symlink-target.txt");
     fs::write(&outside_path, "outside via symlink").expect("write outside file");
-    std::os::unix::fs::symlink(&outside_path, workdir.join("link.txt")).expect("create symlink");
+    gix::fs::symlink::create(&outside_path, &workdir.join("link.txt")).expect("create symlink");
 
     let ctx = context_for_repo(&repo);
     let err = ctx
@@ -75,13 +75,13 @@ fn rejects_symlink_escape() {
         .expect_err("symlink escape must be rejected");
 
     assert!(
-        err.to_string().contains("outside the worktree directory"),
+        err.to_string().contains("isn't in the worktree directory"),
         "{err:#}"
     );
 }
 
 #[test]
-fn keeps_deleted_file_fallback_behavior() {
+fn reads_deleted_file_from_index() {
     let (repo, _tmp) = test_repository();
     let workdir = repo.workdir().expect("workdir exists");
     fs::write(workdir.join("deleted.txt"), "tracked content").expect("write tracked file");
@@ -91,7 +91,24 @@ fn keeps_deleted_file_fallback_behavior() {
     let ctx = context_for_repo(&repo);
     let info = ctx
         .read_file_from_workspace(Path::new("deleted.txt"))
-        .expect("deleted tracked file should still be readable from index/head fallback");
+        .expect("deleted tracked file should still be readable from index fallback");
+
+    assert_eq!(info.content, Some("tracked content".to_owned()));
+}
+
+#[test]
+fn reads_deleted_file_from_head_commit() {
+    let (repo, _tmp) = test_repository();
+    let workdir = repo.workdir().expect("workdir exists");
+    fs::write(workdir.join("deleted.txt"), "tracked content").expect("write tracked file");
+    commit_all(&repo);
+    fs::remove_file(workdir.join("deleted.txt")).expect("delete file from workspace");
+    fs::remove_file(repo.path().join("index")).expect("delete index file");
+
+    let ctx = context_for_repo(&repo);
+    let info = ctx
+        .read_file_from_workspace(Path::new("deleted.txt"))
+        .expect("deleted tracked file should still be readable from head fallback");
 
     assert_eq!(info.content, Some("tracked content".to_owned()));
 }

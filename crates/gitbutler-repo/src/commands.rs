@@ -3,6 +3,7 @@ use std::{path::Path, sync::Mutex};
 use anyhow::{Result, bail};
 use base64::engine::Engine as _;
 use but_ctx::Context;
+use but_oxidize::ObjectIdExt as _;
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use git2::Oid;
 use ignore::WalkBuilder;
@@ -167,6 +168,9 @@ pub trait RepoCommands {
     /// This order makes sense if you imagine that deleted files are shown, like in a `git status`,
     /// so we want to know what's deleted.
     ///
+    /// `path` can be a repository-relative path, or a path that is within the
+    /// worktree of the current repository.
+    ///
     /// Returns `FileInfo::default()` if file could not be found.
     fn read_file_from_workspace(&self, path: &Path) -> Result<FileInfo>;
 
@@ -242,73 +246,68 @@ impl RepoCommands for Context {
         })
     }
 
-    fn read_file_from_workspace(&self, probably_relative_path: &Path) -> Result<FileInfo> {
+    /// Note that `path` can be relative or absolute, and we must validate that it's in the worktree.
+    fn read_file_from_workspace(&self, path: &Path) -> Result<FileInfo> {
         let workdir = self.workdir_or_fail()?;
         let canonical_workdir = gix::path::realpath(&workdir)?;
-        let repo = self.git2_repo.get()?;
-        let (path_in_worktree, relative_path) = if probably_relative_path.is_relative() {
-            (
-                // This keeps non-existing leaf components, which preserves deleted-file fallback
-                // behavior below.
-                gix::path::realpath(workdir.join(probably_relative_path))?,
-                probably_relative_path.to_owned(),
-            )
-        } else {
-            let path_in_worktree = gix::path::realpath(probably_relative_path)?;
-            let relative_path = match path_in_worktree.strip_prefix(&canonical_workdir) {
-                Ok(relative_path) => relative_path.to_owned(),
-                Err(_) => {
-                    bail!(
-                        "Path to read from at '{}' isn't in the worktree directory '{}'",
-                        probably_relative_path.display(),
-                        canonical_workdir.display()
-                    );
-                }
-            };
-            (path_in_worktree, relative_path)
+        let path = gix::path::realpath(canonical_workdir.join(path))?;
+        // Double-check that the path is still in the worktree - this might not be the case
+        // if it was aboslute to begin with, or leads through symlinks.
+        let relative_path = match path.strip_prefix(&canonical_workdir) {
+            Ok(relative_path) => relative_path.to_owned(),
+            Err(_) => {
+                bail!(
+                    "Path to read from at '{}' isn't in the worktree directory '{}'",
+                    path.display(),
+                    canonical_workdir.display()
+                );
+            }
         };
 
-        if !path_in_worktree.starts_with(&canonical_workdir) {
-            bail!(
-                "Refusing to read path '{}' as it resolves outside the worktree directory '{}'",
-                probably_relative_path.display(),
-                canonical_workdir.display()
-            );
-        }
-
-        Ok(match path_in_worktree.symlink_metadata() {
-            Ok(md) if md.is_file() => {
-                let content = std::fs::read(path_in_worktree)?;
-                FileInfo::from_content(&relative_path, &content)
-            }
-            Ok(md) if md.is_symlink() => {
-                let content = std::fs::read_link(&path_in_worktree)?;
-                FileInfo::utf8_text_or_binary(&relative_path, &gix::path::into_bstr(content))
-            }
-            Ok(unsupported) => {
-                warn!(
-                    ?relative_path,
-                    "Path can't be read as its type isn't supported, default to binary",
-                );
-                FileInfo::binary(&relative_path, unsupported.len())
+        let out = match path.symlink_metadata() {
+            Ok(md) => {
+                if md.is_file() {
+                    let content = std::fs::read(&path)?;
+                    FileInfo::from_content(&relative_path, &content)
+                } else if md.is_symlink() {
+                    let content = std::fs::read_link(&path)?;
+                    FileInfo::utf8_text_or_binary(&relative_path, &gix::path::into_bstr(content))
+                } else if md.is_dir() {
+                    bail!(
+                        "Path to read from at '{}' is a directory",
+                        relative_path.display(),
+                    );
+                } else {
+                    warn!(
+                        ?relative_path,
+                        "Path can't be read as its type isn't supported, default to binary",
+                    );
+                    FileInfo::binary(&relative_path, md.len())
+                }
             }
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                match repo.index()?.get_path(&relative_path, 0) {
+                let repo = self.repo.get()?;
+                let relative_path_bstr = gix::path::to_unix_separators_on_windows(
+                    gix::path::into_bstr(relative_path.clone()),
+                );
+                let index = repo.index_or_empty()?;
+                match index.entry_by_path(relative_path_bstr.as_ref()) {
                     // Read file that has been deleted and not staged for commit.
                     Some(entry) => {
                         let blob = repo.find_blob(entry.id)?;
-                        FileInfo::from_content(&relative_path, blob.content())
+                        FileInfo::from_content(&relative_path, blob.data.as_ref())
                     }
                     // Read file that has been deleted and staged for commit. Note that file not
                     // found returns FileInfo::default() rather than an error.
                     None => self.read_file_from_commit(
-                        repo.head()?.peel_to_commit()?.id(),
+                        repo.head_id()?.detach().to_git2(),
                         &relative_path,
                     )?,
                 }
             }
             Err(err) => return Err(err.into()),
-        })
+        };
+        Ok(out)
     }
 
     fn find_files(&self, query: &str, limit: usize) -> Result<Vec<String>> {
