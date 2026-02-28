@@ -283,7 +283,8 @@ impl std::fmt::Write for InputOutputChannel<'_> {
 }
 
 impl InputOutputChannel<'_> {
-    fn readline(&mut self, prompt: &str) -> anyhow::Result<ReadlineInput> {
+    fn readline(&mut self, prompt: &str, echo: InputEcho) -> anyhow::Result<ReadlineInput> {
+        const PLACEHOLDER: &str = "•";
         self.out.stdout.write_all(prompt.as_bytes())?;
         self.out.stdout.flush()?;
 
@@ -295,8 +296,16 @@ impl InputOutputChannel<'_> {
                 Event::Key(key) => match key_to_edit_action(key, line.is_empty()) {
                     KeyEditAction::Insert(ch) => {
                         line.push(ch);
-                        write!(self.out.stdout, "{ch}")?;
-                        self.out.stdout.flush()?;
+                        match echo {
+                            InputEcho::Visible => {
+                                write!(self.out.stdout, "{ch}")?;
+                                self.out.stdout.flush()?;
+                            }
+                            InputEcho::Hidden => {
+                                self.out.stdout.write_all(PLACEHOLDER.as_bytes())?;
+                                self.out.stdout.flush()?;
+                            }
+                        }
                     }
                     KeyEditAction::Backspace => {
                         if line.pop().is_some() {
@@ -327,8 +336,17 @@ impl InputOutputChannel<'_> {
                 Event::Paste(text) => {
                     if !text.is_empty() {
                         line.push_str(&text);
-                        self.out.stdout.write_all(text.as_bytes())?;
-                        self.out.stdout.flush()?;
+                        match echo {
+                            InputEcho::Visible => {
+                                self.out.stdout.write_all(text.as_bytes())?;
+                                self.out.stdout.flush()?;
+                            }
+                            InputEcho::Hidden => {
+                                let placeholders = PLACEHOLDER.repeat(text.chars().count());
+                                self.out.stdout.write_all(placeholders.as_bytes())?;
+                                self.out.stdout.flush()?;
+                            }
+                        }
                     }
                 }
                 _ => {}
@@ -349,10 +367,25 @@ impl InputOutputChannel<'_> {
     /// // >
     /// ```
     pub fn prompt(&mut self, prompt: impl AsRef<str>) -> anyhow::Result<Option<String>> {
-        Ok(match self.readline(&format!("{}\n> ", prompt.as_ref()))? {
-            ReadlineInput::Text(line) => Some(line),
-            ReadlineInput::Empty | ReadlineInput::EndOfInput => None,
-        })
+        Ok(
+            match self.readline(&format!("{}\n> ", prompt.as_ref()), InputEcho::Visible)? {
+                ReadlineInput::Text(line) => Some(line),
+                ReadlineInput::Empty | ReadlineInput::EndOfInput => None,
+            },
+        )
+    }
+
+    /// Prompt for a non-empty secret string from the user, or `None` if the
+    /// input was empty.
+    ///
+    /// The entered text is masked in the terminal with placeholders.
+    pub fn prompt_secret(&mut self, prompt: impl AsRef<str>) -> anyhow::Result<Option<String>> {
+        Ok(
+            match self.readline(&format!("{}\n> ", prompt.as_ref()), InputEcho::Hidden)? {
+                ReadlineInput::Text(line) => Some(line),
+                ReadlineInput::Empty | ReadlineInput::EndOfInput => None,
+            },
+        )
     }
 
     /// Prompt for y/n confirmation with a default value. Automatically appends
@@ -374,7 +407,10 @@ impl InputOutputChannel<'_> {
             ConfirmDefault::Yes => "[Y/n]",
             ConfirmDefault::No => "[y/N]",
         };
-        match self.readline(&format!("{} {}: ", prompt.as_ref(), suffix))? {
+        match self.readline(
+            &format!("{} {}: ", prompt.as_ref(), suffix),
+            InputEcho::Visible,
+        )? {
             ReadlineInput::Text(input) => {
                 if input.to_lowercase().starts_with('y') {
                     Ok(Confirm::Yes)
@@ -407,7 +443,7 @@ impl InputOutputChannel<'_> {
     ) -> anyhow::Result<ConfirmOrEmpty> {
         let prompt = format!("{} [y/n]: ", prompt.as_ref());
         loop {
-            match self.readline(&prompt)? {
+            match self.readline(&prompt, InputEcho::Visible)? {
                 ReadlineInput::Text(input) => {
                     if input.to_lowercase().starts_with('y') {
                         return Ok(ConfirmOrEmpty::Yes);
@@ -431,8 +467,17 @@ enum ReadlineInput {
     EndOfInput,
 }
 
+/// How to play input back to the user during prompts.
+#[derive(Debug)]
+enum InputEcho {
+    /// Show everything that's typed and displayable.
+    Visible,
+    /// Do not show what's printed.
+    Hidden,
+}
+
 /// Editing operation derived from a terminal key event.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 enum KeyEditAction {
     /// Insert the provided character into the current input buffer.
     Insert(char),

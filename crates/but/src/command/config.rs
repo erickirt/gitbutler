@@ -635,7 +635,7 @@ async fn gitlab_pat(mut inout: InputOutputChannel<'_>) -> Result<()> {
     use but_secret::Sensitive;
 
     let input = inout
-        .prompt("Please enter your GitLab Personal Access Token (PAT) and hit enter:")?
+        .prompt_secret("Please enter your GitLab Personal Access Token (PAT) and hit enter:")?
         .context("No PAT provided. Aborting authentication.")?;
 
     let pat = Sensitive(input);
@@ -657,7 +657,7 @@ async fn gitlab_self_hosted(mut inout: InputOutputChannel<'_>) -> Result<()> {
         .context("No host provided. Aborting authentication.")?;
 
     let input = inout
-        .prompt("Now, please enter your GitLab Personal Access Token (PAT) and hit enter:")?
+        .prompt_secret("Now, please enter your GitLab Personal Access Token (PAT) and hit enter:")?
         .context("No PAT provided. Aborting authentication.")?;
     let pat = Sensitive(input);
     let AuthStatusResponse { username, .. } =
@@ -720,7 +720,7 @@ async fn github_pat(mut inout: InputOutputChannel<'_>) -> Result<()> {
     use but_secret::Sensitive;
 
     let input = inout
-        .prompt("Please enter your GitHub Personal Access Token (PAT) and hit enter:")?
+        .prompt_secret("Please enter your GitHub Personal Access Token (PAT) and hit enter:")?
         .context("No PAT provided. Aborting authentication.")?;
 
     let pat = Sensitive(input);
@@ -740,7 +740,7 @@ async fn github_enterprise(mut inout: InputOutputChannel<'_>) -> Result<()> {
     let base_url = inout.prompt("Please enter your GitHub Enterprise API base URL (e.g., https://github.mycompany.com/api/v3) and hit enter:")?.context("No host provided. Aborting authentication.")?;
 
     let input = inout
-        .prompt(
+        .prompt_secret(
             "Now, please enter your GitHub Enterprise Personal Access Token (PAT) and hit enter:",
         )?
         .context("No PAT provided. Aborting authentication.")?;
