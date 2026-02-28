@@ -1,9 +1,6 @@
 //! A type representing ChangeIDs in commit headers.
 
-use std::{
-    fmt,
-    ops::{Deref, DerefMut},
-};
+use std::{fmt, ops::Deref};
 
 use bstr::{BStr, BString};
 use rand::Rng;
@@ -52,6 +49,16 @@ impl ChangeId {
     }
 }
 
+/// Mutation methods for very specific circumstances.
+///
+/// Use with care and only if you know what you are doing.
+impl ChangeId {
+    /// Prefixes this instance with the given `prefix` bytes.
+    pub fn prefix_with(&mut self, prefix: impl IntoIterator<Item = u8>) {
+        self.0.splice(0..0, prefix);
+    }
+}
+
 /// Converts a byte to reverse hex bytes.
 ///
 /// In reverse hex:
@@ -75,12 +82,6 @@ impl Deref for ChangeId {
 
     fn deref(&self) -> &Self::Target {
         &self.0
-    }
-}
-
-impl DerefMut for ChangeId {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 

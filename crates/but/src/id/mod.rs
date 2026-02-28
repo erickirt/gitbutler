@@ -48,7 +48,7 @@ fn create_reverse_hex_id(
     let object_id = hasher.try_finalize()?;
     let mut change_id = ChangeId::from_bytes(object_id.as_bytes());
     if stack_id.is_none() && path_bytes.iter().all(|c| b'k' <= *c && *c <= b'z') {
-        change_id.splice(0..0, path_bytes.to_owned());
+        change_id.prefix_with(path_bytes.iter().copied());
     }
     Ok(change_id)
 }
