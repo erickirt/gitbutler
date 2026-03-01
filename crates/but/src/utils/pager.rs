@@ -9,7 +9,12 @@ pub(crate) enum Pager {
 const DEFAULT_PAGER: &str = "less";
 
 /// This default configuration makes less behave nicely for a CLI. See the less manual for details.
-const DEFAULT_PAGER_ARGS: &str = "FXR";
+/// The options are:
+/// - `F`: Quit if content fits on screen.
+/// - `X`: Don't clear the screen on exit.
+/// - `R`: Recognize ANSI color escape sequences and use them verbatim to *keep* styling.
+/// - `S`: Don't wrap long lines. We don't want wrapping as we control the layour carefully.
+const DEFAULT_PAGER_ARGS: &str = "FXRS";
 const DEFAULT_PAGER_ENV_VAR: &str = "LESS";
 
 /// Attempt to initialize a new pager.
@@ -70,6 +75,7 @@ fn try_spawn_external_pager() -> Option<(std::process::Child, std::process::Chil
 
     match cmd.spawn() {
         Ok(mut child) => {
+            tracing::debug!(?cmd, "Launched external pager");
             let stdin = child.stdin.take()?;
             Some((child, stdin))
         }
