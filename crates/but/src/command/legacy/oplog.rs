@@ -3,10 +3,7 @@ use colored::Colorize;
 use gitbutler_oplog::entry::{OperationKind, Snapshot};
 use gix::date::time::CustomFormat;
 
-use crate::{
-    tui::text::truncate_text,
-    utils::{Confirm, ConfirmDefault, OutputChannel},
-};
+use crate::utils::{Confirm, ConfirmDefault, OutputChannel};
 
 pub const ISO8601_NO_TZ: CustomFormat = CustomFormat::new("%Y-%m-%d %H:%M:%S");
 
@@ -126,8 +123,7 @@ pub(crate) fn show_oplog(
                     details.title.clone()
                 };
 
-                let display_title = truncate_text(display_title, 80).into_owned();
-
+                let display_title = out.truncate_if_unpaged(&display_title, 80);
                 (op_type, display_title)
             } else {
                 ("UNKNOWN", "Unknown operation".to_string())

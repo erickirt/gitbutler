@@ -112,22 +112,55 @@ impl OutputChannel {
     pub fn format(&self) -> OutputFormat {
         self.format
     }
+
+    /// Return `true` if the output is being passed through a pager.
+    ///
+    /// This is typically used to avoid truncating text when output is being piped to a pager.
+    pub fn is_paged(&self) -> bool {
+        self.pager.is_some()
+    }
+}
+
+/// An [`std::fmt::Write`] implementation that supports additional utility methods for output formatting.
+pub trait WriteWithUtils: std::fmt::Write + 'static {
+    /// Truncate the given text to the specified maximum width, unless the output is passed through a pager.
+    ///
+    /// Note that while copy-on-write is used internally, the returned value is always owned as it's typically
+    /// used with coloring, and that always copies the string.
+    fn truncate_if_unpaged(&self, text: &str, max_width: usize) -> String;
+
+    /// Return `true` if the output is being passed through a pager.
+    fn is_paged(&self) -> bool;
+}
+
+impl WriteWithUtils for OutputChannel {
+    fn truncate_if_unpaged(&self, text: &str, max_width: usize) -> String {
+        if self.pager.is_some() {
+            text.to_owned()
+        } else {
+            crate::tui::text::truncate_text(text, max_width).into_owned()
+        }
+    }
+
+    fn is_paged(&self) -> bool {
+        self.is_paged()
+    }
 }
 
 /// Output
 impl OutputChannel {
     /// Provide a write implementation for humans, if the format setting permits.
-    pub fn for_human(&mut self) -> Option<&mut (dyn std::fmt::Write + 'static)> {
-        matches!(self.format, OutputFormat::Human).then(|| self as &mut dyn std::fmt::Write)
+    pub fn for_human(&mut self) -> Option<&mut dyn WriteWithUtils> {
+        matches!(self.format, OutputFormat::Human).then(|| self as &mut dyn WriteWithUtils)
     }
     /// Provide a write implementation for Shell output, if the format setting permits.
-    pub fn for_shell(&mut self) -> Option<&mut (dyn std::fmt::Write + 'static)> {
-        matches!(self.format, OutputFormat::Shell).then(|| self as &mut dyn std::fmt::Write)
+    pub fn for_shell(&mut self) -> Option<&mut dyn WriteWithUtils> {
+        matches!(self.format, OutputFormat::Shell).then(|| self as &mut dyn WriteWithUtils)
     }
     /// Provide a write implementation for text output (human or shell), if the format setting permits.
-    pub fn for_human_or_shell(&mut self) -> Option<&mut (dyn std::fmt::Write + 'static)> {
+    pub fn for_human_or_shell(&mut self) -> Option<&mut dyn WriteWithUtils> {
         matches!(self.format, OutputFormat::Human | OutputFormat::Shell)
-            .then(|| self as &mut dyn std::fmt::Write)
+            .then(|| self as &mut dyn WriteWithUtils)
     }
     /// Provide a handle to receive a serde-serializable value to write to stdout.
     pub fn for_json(&mut self) -> Option<&mut Self> {
