@@ -17,7 +17,10 @@ use gitbutler_oplog::{
 };
 use gix::{revision::walk::Sorting, traverse::commit::simple::CommitTimeOrder};
 
-use crate::{CliId, IdMap, utils::OutputChannel};
+use crate::{
+    CliId, IdMap,
+    utils::{OutputChannel, WriteWithUtils},
+};
 
 /// Handle the `but pick` command.
 ///
@@ -257,12 +260,7 @@ fn select_commits_from_branch(
         .map(|(i, (_oid, c))| {
             let short_id = &c.id().to_string()[..7];
             let message = c.summary().unwrap_or("(no message)");
-            let truncated: String = message.chars().take(60).collect();
-            let display = if truncated.len() < message.len() {
-                format!("{}...", truncated.trim_end())
-            } else {
-                truncated
-            };
+            let display = out.truncate_if_unpaged(message, 60);
             format!("[{}] {} {}", i + 1, short_id, display)
         })
         .collect();

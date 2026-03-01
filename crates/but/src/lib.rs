@@ -108,6 +108,8 @@ pub async fn handle_args(args: impl Iterator<Item = OsString>) -> Result<()> {
     // Determine if pager should be used based on the command
     let use_pager = match args.cmd {
         #[cfg(feature = "legacy")]
+        Some(Subcommands::Status { .. }) => true,
+        #[cfg(feature = "legacy")]
         Some(Subcommands::Diff { tui, .. }) => !tui,
         #[cfg(feature = "legacy")]
         Some(Subcommands::Stage {
@@ -115,8 +117,6 @@ pub async fn handle_args(args: impl Iterator<Item = OsString>) -> Result<()> {
         }) => file_or_hunk.is_some(),
         _ => false,
     };
-    let mut out = OutputChannel::new_with_optional_pager(output_format, use_pager);
-
     if args.trace > 0 {
         trace::init(args.trace)?;
     }
@@ -128,6 +128,7 @@ pub async fn handle_args(args: impl Iterator<Item = OsString>) -> Result<()> {
     but_secret::secret::set_application_namespace(namespace);
 
     // If no subcommand is provided, but we have source and target, default to rub
+    let mut out = OutputChannel::new_with_optional_pager(output_format, use_pager);
     match args.cmd.take() {
         None if args.source_or_path.is_some() && args.target.is_some() => {
             // Default to rub when two arguments are provided without a subcommand

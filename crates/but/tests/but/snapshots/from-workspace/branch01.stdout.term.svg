@@ -7,7 +7,7 @@
       padding: 0 10px;
       line-height: 18px;
     }
-    .dimmed { opacity: 0.7; }
+    .dimmed { opacity: 0.4; }
     tspan {
       font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
       white-space: pre;
@@ -20,9 +20,9 @@
   <text xml:space="preserve" class="container fg">
     <tspan x="10px" y="28px"><tspan class="fg-green">Applied Branches</tspan>
 </tspan>
-    <tspan x="10px" y="46px"><tspan class="fg-green">active</tspan><tspan>  </tspan><tspan class="fg-green">✓ </tspan><tspan class="fg-green">*</tspan><tspan>A          </tspan><tspan class="dimmed">26y ago</tspan><tspan>    </tspan><tspan class="dimmed">autho…</tspan>
+    <tspan x="10px" y="46px"><tspan class="fg-green">active</tspan><tspan>  </tspan><tspan class="fg-green">✓ </tspan><tspan class="fg-green">*</tspan><tspan>A          </tspan><tspan class="dimmed">26y ago</tspan><tspan>    </tspan><tspan class="dimmed">author</tspan>
 </tspan>
-    <tspan x="10px" y="64px"><tspan class="fg-green dimmed">active</tspan><tspan>  </tspan><tspan class="fg-green">✓ </tspan><tspan class="fg-green">*</tspan><tspan>B          </tspan><tspan class="dimmed">26y ago</tspan><tspan>    </tspan><tspan class="dimmed">autho…</tspan>
+    <tspan x="10px" y="64px"><tspan class="fg-green">active</tspan><tspan>  </tspan><tspan class="fg-green">✓ </tspan><tspan class="fg-green">*</tspan><tspan>B          </tspan><tspan class="dimmed">26y ago</tspan><tspan>    </tspan><tspan class="dimmed">author</tspan>
 </tspan>
     <tspan x="10px" y="82px">
 </tspan>

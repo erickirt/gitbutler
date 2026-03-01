@@ -17,7 +17,8 @@ use serde::Serialize;
 use crate::{
     CLI_DATE,
     id::{SegmentWithId, StackWithId, TreeChangeWithId},
-    utils::time::format_relative_time_verbose,
+    tui::text::truncate_text,
+    utils::{WriteWithUtils, time::format_relative_time_verbose},
 };
 
 const DATE_ONLY: CustomFormat = CustomFormat::new("%Y-%m-%d");
@@ -90,7 +91,7 @@ pub(crate) async fn worktree(
     if let Some(out) = out.for_human() {
         let cache = ctx.app_cache.get_cache()?;
         if let Ok(Some(update)) = but_update::available_update(&cache) {
-            writeln!(out, "{}", update.display_cli(verbose))?;
+            writeln!(out, "{}", update.display_cli(verbose, out.is_paged()))?;
             writeln!(out)?;
         }
     }
@@ -181,13 +182,10 @@ pub(crate) async fn worktree(
                             .ok()
                             .and_then(|commit_obj| {
                                 let commit = commit_obj.decode().ok()?;
-                                let commit_message = commit
-                                    .message
-                                    .to_string()
-                                    .replace('\n', " ")
-                                    .chars()
-                                    .take(30)
-                                    .collect::<String>();
+                                let message = out.truncate_if_unpaged(
+                                    &commit.message.to_string().replace('\n', " "),
+                                    30,
+                                );
 
                                 let formatted_date = commit
                                     .committer()
@@ -202,7 +200,7 @@ pub(crate) async fn worktree(
                                     target_name: base_branch.branch_name.clone(),
                                     behind_count: base_branch.behind,
                                     latest_commit: commit_id.to_string()[..7].to_string(),
-                                    message: commit_message,
+                                    message,
                                     commit_date: formatted_date,
                                     last_fetched_ms: last_fetched,
                                     commit_id: commit_id.to_gix(),
@@ -342,18 +340,14 @@ pub(crate) async fn worktree(
             {
                 let commits = base_branch.upstream_commits.iter().take(8);
                 for commit in commits {
+                    // Measure prefix width using plain text (no ANSI codes)
+                    let truncated_msg = out
+                        .truncate_if_unpaged(&commit.description.to_string().replace('\n', " "), 72)
+                        .dimmed();
                     writeln!(
                         out,
-                        "┊{dot} {} {}",
-                        commit.id[..7].yellow(),
-                        commit
-                            .description
-                            .to_string()
-                            .replace('\n', " ")
-                            .chars()
-                            .take(72)
-                            .collect::<String>()
-                            .dimmed()
+                        "┊{dot} {short_id} {truncated_msg}",
+                        short_id = commit.id[..7].yellow()
                     )?;
                 }
                 let hidden_commits = base_branch.behind.saturating_sub(8);
@@ -378,27 +372,20 @@ pub(crate) async fn worktree(
         }
     }
 
-    let display_message = common_merge_base_data
-        .message
-        .lines()
-        .next()
-        .unwrap_or("")
-        .chars()
-        .take(40)
-        .collect::<String>();
-
+    let first_line = common_merge_base_data.message.lines().next().unwrap_or("");
+    let connector = if upstream_state.is_some() {
+        "├╯"
+    } else {
+        "┴"
+    };
+    let first_line = out.truncate_if_unpaged(first_line, 40);
     writeln!(
         out,
-        "{} {} [{}] {} {}",
-        if upstream_state.is_some() {
-            "├╯"
-        } else {
-            "┴"
-        },
+        "{} {} [{}] {} {first_line}",
+        connector,
         common_merge_base_data.common_merge_base.dimmed(),
         common_merge_base_data.target_name.green().bold(),
         common_merge_base_data.commit_date.dimmed(),
-        display_message,
     )?;
 
     let not_on_workspace = matches!(
@@ -570,7 +557,7 @@ pub fn print_group(
     review_map: &std::collections::HashMap<String, Vec<but_forge::ForgeReview>>,
     ci_map: &BTreeMap<String, Vec<but_forge::CiCheck>>,
     branch_merge_statuses: &BTreeMap<String, UpstreamBranchStatus>,
-    out: &mut dyn std::fmt::Write,
+    out: &mut dyn WriteWithUtils,
     id_map: &IdMap,
 ) -> anyhow::Result<()> {
     let repo = ctx.legacy_project.open_isolated_repo()?;
@@ -596,14 +583,14 @@ pub fn print_group(
                 .and_then(|branch_name| {
                     review::from_branch_details(review_map, branch_name, segment.pr_number())
                 })
-                .map(|r| format!(" {} ", r.display_cli(verbose)))
+                .map(|r| format!(" {} ", r.display_cli(verbose, out.is_paged())))
                 .unwrap_or_default();
 
             let ci = segment
                 .branch_name()
                 .and_then(|branch_name| ci_map.get(&branch_name.to_string()))
                 .map(CiChecks::from)
-                .map(|c| c.display_cli(verbose))
+                .map(|c| c.display_cli(verbose, out.is_paged()))
                 .unwrap_or_default();
 
             let merge_status = segment
@@ -790,7 +777,7 @@ fn print_commit(
     show_files: bool,
     verbose: bool,
     review_url: Option<String>,
-    out: &mut dyn std::fmt::Write,
+    out: &mut dyn WriteWithUtils,
 ) -> anyhow::Result<()> {
     let mark = if marked {
         Some("◀ Marked ▶".red().bold())
@@ -816,6 +803,7 @@ fn print_commit(
             CommitChanges::Remote(tree_changes) => !tree_changes.is_empty(),
         },
         verbose,
+        out.is_paged(),
     );
     let details_string = if upstream_commit {
         details_string.dimmed().to_string()
@@ -834,12 +822,14 @@ fn print_commit(
                 .unwrap_or_default(),
             mark.unwrap_or_default()
         )?;
-        let message = CommitMessage(commit.message.clone()).display_cli(verbose);
-        let message = if upstream_commit {
-            message.dimmed().to_string()
-        } else {
-            message
-        };
+        let message =
+            commit_message_display_cli(&commit.message, verbose, out.is_paged(), |truncated| {
+                if upstream_commit {
+                    truncated.dimmed().to_string()
+                } else {
+                    truncated
+                }
+            });
         writeln!(out, "┊│     {message}")?;
     } else {
         // Original format: everything on one line
@@ -859,12 +849,16 @@ fn print_commit(
             CommitChanges::Workspace(tree_changes) => {
                 for TreeChangeWithId { short_id, inner } in tree_changes {
                     let cid = short_id.blue().bold();
-                    writeln!(out, "┊│     {cid} {}", inner.display_cli(false))?;
+                    writeln!(
+                        out,
+                        "┊│     {cid} {}",
+                        inner.display_cli(false, out.is_paged())
+                    )?;
                 }
             }
             CommitChanges::Remote(tree_changes) => {
                 for change in tree_changes {
-                    writeln!(out, "┊│     {}", change.display_cli(false))?;
+                    writeln!(out, "┊│     {}", change.display_cli(false, out.is_paged()))?;
                 }
             }
         }
@@ -873,11 +867,11 @@ fn print_commit(
 }
 
 trait CliDisplay {
-    fn display_cli(&self, verbose: bool) -> String;
+    fn display_cli(&self, verbose: bool, is_paged: bool) -> String;
 }
 
 impl CliDisplay for but_core::TreeChange {
-    fn display_cli(&self, _verbose: bool) -> String {
+    fn display_cli(&self, _verbose: bool, _is_paged: bool) -> String {
         let path = path_with_color(&self.status, self.path.to_string());
         let status_letter = status_letter(&self.status);
         format!("{status_letter} {path}")
@@ -889,6 +883,7 @@ fn display_cli_commit_details(
     commit: &but_workspace::ref_info::Commit,
     has_changes: bool,
     verbose: bool,
+    is_paged: bool,
 ) -> String {
     let end_id = if short_id.len() >= 7 {
         "".to_string()
@@ -924,34 +919,41 @@ fn display_cli_commit_details(
             conflicted_str,
         )
     } else {
-        let message = CommitMessage(commit.message.clone()).display_cli(verbose);
+        let message =
+            commit_message_display_cli(&commit.message, verbose, is_paged, std::convert::identity);
         format!("{start_id}{end_id} {message}{no_changes}{conflicted_str}",)
     }
 }
 
-struct CommitMessage(pub BString);
+/// Return the plain (uncolored, unstyled) message text.
+/// First line only for inline mode, all lines joined for `verbose`.
+/// `is_paged` is used to avoid truncating text when output is being piped to a pager.
+/// `transform` can be used to further change the truncated text.
+/// If `message` is empty, returns a styled message to indicate this.
+fn commit_message_display_cli(
+    message: &BString,
+    verbose: bool,
+    is_paged: bool,
+    transform: impl FnOnce(String) -> String,
+) -> String {
+    let message = message.to_string();
+    let text = if verbose {
+        message.replace('\n', " ")
+    } else {
+        message.lines().next().unwrap_or("").to_string()
+    };
 
-impl CliDisplay for CommitMessage {
-    fn display_cli(&self, verbose: bool) -> String {
-        let message = self.0.to_string();
-        let text = if verbose {
-            message.replace('\n', " ")
-        } else {
-            message.lines().next().unwrap_or("").to_string()
-        };
-
-        let truncated: String = text.chars().take(50).collect();
-
-        if truncated.is_empty() {
-            "(no commit message)".dimmed().italic().to_string()
-        } else {
-            truncated.normal().to_string()
-        }
+    if text.is_empty() {
+        "(no commit message)".dimmed().italic().to_string()
+    } else if is_paged {
+        text
+    } else {
+        transform(text)
     }
 }
 
 impl CliDisplay for ForgeReview {
-    fn display_cli(&self, verbose: bool) -> String {
+    fn display_cli(&self, verbose: bool, is_paged: bool) -> String {
         if verbose {
             format!(
                 "#{}: {}",
@@ -959,15 +961,16 @@ impl CliDisplay for ForgeReview {
                 self.html_url.underline().blue(),
             )
         } else {
-            format!(
-                "#{}: {}",
-                self.number.to_string().bold(),
-                self.title
-                    .chars()
-                    .take(50)
-                    .collect::<String>()
-                    .trim_end_matches(|c: char| !c.is_ascii() && !c.is_alphanumeric())
-            )
+            let trimmed: String = self
+                .title
+                .trim_end_matches(|c: char| !c.is_ascii() && !c.is_alphanumeric())
+                .to_string();
+            let title = if is_paged {
+                trimmed
+            } else {
+                truncate_text(&trimmed, 50).into_owned()
+            };
+            format!("#{}: {}", self.number.to_string().bold(), title)
         }
     }
 }
@@ -982,7 +985,7 @@ impl From<&Vec<but_forge::CiCheck>> for CiChecks {
 }
 
 impl CliDisplay for CiChecks {
-    fn display_cli(&self, _verbose: bool) -> String {
+    fn display_cli(&self, _verbose: bool, _is_paged: bool) -> String {
         let success = self
             .0
             .iter()
@@ -1033,7 +1036,7 @@ impl CliDisplay for CiChecks {
 }
 
 impl CliDisplay for but_update::AvailableUpdate {
-    fn display_cli(&self, verbose: bool) -> String {
+    fn display_cli(&self, verbose: bool, _is_paged: bool) -> String {
         let version_info = format!(
             "{} → {}",
             self.current_version.dimmed(),

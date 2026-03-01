@@ -123,14 +123,7 @@ pub(crate) fn show_oplog(
                     details.title.clone()
                 };
 
-                // Truncate display_title to 80 characters
-                let display_title = if display_title.chars().count() > 80 {
-                    let truncated: String = display_title.chars().take(77).collect();
-                    format!("{truncated}...")
-                } else {
-                    display_title
-                };
-
+                let display_title = out.truncate_if_unpaged(&display_title, 80);
                 (op_type, display_title)
             } else {
                 ("UNKNOWN", "Unknown operation".to_string())

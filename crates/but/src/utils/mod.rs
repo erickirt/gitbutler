@@ -2,7 +2,7 @@ use std::io::Write;
 
 mod output_channel;
 pub use output_channel::{
-    Confirm, ConfirmDefault, ConfirmOrEmpty, InputOutputChannel, OutputChannel,
+    Confirm, ConfirmDefault, ConfirmOrEmpty, InputOutputChannel, OutputChannel, WriteWithUtils,
 };
 
 mod pager;
